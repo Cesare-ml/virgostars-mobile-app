@@ -14,7 +14,7 @@ Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astro
 - [ ] Android toolchain initialized, physical/emulator smoke test
 
 ## Native widget foundations
-- [x] Pure, locally tested widget snapshot presentation with stale/locked/private-data fallback (PR in review)
+- [x] Pure, locally tested widget snapshot presentation with stale/locked/private-data fallback (draft PR #13; not integrated into main)
 - [ ] Trusted ephemeris snapshot producer, encrypted cache and Android AppWidget/Glance host
 - [ ] Device tests for widget resize, stale data, device lock, reboot and offline
 
