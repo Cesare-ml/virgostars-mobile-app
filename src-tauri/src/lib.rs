@@ -26,6 +26,14 @@ fn runtime_info() -> RuntimeInfo {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
+        .setup(|app| {
+            #[cfg(mobile)]
+            app.handle().plugin(tauri_plugin_geolocation::init())?;
+            #[cfg(not(mobile))]
+            let _ = app;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![runtime_info])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
