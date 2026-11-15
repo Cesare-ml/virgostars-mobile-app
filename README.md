@@ -9,6 +9,12 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 - **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
 - **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
 
+## Native features for astrologers
+
+The [Native Astrologer Toolkit](docs/NATIVE_ASTROLOGER_TOOLKIT.md) defines a prioritized, Android-first roadmap: **moment capture**, verified-transit/lunation notifications, home widgets for the Moon and planetary hours, calendar event export, biometric vault, consultation voice notes, privacy-safe sharing, compass/sky pointing and smartwatch/NFC options.
+
+The `src/app/native/astro-event-planner.ts` prototype is **pure TypeScript contract logic**. It can plan best-effort reminders in UTC and prepare calendar drafts, but **does not schedule a notification, write a calendar event, read personal data or compute a real astrological event**. Real astronomical times require validated VirgoStars-Ephemeris integration. All real notifications and calendar operations require user consent.
+
 ## Get started (Android)
 
 Requirements: Node.js 22.12+ (or 24+), npm, Rust, Android Studio (SDK/NDK/platform tools), a compatible JDK and Rust Android target toolchains. Follow the [official Tauri mobile prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system.
