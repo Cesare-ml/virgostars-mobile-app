@@ -13,6 +13,13 @@ Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astro
 - [ ] Dependency lockfile and independently verified `npm run check` build
 - [ ] Android toolchain initialized, physical/emulator smoke test
 
+## Native widget foundations
+- [x] Pure, locally tested widget snapshot presentation with stale/locked/private-data fallback (PR in review)
+- [ ] Trusted ephemeris snapshot producer, encrypted cache and Android AppWidget/Glance host
+- [ ] Device tests for widget resize, stale data, device lock, reboot and offline
+
+See [Widget Snapshot Gate](WIDGET_SNAPSHOT_GATE.md) and [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md).
+
 ## M1 — Android demo with legitimate computed charts
 - [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
