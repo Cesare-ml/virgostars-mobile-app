@@ -1,0 +1,26 @@
+# Node / Angular
+node_modules/
+dist/
+.angular/
+out-tsc/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+# Rust / Tauri native outputs and generated mobile IDE projects
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
+src-tauri/.local/
+**/local.properties
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.cer
+*.p8
+.DS_Store
+.idea/
+.vscode/

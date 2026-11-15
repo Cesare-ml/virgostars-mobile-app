@@ -1,0 +1,18 @@
+[package]
+name = "virgostars-mobile"
+version = "0.1.0"
+description = "Experimental Android-first VirgoStars mobile shell"
+authors = ["VirgoStars project"]
+edition = "2021"
+rust-version = "1.90"
+
+[lib]
+name = "virgostars_mobile_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
