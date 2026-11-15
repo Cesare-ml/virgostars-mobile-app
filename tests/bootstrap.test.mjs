@@ -16,7 +16,19 @@ test('Android-first app uses shared Tauri / Angular toolchain', () => {
 });
 
 test('minimum native permission surface', () => {
-  assert.deepEqual(capabilities.permissions, ['core:default']);
+  assert.ok(capabilities.permissions.includes('core:default'));
+  assert.deepEqual(
+    capabilities.permissions.slice(1).sort(),
+    [
+      'geolocation:allow-check-permissions',
+      'geolocation:allow-request-permissions',
+      'geolocation:allow-get-current-position',
+      'notification:allow-is-permission-granted',
+      'notification:allow-request-permission',
+      'notification:allow-notify'
+    ].sort()
+  );
+  assert.ok(!capabilities.permissions.some((permission) => /watch|background|notification:default/.test(permission)));
   assert.deepEqual(capabilities.windows, ['main']);
   assert.match(config.app.security.csp, /connect-src 'self'/);
   assert.doesNotMatch(config.app.security.csp, /unsafe-eval/);
