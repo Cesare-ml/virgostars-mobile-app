@@ -22,6 +22,25 @@
         <div class="info-symbol" aria-hidden="true">◷</div>
         <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
       </section>
+      <section class="settings-card capture-card" aria-labelledby="capture-heading">
+        <h2 id="capture-heading">{{ t('captureTitle') }}</h2>
+        <p>{{ t('captureBody') }}</p>
+        <button class="primary capture-button" type="button"
+          [disabled]="!captureEnabled() || isCapturing()"
+          (click)="captureNow()">
+          {{ isCapturing() ? t('captureWorking') : t('captureAction') }}
+        </button>
+        @if (!captureEnabled()) {
+          <p class="disclaimer">{{ t('captureEnableHint') }}</p>
+        }
+        @if (captureState() === 'success') {
+          <p role="status" class="disclaimer">{{ t('captureSuccess') }}</p>
+        } @else if (captureState() === 'permission') {
+          <p role="alert" class="disclaimer">{{ t('capturePermission') }}</p>
+        } @else if (captureState() === 'failure') {
+          <p role="alert" class="disclaimer">{{ t('captureFailed') }}</p>
+        }
+      </section>
     } @else if (tab() === 'chart') {
       <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
       <section class="chart-card" [attr.aria-label]="t('demoWarning')">
@@ -37,13 +56,42 @@
       <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
     } @else if (tab() === 'archive') {
       <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
+      <p class="disclaimer">{{ t('archiveTemporary') }}</p>
+      @if (moments().length) {
+        <section class="archive-list" aria-label="Session captures">
+          @for (moment of moments(); track moment.id) {
+            <article class="settings-card archive-entry">
+              <h2>{{ momentLocalTime(moment) }}</h2>
+              <p>{{ t('archivePosition') }}: {{ moment.latitude.toFixed(4) }}, {{ moment.longitude.toFixed(4) }}</p>
+              <p>{{ t('archiveAccuracy') }}: ±{{ moment.accuracyMeters.toFixed(0) }} m</p>
+              <p class="disclaimer">{{ t('archivePending') }}</p>
+            </article>
+          }
+        </section>
+      } @else {
+        <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveEmpty') }}</p></div>
+      }
+      <p class="disclaimer">{{ t('privacyNote') }}</p>
     } @else {
       <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
       <div class="settings-card">
         <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
         <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
+        <div class="setting-row">
+          <span>{{ t('captureEnable') }}</span>
+          <button type="button" [attr.aria-pressed]="captureEnabled()" (click)="toggleCapture()">
+            {{ captureEnabled() ? '✓' : '○' }}
+          </button>
+        </div>
+        <div class="setting-row">
+          <span>{{ t('captureNotifications') }}</span>
+          <button type="button" [attr.aria-pressed]="notificationsEnabled()"
+            (click)="notificationsEnabled.set(!notificationsEnabled())">
+            {{ notificationsEnabled() ? '✓' : '○' }}
+          </button>
+        </div>
         <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
+        <p class="disclaimer">{{ t('privacyNote') }}</p>
       </div>
       <p class="disclaimer">{{ t('about') }}</p>
     }
