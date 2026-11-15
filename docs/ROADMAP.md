@@ -11,6 +11,20 @@ Milestones represent intended work, not completed functionality.
 - [ ] Dependency lockfile and independently verified `npm run check` build
 - [ ] Android toolchain initialized, physical/emulator smoke test
 
+## Native toolkit priorities (cross-milestone)
+- [x] Define opt-in UTC reminder and user-confirmed calendar draft contracts (pure planning, no OS scheduling)
+- [ ] Integrate actual native notification scheduling (best-effort) with permission prompts and Android 14+ exact-alarm fallback
+- [ ] Add Android lunar/next-event/planetary-hour home widget from **verified** cached data
+- [ ] Android calendar ACTION_INSERT flow with explicit user confirmation; no automatic calendar modification
+- [ ] Validate native biometric key-unlock and encrypted profile archive
+- [ ] Export redacted chart PNG/PDF to native share sheet and printer
+- [ ] Add consent-based chart-attached consultation voice notes; avoid background microphone
+- [ ] Research validated compass sensor/celestial direction with calibration warnings
+- [ ] Consider wearable, NFC and haptics only after Android native build and core validation
+- [ ] iOS WidgetKit/App Intents parity after Android baseline
+
+See [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md). Features are **planned**, not production integrations.
+
 ## M1 — Android demo with legitimate computed charts
 - [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
