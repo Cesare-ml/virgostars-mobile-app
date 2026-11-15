@@ -8,6 +8,7 @@ Milestones represent intended work, not completed functionality.
 - [x] Non-sensitive read-only native `runtime_info` contract
 - [x] Explicit synthetic/illustrative state (no fake natal calculations)
 - [x] Minimal security configuration and source contract tests
+- [x] Read-only prerequisite doctor with mock-based unit coverage
 - [ ] Dependency lockfile and independently verified `npm run check` build
 - [ ] Android toolchain initialized, physical/emulator smoke test
 

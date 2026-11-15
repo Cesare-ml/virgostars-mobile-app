@@ -16,13 +16,17 @@ Requirements: Node.js 22.12+ (or 24+), npm, Rust, Android Studio (SDK/NDK/platfo
 ```bash
 git clone https://github.com/Cesare-ml/virgostars-mobile-app.git
 cd virgostars-mobile-app
+npm run doctor
 npm install
 npm run check
+npm run doctor:android
 npm run android:init
 npm run android:dev
 ```
 
 `npm run android:init` generates icons from the repository's original SVG and initializes the Android project (generated native project is ignored). Set `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME` as required by your toolchain. Launch an Android emulator or connect a device with USB debugging. To attempt an unsigned/local build later, use `npm run android:build`; Google Play publication requires separate signing and release work. No publication is automated.
+
+Use `npm run doctor:device` before testing an emulator or authorized physical device. `npm run doctor:strict` exits nonzero while any required prerequisite is missing. The doctor **never prints** SDK paths, secrets or device serial numbers. It checks prerequisites, **not** whether an APK actually compiles or runs. A committed `package-lock.json` is still pending, so the first contributor with npm registry access must generate it using a genuine `npm install`, commit the lockfile, and use `npm ci` afterward. No lockfile has been fabricated.
 
 For Angular-only browser development, run `npm run dev`. The native probe displays a browser-safe fallback when Tauri is unavailable.
 

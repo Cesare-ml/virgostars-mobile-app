@@ -14,7 +14,11 @@
     "android:dev": "tauri android dev",
     "android:build": "tauri android build",
     "ios:init": "npm run icons && tauri ios init",
-    "ios:dev": "tauri ios dev"
+    "ios:dev": "tauri ios dev",
+    "doctor": "node scripts/mobile-doctor.mjs --stage=source",
+    "doctor:android": "node scripts/mobile-doctor.mjs --stage=android",
+    "doctor:device": "node scripts/mobile-doctor.mjs --stage=device",
+    "doctor:strict": "node scripts/mobile-doctor.mjs --stage=device --strict"
   },
   "engines": {
     "node": "^22.12.0 || ^24.0.0"
