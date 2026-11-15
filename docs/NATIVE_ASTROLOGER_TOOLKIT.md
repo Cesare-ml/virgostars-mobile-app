@@ -1,6 +1,6 @@
 # VirgoStars Mobile — native astrologer toolkit
 
-**Status: design + two pure TypeScript contracts. No Android/iOS native feature in this document is claimed to have passed a device test.**
+**Status: approved feature ideas and technical roadmap. The event-planning TypeScript contracts are proposed in draft PR #12, not integrated into `main`. No native Android/iOS feature here is claimed to have passed a device test.**
 Product decision: mobile should complement VirgoStars Desktop with *instant capture, event reminders and field-work tools*, without duplicating astronomical or astrological calculations.
 
 ## Priority and rollout
@@ -32,9 +32,9 @@ Snapshot { engine_version, calculated_at_utc, valid_until_utc, timezone_id,
 ```
 If stale, absent, inaccessible offline or outside documented capabilities, show “Dati da aggiornare” — no synthetic precision.
 
-## Event reminders — first code slice in this branch
+## Event reminders — proposed implementation in PR #12
 
-`src/app/native/astro-event-planner.ts` implements **pure planning only**:
+The module `src/app/native/astro-event-planner.ts`, currently in [draft PR #12](https://github.com/Cesare-ml/virgostars-mobile-app/pull/12), implements **pure planning only**:
 - Accept a real UTC instant and explicit provenance, IANA display zone, user opt-in and lead minutes.
 - Compute reminder trigger in UTC, preserving DST correctness. Lead times must be 0–10,080 minutes.
 - Return `ready-to-request` or `expired`, explicitly marked **best-effort**. It never claims a reminder was scheduled, delivered or precise to the second.
