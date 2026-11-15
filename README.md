@@ -7,7 +7,13 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 - **Android:** first supported development target.
 - **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
 - **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
-- **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
+- **Present functionality (prototype branch):** responsive IT/EN UI, illustrative chart placeholder, native read-only runtime probe, opt-in **one-shot foreground location + optional confirmation notification**, and **temporary session-only moment drafts**. **No real ephemeris, account archive, persistent private data or sync yet.**
+
+## Native “Capture the Moment” (prototype branch)
+
+Enable capture in Settings, then tap “Capture now” from Home. The app records the **tap timestamp**, IANA timezone, GPS fix and location accuracy, then displays a **temporary session draft** in Archive. These records disappear after restart and are **not calculated astrological charts**, saved profile records or uploaded data. Capture defaults off and requires the operating system’s foreground location permission. Optional notifications contain no private coordinates. See [Native Moment Capture](docs/NATIVE_MOMENT_CAPTURE.md).
+
+A global screenshot-like hardware key combination is **not available** to ordinary third-party apps. Android Quick Settings Tile, notification action and home widget are future integration options; iOS Shortcuts/App Intents come later. Never claim a system-wide hardware shortcut exists until a device test proves one.
 
 ## Get started (Android)
 
