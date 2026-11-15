@@ -21,6 +21,10 @@ Product decision: mobile should complement VirgoStars Desktop with *instant capt
 | P3 | NFC astrological tokens | Tap a user-created card/tag to open a particular chart or trigger a pre-approved action | Tauri NFC plugin, Android/iOS NFC | Never store private birth data or credentials on a readable NFC tag; device and iOS entitlement support vary. |
 | P3 | Haptic feedback | Short tactile confirmation after a *durable* capture / reminder acknowledgment | Tauri haptics plugin on mobile | Not all Android hardware supports consistent haptics; must remain optional and accessible. |
 
+## Snapshot sicuri per i widget — primo modulo implementato
+
+Il nuovo [Widget Snapshot Gate](WIDGET_SNAPSHOT_GATE.md) contiene un contratto TypeScript **testato localmente** (8 test passati, compilazione strict) per rifiutare dati astrologici mancanti, scaduti o non sicuri da mostrare su un widget. Quando il profilo è bloccato il widget deve rimanere neutro. Non costituisce ancora un vero widget Android o un calcolo astronomico verificato.
+
 ## Shared computational rule
 
 All **astronomical positions and times** originate from the canonical, validated `VirgoStars-Ephemeris` implementation. Zodiac/house/aspect rules belong to `astrological-functions`. Visual rendering belongs to `astrological-charts`. Do **not** calculate Moon phases, planetary hours or aspects from unvalidated static UI formulas or placeholders.
