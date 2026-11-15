@@ -62,8 +62,12 @@ export function diagnose({ stage = 'source', env = process.env, nodeVersion = pr
 }
 
 export function systemProbe(name, args) {
-  const command = process.platform === 'win32' && name === 'npm' ? 'npm.cmd' : name;
-  const response = spawnSync(command, args, { encoding: 'utf8', timeout: 4000, windowsHide: true, shell: false });
+  // On Windows npm is a .cmd shim; invoking it with shell:false fails on recent Node.
+  // Only a fixed, non-user-controlled command is passed to cmd.exe.
+  const windowsNpm = process.platform === 'win32' && name === 'npm';
+  const command = windowsNpm ? 'cmd.exe' : name;
+  const commandArgs = windowsNpm ? ['/d', '/s', '/c', 'npm --version'] : args;
+  const response = spawnSync(command, commandArgs, { encoding: 'utf8', timeout: 4000, windowsHide: true, shell: false });
   return { ok: !response.error && response.status === 0, output: String(response.stdout || response.stderr || '') };
 }
 
