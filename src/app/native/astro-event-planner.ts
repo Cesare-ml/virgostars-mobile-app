@@ -86,6 +86,9 @@ function validateEvent(event: AstrologerEvent): number {
   if (event.provenance !== 'verified-ephemeris' && event.provenance !== 'user-entry') {
     throw new Error('missing-event-provenance');
   }
+  if (typeof event.displayTimeZone !== 'string' || !event.displayTimeZone.trim()) {
+    throw new Error('invalid-timezone');
+  }
   try {
     new Intl.DateTimeFormat('en', { timeZone: event.displayTimeZone });
   } catch {
