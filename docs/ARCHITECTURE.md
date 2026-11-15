@@ -24,7 +24,7 @@ Rust mobile host
 VirgoStars server: independent authenticated/versioned API, not a direct DB link
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The bootstrap exposes `runtime_info` with `schema_version: 1`. The optional prototype native bridge additionally uses permission-scoped one-shot geolocation and notification plugins to capture an **in-memory moment draft** while in the foreground. All drafts disappear at process restart. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, persistent archive or sync integration. See [Native Moment Capture](NATIVE_MOMENT_CAPTURE.md).
 
 ## Reuse policy
 
