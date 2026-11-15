@@ -2,6 +2,8 @@
 
 Milestones represent intended work, not completed functionality.
 
+Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
+
 ## M0 — Bootstrap (this repository state)
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
 - [x] Mobile-first responsive navigation, Italian/English, attribution notice
