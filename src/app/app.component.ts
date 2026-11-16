@@ -95,15 +95,16 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       const fix = await getCurrentSkyLocation();
       if (this.destroyed || generation !== this.refreshGeneration) return;
-      // The chart instant and coordinates must describe the same observed fix.
-      const instant = new Date(fix.measuredAtMs);
-      if (!Number.isFinite(instant.getTime()) || Math.abs(Date.now() - fix.measuredAtMs) > 45_000) {
+      // The fix must be fresh, but the sky must be calculated for NOW, not
+      // the moment when the GPS receiver measured the coordinates.
+      const nowMs = Date.now();
+      if (!Number.isFinite(fix.measuredAtMs) || Math.abs(nowMs - fix.measuredAtMs) > 45_000) {
         this.state.set('location-unavailable');
         return;
       }
 
       const request: CurrentSkyRequest = {
-        instantUtc: instant.toISOString(),
+        instantUtc: new Date(nowMs).toISOString(),
         timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         latitude: fix.latitude,
         longitude: fix.longitude,
@@ -170,6 +171,11 @@ export class AppComponent implements OnInit, OnDestroy {
       this.refreshGeneration++;
       this.isRefreshing.set(false);
       this.stopRefreshTimer();
+      // Never expose an old chart as live when the app is resumed.
+      this.response.set(null);
+      this.request.set(null);
+      this.locationAccuracy.set(null);
+      this.state.set('loading');
     }
   }
 
