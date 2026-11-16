@@ -95,3 +95,11 @@ test('SVG wheel displays validated positions only after native ready response', 
   assert.match(wheel, /this\.chart\(\)\.bodies/);
   assert.match(wheel, /radius \* Math\.sin\(radians\)/);
 });
+
+test('clustered planet glyphs retain precise zodiac longitude ticks', () => {
+  const wheel = read('src/app/current-sky/sky-wheel.component.ts');
+  assert.match(wheel, /point\(marker\.longitude, 107\)/);
+  assert.match(wheel, /point\(marker\.longitude, 148\)/);
+  assert.match(wheel, /Math\.min\(delta, 360 - delta\) < 12/);
+  assert.match(wheel, /const radius = nearby\.length > 1/);
+});
