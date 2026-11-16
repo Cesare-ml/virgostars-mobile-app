@@ -77,3 +77,20 @@ contract tests is **not** evidence that an APK was built or launched.
 **Current status:** source and contract tests are committed; the dependency
 installation, Angular build, native Android build and device smoke test remain
 unverified. The pull request intentionally stays in draft.
+
+
+### Windows 11 build gate
+
+On a Windows workstation with the Android SDK/NDK, Java, Rust and Node
+installed, first run `npm install` and review/commit the generated
+`package-lock.json`. Initialize the Android project once with
+`npm run android:init`. Then run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-android-mvp.ps1
+```
+
+The script fails fast if the lockfile, SDK environment, Android project,
+Node dependencies, tests or build prerequisites are missing. It prints
+the generated APK path only after the build command succeeds. This is
+a local, manually invoked check; it does **not** create GitHub Actions.
