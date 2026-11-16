@@ -74,3 +74,13 @@ test('backgrounding clears potentially stale chart and location metadata', () =>
   assert.match(visibilityHandler, /this\.request\.set\(null\)/);
   assert.match(visibilityHandler, /this\.state\.set\('loading'\)/);
 });
+
+test('native chart is checked for all ten tropical planetary positions before display', () => {
+  const models = read('src/app/current-sky/current-sky.models.ts');
+  const component = read('src/app/app.component.ts');
+  assert.match(models, /export function parseSkyChart/);
+  assert.match(models, /record\['zodiac'\] !== 'tropical'/);
+  assert.match(models, /Number\.isFinite\(body\['longitude'\]\)/);
+  assert.match(models, /bodies\.length !== allowed\.size/);
+  assert.match(component, /parseSkyChart\(response\.chart\) === null/);
+});
