@@ -45,6 +45,7 @@ test('zodiac degrees use arcminutes without rounding into the next sign', () => 
   assert.equal(formatZodiacDegree(12.5), '12° 30′');
   assert.equal(formatZodiacDegree(29 + 59 / 60), '29° 59′');
   assert.equal(formatZodiacDegree(29.999999), '29° 59′');
+  assert.equal(formatZodiacDegree(29.99999999999999), '29° 59′');
   assert.throws(() => formatZodiacDegree(30), /within sign/);
   assert.throws(() => formatZodiacDegree(-0.1), /within sign/);
   assert.throws(() => formatZodiacDegree(NaN), /within sign/);
