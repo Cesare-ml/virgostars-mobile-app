@@ -115,7 +115,10 @@ export class AppComponent implements OnInit, OnDestroy {
   @HostListener('window:pageshow')
   onPageShow(): void {
     this.now.set(new Date());
-    this.refreshSky();
+    const lastCalculation = this.calculatedAt();
+    if (!lastCalculation || Date.now() - lastCalculation.getTime() >= CURRENT_SKY_REFRESH_MS) {
+      this.refreshSky();
+    }
   }
 
   switchLocale(): void {
