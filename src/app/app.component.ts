@@ -10,6 +10,7 @@ export class AppComponent implements OnInit,OnDestroy {
  constructor(private readonly sky:SkyChartService){}
  ngOnInit():void{void this.requestDeviceLocation();this.timer=setInterval(()=>{if(this.location)this.recalculate();},30_000);}
  ngOnDestroy():void{if(this.timer)clearInterval(this.timer);}
+ refreshChart():void{if(this.location?.source==='device')void this.requestDeviceLocation();else this.recalculate();}
  async requestDeviceLocation():Promise<void>{
   this.error.set(null);this.locating.set(true);this.loading.set(true);
   try {
@@ -36,7 +37,7 @@ export class AppComponent implements OnInit,OnDestroy {
   this.location={latitude,longitude,source:'manual'};this.error.set(null);this.recalculate();
  }
  onLatitudeChange(value:string):void{this.latitudeInput.set(value);} onLongitudeChange(value:string):void{this.longitudeInput.set(value);}
- private recalculate():void{if(!this.location)return;this.loading.set(true);try{this.chart.set(this.sky.calculate(new Date(),this.location));this.error.set(null);}catch{this.chart.set(null);this.error.set('Il calcolo del cielo non è riuscito. Riprova tra qualche istante.');}finally{this.loading.set(false);}}
+ private recalculate():void{if(!this.location)return;const initial=!this.chart();if(initial)this.loading.set(true);try{this.chart.set(this.sky.calculate(new Date(),this.location));this.error.set(null);}catch{this.chart.set(null);this.error.set('Il calcolo del cielo non è riuscito. Riprova tra qualche istante.');}finally{this.loading.set(false);}}
  formatLongitude(value:number):string{return value.toFixed(2).replace('.', '° ')+'′';}
  formatClock(value:Date):string{return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'medium'}).format(value);}
  formatCoordinates(location:ObserverLocation):string{return Math.abs(location.latitude).toFixed(3)+'° '+(location.latitude>=0?'N':'S')+' · '+Math.abs(location.longitude).toFixed(3)+'° '+(location.longitude>=0?'E':'W');}
