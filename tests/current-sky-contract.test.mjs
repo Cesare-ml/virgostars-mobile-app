@@ -4,10 +4,12 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('current-sky UI has one destination and no illustrative chart', () => {
+test('MVP opens directly on the current-sky experience and contains no fake chart', () => {
   const html = read('src/app/app.component.html');
-  assert.match(html, /current-sky/);
-  assert.doesNotMatch(html, /chart-illustration|demoWarning|archive|settings/);
+  const component = read('src/app/app.component.ts');
+  assert.match(html, /t\('title'\)/);
+  assert.match(component, /refreshCurrentSky\(\)/);
+  assert.doesNotMatch(html, /chart-illustration|demoWarning|bottom-nav|archive|settings/);
 });
 
 test('frontend requests foreground location and delegates calculation to native IPC', () => {
@@ -19,6 +21,13 @@ test('frontend requests foreground location and delegates calculation to native 
   assert.doesNotMatch(source, /watchPosition|background/i);
 });
 
+test('refreshes on foreground return and has bounded minute refresh while chart is renderable', () => {
+  const source = read('src/app/app.component.ts');
+  assert.match(source, /document:visibilitychange/);
+  assert.match(source, /60_000/);
+  assert.match(source, /Math\.abs\(Date\.now\(\) - fix\.measuredAtMs\) > 45_000/);
+});
+
 test('native calculation fails closed until a real provider is registered', () => {
   const source = read('src-tauri/src/current_sky.rs');
   assert.match(source, /trait CurrentSkyProvider/);
@@ -27,7 +36,7 @@ test('native calculation fails closed until a real provider is registered', () =
   assert.match(source, /invalid_input/);
 });
 
-test('no astronomy implementation or Swiss binary is bundled in this slice', () => {
-  const source = read('src-tauri/Cargo.toml');
-  assert.doesNotMatch(source, /swisseph|sweph/i);
+test('no Swiss code or binary is bundled without a verified license decision', () => {
+  const cargo = read('src-tauri/Cargo.toml');
+  assert.doesNotMatch(cargo, /swisseph|sweph/i);
 });
