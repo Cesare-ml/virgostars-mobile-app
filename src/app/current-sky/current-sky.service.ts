@@ -124,7 +124,9 @@ export class CurrentSkyService {
   private isValidSnapshot(snapshot: CurrentSkySnapshot | null | undefined, input: CurrentSkyInput): snapshot is CurrentSkySnapshot {
     if (!snapshot || snapshot.schemaVersion !== CURRENT_SKY_CONTRACT_VERSION || snapshot.timezoneId !== input.timezoneId || snapshot.utcOffsetMinutes !== input.utcOffsetMinutes) return false;
     if (!snapshot.observer || Math.abs(snapshot.observer.latitudeDeg - input.latitudeDeg) > 1e-7 || Math.abs(snapshot.observer.longitudeDegEast - input.longitudeDegEast) > 1e-7) return false;
-    if (!Number.isFinite(Date.parse(snapshot.calculatedAtUtc)) || Date.parse(snapshot.calculatedAtUtc) > Date.now() + 2_000) return false;
+    const calculatedAtMs = Date.parse(snapshot.calculatedAtUtc);
+    const requestedAtMs = Date.parse(input.capturedAtUtc);
+    if (!Number.isFinite(calculatedAtMs) || !Number.isFinite(requestedAtMs) || Math.abs(calculatedAtMs - requestedAtMs) > 2_000 || calculatedAtMs > Date.now() + 2_000) return false;
     if (!snapshot.provider?.id || !snapshot.provider.version || !snapshot.provider.ephemeris || !snapshot.provider.timeScale || !snapshot.provider.coordinateFrame || !snapshot.provider.houseSystem || !Array.isArray(snapshot.provider.limitations)) return false;
     if (snapshot.provider.zodiac !== 'tropical' && snapshot.provider.zodiac !== 'sidereal') return false;
     if (!Array.isArray(snapshot.positions) || !Array.isArray(snapshot.houseCusps) || snapshot.houseCusps.length !== 12 || !Array.isArray(snapshot.aspects)) return false;
@@ -148,4 +150,4 @@ export class CurrentSkyService {
   }
 }
 function isLongitudeValid(value: number): boolean { return Number.isFinite(value) && value >= 0 && value < 360; }
-function isAngleValid(angle: { longitudeDeg: number; latitudeDeg: number }): boolean { return isLongitudeValid(angle.longitudeDeg) && Number.isFinite(angle.latitudeDeg); }
+function isAngleValid(angle: { longitudeDeg: number; latitudeDeg: number }): boolean { return isLongitudeValid(angle.longitudeDeg) && Number.isFinite(angle.latitudeDeg) && angle.latitudeDeg >= -90 && angle.latitudeDeg <= 90; }
