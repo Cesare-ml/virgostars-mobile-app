@@ -17,7 +17,7 @@ test('Android-first app uses shared Tauri / Angular toolchain', () => {
 
 test('native permission surface is narrow and location requires user consent', () => {
   assert.deepEqual(capabilities.windows, ['main']);
-  assert.deepEqual(capabilities.platforms, ['iOS', 'android']);
+  assert.deepEqual(capabilities.platforms, ['android']);
   assert.ok(capabilities.permissions.includes('core:default'));
   assert.ok(capabilities.permissions.includes('geolocation:allow-check-permissions'));
   assert.ok(capabilities.permissions.includes('geolocation:allow-request-permissions'));
@@ -33,9 +33,9 @@ test('native commands expose runtime info and the official geolocation plugin on
   assert.match(rust, /fn runtime_info\(\)/);
   assert.match(rust, /schema_version: 1/);
   assert.match(rust, /tauri_plugin_geolocation::init\(\)/);
-  assert.match(rust, /#\[cfg\(mobile\)\]/);
+  assert.match(rust, /#\[cfg\(target_os = "android"\)\]/);
   assert.match(cargo, /target_os = "android"/);
-  assert.match(cargo, /target_os = "ios"/);
+  assert.doesNotMatch(cargo, /target_os = "ios"/);
   assert.doesNotMatch(rust, /reqwest|sqlx|http_client|password|secret|access_token/i);
 });
 
