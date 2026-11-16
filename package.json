@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Android-first, iOS-ready VirgoStars experimental offline-first mobile app",
+  "description": "Android-first VirgoStars current-sky chart MVP",
   "scripts": {
     "dev": "ng serve --host 0.0.0.0 --port 1420",
     "build": "ng build",
@@ -25,6 +25,7 @@
     "@angular/core": "20.3.35",
     "@angular/platform-browser": "20.3.35",
     "@tauri-apps/api": "2.12.2",
+    "astronomy-engine": "2.1.19",
     "rxjs": "^7.8.0",
     "tslib": "^2.8.1",
     "zone.js": "~0.15.1"
