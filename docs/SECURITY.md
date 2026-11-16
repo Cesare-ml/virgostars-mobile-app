@@ -1,6 +1,6 @@
 # Security and privacy
 
-**Current version has no user login, personal-data input, account cache, remote API calls or synchronization.** The runtime bridge returns only a public platform label and schema revision. No production service credentials are needed. All presented chart geometry is illustrative.
+**Current version has no user login, personal-data input, account cache, remote API calls or synchronization.** The runtime bridge returns only a public platform label and schema revision. No production service credentials are needed. The current chart positions are calculated locally from a temporary astronomy dependency; the SVG wheel is a visual representation, not a validated house chart. No device location is requested.
 
 Before implementing identity or local storage:
 1. Use system-browser OAuth 2 authorization code with PKCE, not an embedded login form.
