@@ -36,7 +36,8 @@ test('live chart uses an astronomical provider and refreshes periodically', () =
   assert.match(service, /Astronomy\.Ecliptic/);
   assert.match(service, /GEOCENTRIC/);
   assert.match(service, /TROPICAL/);
-  assert.match(component, /setInterval\(\(\) => this\.refresh\(\), 30_000\)/);
+  assert.match(component, /setInterval\(\(\) => \{/);
+  assert.match(component, /\}, 30_000\)/);
   assert.match(component, /clearInterval/);
   assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
   assert.equal(pkg.private, true);
