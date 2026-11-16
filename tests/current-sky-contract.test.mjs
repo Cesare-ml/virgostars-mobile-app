@@ -51,3 +51,11 @@ test('native request rejects malformed instants and invalid IANA timezones', () 
   assert.match(source, /invalid_timezone_is_rejected/);
   assert.match(cargo, /chrono-tz/);
 });
+
+test('backgrounded and destroyed screens discard pending asynchronous results', () => {
+  const source = read('src/app/app.component.ts');
+  assert.match(source, /private refreshGeneration = 0/);
+  assert.match(source, /generation !== this\.refreshGeneration/);
+  assert.match(source, /this\.destroyed = true/);
+  assert.match(source, /this\.refreshGeneration\+\+/);
+});
