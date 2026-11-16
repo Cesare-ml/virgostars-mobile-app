@@ -1,24 +1,34 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { checkPermissions, getCurrentPosition, requestPermissions } from '@tauri-apps/plugin-geolocation';
 import { ObserverLocation, SkyChart, SkyChartService } from './sky-chart.service';
+
 @Component({selector:'app-root',standalone:true,templateUrl:'./app.component.html',styleUrl:'./app.component.css'})
 export class AppComponent implements OnInit,OnDestroy {
  readonly chart=signal<SkyChart|null>(null); readonly loading=signal(true); readonly locating=signal(true);
  readonly error=signal<string|null>(null); readonly latitudeInput=signal(''); readonly longitudeInput=signal('');
  readonly signs=this.sky.signs; private timer:ReturnType<typeof setInterval>|null=null; private location:ObserverLocation|null=null;
  constructor(private readonly sky:SkyChartService){}
- ngOnInit():void{this.requestDeviceLocation();this.timer=setInterval(()=>{if(this.location)this.recalculate();},30_000);}
+ ngOnInit():void{void this.requestDeviceLocation();this.timer=setInterval(()=>{if(this.location)this.recalculate();},30_000);}
  ngOnDestroy():void{if(this.timer)clearInterval(this.timer);}
- requestDeviceLocation():void{
+ async requestDeviceLocation():Promise<void>{
   this.error.set(null);this.locating.set(true);this.loading.set(true);
-  if(!navigator.geolocation){this.locating.set(false);this.loading.set(false);this.error.set('La geolocalizzazione non è disponibile. Inserisci le coordinate.');return;}
-  navigator.geolocation.getCurrentPosition(position=>{
+  try {
+   let permissions=await checkPermissions();
+   if(permissions.location==='prompt'||permissions.location==='prompt-with-rationale') {
+    permissions=await requestPermissions(['location']);
+   }
+   if(permissions.location!=='granted') {
+    this.locating.set(false);this.loading.set(false);
+    this.error.set('Permesso di posizione negato. Puoi autorizzarlo oppure inserire le coordinate manualmente.');return;
+   }
+   const position=await getCurrentPosition({enableHighAccuracy:true,timeout:15_000,maximumAge:60_000});
    this.location={latitude:position.coords.latitude,longitude:position.coords.longitude,source:'device'};
    this.latitudeInput.set(position.coords.latitude.toFixed(5));this.longitudeInput.set(position.coords.longitude.toFixed(5));
    this.locating.set(false);this.recalculate();
-  },failure=>{
+  } catch {
    this.locating.set(false);this.loading.set(false);
-   this.error.set(failure.code===failure.PERMISSION_DENIED?'Permesso di posizione negato. Consenti la posizione oppure inserisci le coordinate.':'Non riesco a ottenere la posizione. Verifica il GPS o inserisci le coordinate.');
-  },{enableHighAccuracy:true,timeout:15_000,maximumAge:60_000});
+   this.error.set('Non riesco a ottenere la posizione. Verifica i permessi GPS oppure inserisci le coordinate.');
+  }
  }
  useManualLocation():void{
   const latitude=Number(this.latitudeInput()),longitude=Number(this.longitudeInput());
