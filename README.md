@@ -1,21 +1,22 @@
 # VirgoStars Mobile
 
-**Android-first, iOS-ready mobile companion to [VirgoStars Desktop](https://github.com/Cesare-ml/virgostars-desktop).**
+**Android-first mobile companion to VirgoStars Desktop.**
 
-Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. This repository is a **bootstrap prototype**, not a released or production-ready astrology app.
+The first MVP opens directly on a live geocentric sky chart: Sun, Moon and the eight major planets, placed in the tropical zodiac and refreshed once per minute. The on-screen clock advances every second. No account, birth record, server connection or manual setup is required to see the current sky.
 
-- **Android:** first supported development target.
-- **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
-- **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
-- **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
+## Current MVP
 
-## Idee e sviluppo delle funzioni native
-
-- [Native Astrologer Toolkit — funzionalità, priorità e vincoli Android/iOS](docs/NATIVE_ASTROLOGER_TOOLKIT.md). Include cattura del momento, notifiche per transiti, widget lunari, calendario, biometria, diario vocale, sensori, condivisione, smartwatch, QR/NFC e feedback aptico. Le idee sono **pianificate**, non già implementate.
+- Angular 20 + TypeScript + Tauri 2 + Rust; Android is the first native target.
+- Real planetary longitudes calculated locally by **Astronomy Engine 2.1.19** (MIT), a temporary astronomy provider while VirgoStars-Ephemeris remains experimental.
+- Geocentric, tropical, true ecliptic-of-date positions.
+- Responsive zodiac wheel and sign/degree/minute list in Italian and English.
+- No synthetic positions or fabricated chart values.
+- No Ascendant or houses: those require an observer location and separately validated house-method integration. This MVP does not request location.
+- Provider boundary isolated in `src/app/current-sky.mjs`, replaceable by the canonical VirgoStars-Ephemeris adapter when validation and native integration are ready.
 
 ## Get started (Android)
 
-Requirements: Node.js 22.12+ (or 24+), npm, Rust, Android Studio (SDK/NDK/platform tools), a compatible JDK and Rust Android target toolchains. Follow the [official Tauri mobile prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system.
+Requirements: Node.js 22.12+ (or 24+), npm, Rust, Android Studio (SDK/NDK/platform tools), compatible JDK and Rust Android targets. Follow the official Tauri v2 mobile prerequisites.
 
 ```bash
 git clone https://github.com/Cesare-ml/virgostars-mobile-app.git
@@ -26,36 +27,25 @@ npm run android:init
 npm run android:dev
 ```
 
-`npm run android:init` generates icons from the repository's original SVG and initializes the Android project (generated native project is ignored). Set `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME` as required by your toolchain. Launch an Android emulator or connect a device with USB debugging. To attempt an unsigned/local build later, use `npm run android:build`; Google Play publication requires separate signing and release work. No publication is automated.
+To attempt a local Android build, run `npm run android:build`. This does not sign or publish a Google Play release.
 
-For Angular-only browser development, run `npm run dev`. The native probe displays a browser-safe fallback when Tauri is unavailable.
+For browser preview: `npm run dev`, then visit `http://localhost:1420`.
 
-## iOS later
-
-The shared Angular and Rust source remains platform-neutral. **On a Mac with Xcode**, run `npm run ios:init` and `npm run ios:dev`, *after* the Android prototype is validated. No iOS project, signed IPA or App Store delivery exists yet.
-
-## Architecture
+## Architecture and constraints
 
 ```text
-src/                       Angular mobile UI and state (offline-friendly shell)
-src-tauri/                 Tauri 2 Rust mobile host / read-only IPC
-contracts/                 Planned versioned adapters and DTOs
-tests/                     Static bootstrap and safety checks
-docs/                      Architecture, roadmap, privacy, Android setup
-Upstream shared code:      VirgoStars-Ephemeris (Rust astronomy)
-                           astrological-functions (astrological methods)
-                           astrological-charts (chart rendering)
-                           virgostars-desktop (compatible local-first contracts)
-Future:                    owned-profile SQLite storage, secure key storage,
-                           OAuth2/PKCE, versioned server sync and offline outbox
+src/app/current-sky.mjs      Astronomy provider adapter and chart DTO
+src/app/app.component.*      Live chart UI, one-minute refresh and locale
+src-tauri/                   Tauri 2 Rust mobile host
+tests/                       Contract and ephemeris regression tests
+docs/                         Architecture, roadmap, privacy, Android setup
 ```
 
-Do not copy production VirgoStars web/server code, private birth records, private assets or ephemeris kernels into this repository. The illustrative UI is not a horoscope or natal chart. Native application and online service require separate ownership and security boundaries.
+Do not bundle personal birth records, signing keys, paid datasets or unlicensed kernels. The temporary provider is MIT-licensed; its notice is documented in `docs/THIRD_PARTY_NOTICES.md`. Canonical VirgoStars-Ephemeris remains the future source of truth after scientific validation.
 
 ## Project policy
 
-- [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Security and privacy](docs/SECURITY.md) · [Android setup](docs/ANDROID.md).
-- [Agent/contributor rules](AGENTS.md) · [License](LICENSE) · [Attribution](NOTICE).
-- The original source is offered under **CPAL-1.0** with the **Powered by VirgoStars** GUI attribution requirement. Third-party dependencies/assets retain their own licenses.
-- **No GitHub Actions**, deployments, store publication, signing material or privileged backend secrets.
-- `npm run check` is a static contract check + Angular compilation; an actual Android build needs a configured Android toolchain and has **not been verified by this bootstrap**.
+- Architecture, roadmap, security, Android setup and contributor rules are documented under `docs/` and `AGENTS.md`.
+- Original project source is CPAL-1.0 with the required visible **Powered by VirgoStars** attribution. Third-party dependencies retain their own licenses.
+- No GitHub Actions, deployments, store publication, signing material or unattended releases.
+- Android compilation and device validation require a configured Android toolchain; do not claim a native build until it has been run.
