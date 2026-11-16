@@ -1,5 +1,4 @@
 import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
 import {
   calculateCurrentSky,
   CurrentSkyLocationError,
@@ -12,12 +11,12 @@ import type {
 } from './current-sky/current-sky.models';
 
 type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
 
 const messages = {
   it: {
     title: 'Il cielo di adesso',
     subtitle: 'Tema astrologico del momento e del luogo in cui ti trovi.',
+    live: 'Cielo corrente · aggiornamento automatico',
     loading: 'Rilevo la posizione e preparo il calcolo…',
     browser: 'Apri VirgoStars Mobile su Android per acquisire la posizione del dispositivo.',
     permission: 'Per calcolare il cielo del luogo attuale serve il permesso di localizzazione. Puoi riprovare dopo averlo concesso.',
@@ -31,14 +30,13 @@ const messages = {
     accuracy: 'Precisione GPS',
     timezone: 'Fuso orario',
     source: 'Motore',
-    awaiting: 'In attesa del motore astronomico',
-    live: 'Aggiornamento automatico mentre l’app è aperta',
     footer: 'La posizione resta sul dispositivo e viene usata solo per il calcolo locale.',
     powered: 'Powered by VirgoStars'
   },
   en: {
     title: 'The sky right now',
     subtitle: 'Astrological chart for this moment and your current location.',
+    live: 'Current sky · automatic refresh',
     loading: 'Finding your location and preparing the calculation…',
     browser: 'Open VirgoStars Mobile on Android to access the device location.',
     permission: 'Location permission is required to calculate the sky for your current place. Retry after granting it.',
@@ -52,8 +50,6 @@ const messages = {
     accuracy: 'GPS accuracy',
     timezone: 'Time zone',
     source: 'Engine',
-    awaiting: 'Waiting for the astronomical engine',
-    live: 'Automatically refreshes while the app is open',
     footer: 'Your location stays on this device and is used only for local calculation.',
     powered: 'Powered by VirgoStars'
   }
@@ -72,7 +68,6 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly request = signal<CurrentSkyRequest | null>(null);
   readonly locationAccuracy = signal<number | null>(null);
   readonly isRefreshing = signal(false);
-  readonly runtime = signal<string | null>(null);
 
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -91,11 +86,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isRefreshing.set(true);
     this.state.set('loading');
     this.response.set(null);
+    this.request.set(null);
+    this.locationAccuracy.set(null);
 
     try {
       const fix = await getCurrentSkyLocation();
-      // Use the fix timestamp as the chart instant so time and place describe
-      // the same observed moment, rather than the later completion of the GPS call.
+      // The chart instant and coordinates must describe the same observed fix.
       const instant = new Date(fix.measuredAtMs);
       if (!Number.isFinite(instant.getTime()) || Math.abs(Date.now() - fix.measuredAtMs) > 45_000) {
         this.state.set('location-unavailable');
@@ -113,6 +109,10 @@ export class AppComponent implements OnInit, OnDestroy {
       this.locationAccuracy.set(fix.accuracyMeters);
 
       const response = await calculateCurrentSky(request);
+      if (response.schemaVersion !== 1) {
+        this.state.set('failed');
+        return;
+      }
       this.response.set(response);
 
       if (response.status === 'unavailable') {
@@ -120,22 +120,24 @@ export class AppComponent implements OnInit, OnDestroy {
           ? 'engine-unavailable' : 'failed');
         return;
       }
-      if (response.status !== 'ready' || response.chart === null) {
+      if (response.status !== 'ready' || response.chart === null || response.engine === null) {
         this.state.set('failed');
         return;
       }
 
-      // Never claim that a chart is visible until the shared renderer is wired.
+      // A computed payload is not a visible chart until the shared renderer is wired.
       this.state.set('renderer-unavailable');
     } catch (error: unknown) {
       if (error instanceof CurrentSkyLocationError) {
-        this.state.set(error.code === 'permission-denied'
+        if (error.code === 'native-runtime-required') this.state.set('browser-preview');
+        else this.state.set(error.code === 'permission-denied'
           ? 'permission-denied' : 'location-unavailable');
       } else {
         this.state.set('failed');
       }
     } finally {
       this.isRefreshing.set(false);
+      // Once a real provider/renderer is integrated, keep the current chart fresh.
       if (this.state() === 'renderer-unavailable') this.startRefreshTimer();
     }
   }
@@ -150,11 +152,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1) this.runtime.set(info.platform);
-      })
-      .catch(() => this.runtime.set('browser-preview'));
     if (document.visibilityState === 'visible') void this.refreshCurrentSky();
   }
 
