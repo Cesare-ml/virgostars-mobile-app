@@ -6,7 +6,7 @@ import {
   ZODIAC_SIGNS_IT,
   type CurrentSkySnapshot
 } from './current-sky-engine.mjs';
-import { layoutPlanetMarkers, needsSkyRefresh } from './current-sky-view.mjs';
+import { formatZodiacDegree, layoutPlanetMarkers, needsSkyRefresh } from './current-sky-view.mjs';
 
 type Locale = 'it' | 'en';
 const ZODIAC_SIGNS_EN = [
@@ -142,7 +142,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   formatDegree(value: number): string {
-    return `${value.toFixed(1)}°`;
+    return formatZodiacDegree(value);
   }
 
   get title(): string {
