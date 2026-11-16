@@ -40,3 +40,7 @@ npm run android:build
 ```
 
 Then smoke-test a real Android device/emulator, compare a sample instant against independent reference settings, verify chart update cadence, cold start, WebView resume and screen-size behavior. No APK, native build, or device test is claimed by this branch.
+
+## Conjunction readability
+
+Planet glyphs are distributed across three concentric tracks (radii 112, 128, 142 in the 320-unit SVG) to reduce overlap during conjunctions. This changes only glyph distance from the center, **never the calculated longitude or zodiac sign**. If a dense cluster cannot fit with the target 21-unit separation, the layout chooses the track with the greatest available clearance; close glyphs may still overlap in exceptional cases. The twelve zodiac boundaries are computed at exact 30-degree intervals.
