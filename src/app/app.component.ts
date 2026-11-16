@@ -16,6 +16,7 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly latitudeInput = signal('');
   readonly longitudeInput = signal('');
+  readonly editingLocation = signal(false);
   private readonly sky = inject(SkyChartService);
   readonly signs = this.sky.signs;
 
@@ -97,6 +98,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  toggleLocationEditor(): void {
+    this.editingLocation.update(value => !value);
+  }
+
   useManualLocation(): void {
     const latitude = Number(this.latitudeInput());
     const longitude = Number(this.longitudeInput());
@@ -118,6 +123,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.locationRequestId++;
     this.location = { latitude, longitude, source: 'manual' };
     this.error.set(null);
+    this.editingLocation.set(false);
     this.recalculate();
   }
 
