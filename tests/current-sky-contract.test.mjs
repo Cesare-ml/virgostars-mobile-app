@@ -84,3 +84,14 @@ test('native chart is checked for all ten tropical planetary positions before di
   assert.match(models, /bodies\.length !== allowed\.size/);
   assert.match(component, /parseSkyChart\(response\.chart\) === null/);
 });
+
+test('SVG wheel displays validated positions only after native ready response', () => {
+  const html = read('src/app/app.component.html');
+  const component = read('src/app/app.component.ts');
+  const wheel = read('src/app/current-sky/sky-wheel.component.ts');
+  assert.match(html, /<app-sky-wheel \[chart\]="sky"/);
+  assert.match(component, /this\.chart\.set\(parsedChart\)/);
+  assert.match(component, /this\.state\.set\('ready'\)/);
+  assert.match(wheel, /this\.chart\(\)\.bodies/);
+  assert.match(wheel, /radius \* Math\.sin\(radians\)/);
+});
