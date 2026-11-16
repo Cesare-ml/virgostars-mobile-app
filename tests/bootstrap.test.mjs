@@ -12,6 +12,8 @@ test('Android-first app uses shared Tauri / Angular toolchain', () => {
   assert.equal(config.bundle.android.minSdkVersion, 24);
   assert.equal(config.build.frontendDist, '../dist/virgostars-mobile/browser');
   assert.match(pkg.scripts['android:init'], /tauri android init/);
+  assert.equal(pkg.scripts['android:doctor'], 'node scripts/check-android-env.mjs');
+  assert.ok(existsSync(new URL('../scripts/check-android-env.mjs', import.meta.url)));
   assert.match(pkg.scripts['ios:init'], /tauri ios init/);
 });
 
