@@ -36,7 +36,6 @@ export class CurrentSkyService {
     if (document.visibilityState === 'visible') void this.refreshNow(true);
   };
 
-  /** Start a foreground-only GPS poll; expensive ephemeris calls are throttled. */
   start(): void {
     if (this.started) return;
     this.started = true;
@@ -56,7 +55,7 @@ export class CurrentSkyService {
     this.timer = null;
   }
 
-  /** Explicit retry after denial, no fix, or an unavailable calculation engine. */
+  /** Explicit retry after permission denial, no fix, or an unavailable engine. */
   async retry(): Promise<void> {
     this.baseline = null;
     await this.refreshNow(true);
@@ -65,15 +64,13 @@ export class CurrentSkyService {
   private async refreshNow(force: boolean): Promise<void> {
     if (this.inFlight || document.visibilityState !== 'visible') return;
     this.inFlight = true;
+    const startedAtUtc = new Date().toISOString();
 
-    const capturedAt = new Date();
-    const capturedAtMs = capturedAt.getTime();
-    const requestedAtUtc = capturedAt.toISOString();
     try {
       if (!isTauri()) {
         this.state.set({
           status: 'engine-unavailable',
-          requestedAtUtc,
+          requestedAtUtc: startedAtUtc,
           snapshot: null,
           message: 'native-runtime-required'
         });
@@ -84,13 +81,18 @@ export class CurrentSkyService {
       if (!permission) {
         this.state.set({
           status: 'permission-required',
-          requestedAtUtc,
+          requestedAtUtc: startedAtUtc,
           snapshot: null,
           message: 'location-permission-denied'
         });
         return;
       }
 
+      // Capture the astronomical instant immediately before asking for a fresh fix.
+      // A slow first-run permission dialog therefore cannot backdate the chart.
+      const capturedAt = new Date();
+      const capturedAtMs = capturedAt.getTime();
+      const requestedAtUtc = capturedAt.toISOString();
       const position = await getCurrentPosition({
         enableHighAccuracy: true,
         maximumAge: 0,
@@ -138,7 +140,7 @@ export class CurrentSkyService {
       };
 
       // Throttle repeated provider calls even when the provider currently fails.
-      // An explicit user retry and app foreground transition still force a new run.
+      // An explicit retry and app foreground transition still force a new run.
       this.baseline = {
         lastRequestAtMs: nowMs,
         latitudeDeg: fix.latitudeDeg,
@@ -171,7 +173,7 @@ export class CurrentSkyService {
         status: permissionDenied
           ? 'permission-required'
           : engineMissing ? 'engine-unavailable' : 'location-unavailable',
-        requestedAtUtc,
+        requestedAtUtc: startedAtUtc,
         snapshot: null,
         message: code
       });
