@@ -29,8 +29,16 @@ if (-not (Test-Path $env:NDK_HOME)) {
   throw 'NDK_HOME does not point to an existing directory.'
 }
 
+$sdkRoot = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { $env:ANDROID_SDK_ROOT }
+if (-not (Test-Path $sdkRoot)) {
+  throw 'Android SDK directory does not exist.'
+}
+
 if (-not $env:JAVA_HOME) {
   throw 'Set JAVA_HOME to the JDK used by Android Studio.'
+}
+if (-not (Test-Path $env:JAVA_HOME)) {
+  throw 'JAVA_HOME does not point to an existing directory.'
 }
 
 $targets = @(rustup target list --installed)
@@ -61,7 +69,7 @@ $buildStart = Get-Date
 npm run android:build -- --apk
 if ($LASTEXITCODE -ne 0) { throw 'Android build failed.' }
 
-$apks = @(Get-ChildItem 'src-tauri/gen/android' -Filter '*.apk' -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $buildStart.AddSeconds(-2) })
+$apks = @(Get-ChildItem 'src-tauri/gen/android' -Filter '*.apk' -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $buildStart.AddSeconds(-2) -and $_.Length -gt 0 })
 if ($apks.Count -eq 0) {
   throw 'Build returned success, but no APK was found in the generated Android project.'
 }
