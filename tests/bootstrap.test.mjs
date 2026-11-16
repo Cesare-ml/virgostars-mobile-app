@@ -70,3 +70,14 @@ test('live chart uses the pinned temporary provider and native location flow', (
   assert.equal(pkg.private, true);
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
 });
+
+test('coordinate forms use distinct accessible input identifiers', () => {
+  const ui = text('src/app/app.component.html');
+  const ids = [...ui.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length, 'Duplicate HTML IDs');
+  for (const id of ['latitude', 'longitude', 'latitude-edit', 'longitude-edit']) {
+    assert.ok(ids.includes(id));
+    assert.ok(ui.includes('for="' + id + '"'));
+  }
+  assert.match(ui, /aria-controls="location-editor"/);
+});
