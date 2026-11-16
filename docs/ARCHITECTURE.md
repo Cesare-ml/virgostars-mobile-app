@@ -1,19 +1,19 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **live-sky MVP implementation in progress** (2026-11-16). Android first, iOS later.
 
 ## Decision
 
 Keep the same platform-neutral boundaries as VirgoStars Desktop:
 
 ```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
+Angular live-sky UI (TypeScript; touch, safe areas, current-time chart)
       | typed app services and view models
       |              [future]
       +-- astrological-functions (methods, no duplicated astronomy)
       +-- astrological-charts (responsive Three.js chart renderer)
       |
-Tauri 2 IPC (versioned, explicit permissions)
+Tauri 2 IPC + scoped native geolocation plugin (explicit permissions)
       |
 Rust mobile host
       +-- future VirgoStars-Ephemeris canonical Rust adapter
@@ -24,9 +24,9 @@ Rust mobile host
 VirgoStars server: independent authenticated/versioned API, not a direct DB link
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The host exposes `runtime_info` and the official Tauri geolocation plugin. The current UI calculates a tropical geocentric sky chart through a temporary MIT provider adapter, with Whole Sign houses. The provider is not the VirgoStars engine and has not yet passed scientific parity tests. No OAuth, storage or sync integration exists.
 
-## Reuse policy
+## Current MVP implementation\n\n`SkyChartService` isolates Astronomy Engine 2.1.19 (MIT) behind a replaceable provider boundary. `@tauri-apps/plugin-geolocation` requests location only after explicit user consent; permissions are limited to check/request/current-position, not continuous tracking. Coordinates are held in process memory only. The user may also enter coordinates manually. Chart data refreshes every 30 seconds.\n\nThis is an implementation target, not yet an Android build/device validation. The canonical VirgoStars ephemeris must replace the temporary provider only after stable Rust/mobile bindings and scientific fixtures have passed.\n\n## Reuse policy
 
 - **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
 - **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
