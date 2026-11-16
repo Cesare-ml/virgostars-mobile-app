@@ -1,9 +1,6 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
-import {
-  checkPermissions,
-  getCurrentPosition,
-  requestPermissions
-} from '@tauri-apps/plugin-geolocation';
+import { checkPermissions, getCurrentPosition, requestPermissions } from '@tauri-apps/plugin-geolocation';
+import { formatDegreeMinute } from './sky-chart-math.js';
 import { ObserverLocation, SkyChart, SkyChartService } from './sky-chart.service';
 
 @Component({
@@ -53,7 +50,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
     try {
       let permissions = await checkPermissions();
-
       if (
         permissions.location === 'prompt' ||
         permissions.location === 'prompt-with-rationale'
@@ -143,12 +139,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   formatLongitude(value: number): string {
-    const degrees = Math.floor(value);
-    const minutes = Math.min(
-      59.9,
-      Math.round((value - degrees) * 600) / 10
-    );
-    return degrees + '° ' + minutes.toFixed(1) + '′';
+    return formatDegreeMinute(value);
   }
 
   formatClock(value: Date): string {
