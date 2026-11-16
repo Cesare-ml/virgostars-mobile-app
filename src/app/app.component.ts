@@ -30,7 +30,7 @@ const messages = {
     language: 'Lingua',
     runtime: 'Ambiente',
     data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
+    dataBody: 'I dati inseriti nella schermata Carta restano temporaneamente in memoria; non vengono salvati né trasmessi.',
     about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
     home: 'Home',
     chart: 'Carta',
@@ -64,7 +64,7 @@ const messages = {
     language: 'Language',
     runtime: 'Environment',
     data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
+    dataBody: 'Chart inputs remain temporarily in memory; they are not saved or transmitted.',
     about: 'Experimental project, not connected to VirgoStars services yet.',
     home: 'Home',
     chart: 'Chart',
@@ -95,7 +95,7 @@ export class AppComponent implements OnInit {
     return messages[this.locale()][key];
   }
 
-  updateChartField(field: keyof ReturnType<typeof this.chartFields>, value: string): void {
+  updateChartField(field: 'localDate' | 'localTime' | 'utcOffsetMinutes' | 'latitude' | 'longitude', value: string): void {
     this.chartFields.update(current => ({ ...current, [field]: value }));
     this.chartValidation.set(null);
   }
