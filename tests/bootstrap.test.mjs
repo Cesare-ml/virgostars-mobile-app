@@ -28,9 +28,13 @@ test('native permission surface is narrow and location requires user consent', (
 
 test('native commands expose runtime info and the official geolocation plugin only', () => {
   const rust = text('src-tauri/src/lib.rs');
+  const cargo = text('src-tauri/Cargo.toml');
   assert.match(rust, /fn runtime_info\(\)/);
   assert.match(rust, /schema_version: 1/);
   assert.match(rust, /tauri_plugin_geolocation::init\(\)/);
+  assert.match(rust, /#\\[cfg\\(mobile\\)\\]/);
+  assert.match(cargo, /target_os = \\"android\\"/);
+  assert.match(cargo, /target_os = \\"ios\\"/);
   assert.doesNotMatch(rust, /reqwest|sqlx|http_client|password|secret|access_token/i);
 });
 
