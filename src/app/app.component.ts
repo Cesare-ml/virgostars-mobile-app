@@ -21,6 +21,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private location: ObserverLocation | null = null;
+  private locationRequestId = 0;
 
   ngOnInit(): void {
     void this.requestDeviceLocation();
@@ -30,6 +31,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.locationRequestId++;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
   }
 
@@ -42,6 +44,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async requestDeviceLocation(): Promise<void> {
+    const requestId = ++this.locationRequestId;
     const hasExistingChart = this.chart() !== null;
     this.error.set(null);
     this.locating.set(!hasExistingChart);
@@ -55,6 +58,8 @@ export class AppComponent implements OnInit, OnDestroy {
       ) {
         permissions = await requestPermissions(['location']);
       }
+
+      if (requestId !== this.locationRequestId) return;
 
       if (permissions.location !== 'granted') {
         this.locating.set(false);
@@ -71,6 +76,8 @@ export class AppComponent implements OnInit, OnDestroy {
         maximumAge: 60_000
       });
 
+      if (requestId !== this.locationRequestId) return;
+
       this.location = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -81,6 +88,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.locating.set(false);
       this.recalculate();
     } catch {
+      if (requestId !== this.locationRequestId) return;
       this.locating.set(false);
       this.loading.set(false);
       this.error.set(
@@ -107,6 +115,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.locationRequestId++;
     this.location = { latitude, longitude, source: 'manual' };
     this.error.set(null);
     this.recalculate();
