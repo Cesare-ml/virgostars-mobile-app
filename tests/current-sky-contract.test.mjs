@@ -25,7 +25,7 @@ test('refreshes on foreground return and has a bounded minute refresh after prov
   const source = read('src/app/app.component.ts');
   assert.match(source, /document:visibilitychange/);
   assert.match(source, /60_000/);
-  assert.match(source, /Math\.abs\(Date\.now\(\) - fix\.measuredAtMs\) > 45_000/);
+  assert.match(source, /Math\.abs\(nowMs - fix\.measuredAtMs\) > 45_000/);
 });
 
 test('native calculation fails closed until a real provider is registered', () => {
@@ -82,7 +82,7 @@ test('native chart is checked for all ten tropical planetary positions before di
   assert.match(models, /record\['zodiac'\] !== 'tropical'/);
   assert.match(models, /Number\.isFinite\(body\['longitude'\]\)/);
   assert.match(models, /bodies\.length !== allowed\.size/);
-  assert.match(component, /parseSkyChart\(response\.chart\) === null/);
+  assert.match(component, /const parsedChart = parseSkyChart\(response\.chart\)/);
 });
 
 test('SVG wheel displays validated positions only after native ready response', () => {
