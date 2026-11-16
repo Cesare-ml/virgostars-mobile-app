@@ -32,7 +32,37 @@
           Riprova GPS
         </button>
 
+        <div class="manual-coordinates">
+          <label for="latitude">Latitudine</label>
+          <input
+            id="latitude"
+            type="number"
+            inputmode="decimal"
+            step="any"
+            min="-90"
+            max="90"
+            placeholder="es. 45.4642"
+            [value]="latitudeInput()"
+            (input)="onLatitudeChange($any($event.target).value)"
+          >
 
+          <label for="longitude">Longitudine</label>
+          <input
+            id="longitude"
+            type="number"
+            inputmode="decimal"
+            step="any"
+            min="-180"
+            max="180"
+            placeholder="es. 9.1900"
+            [value]="longitudeInput()"
+            (input)="onLongitudeChange($any($event.target).value)"
+          >
+
+          <button class="primary" type="button" (click)="useManualLocation()">
+            Calcola il cielo
+          </button>
+        </div>
       </section>
     }
 
