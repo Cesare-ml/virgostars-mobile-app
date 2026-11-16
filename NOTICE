@@ -13,6 +13,14 @@ The graphical interface displays this attribution, and users of the source
 must follow CPAL Sections 14 and 15 where applicable. The VirgoStars
 trademark is not offered under the source code license.
 
+Third-party calculation dependency:
+  Astronomy Engine 2.1.19
+  Copyright (c) 2019-2025 Don Cross <cosinekitty@gmail.com>
+  License: MIT
+  Upstream: https://github.com/cosinekitty/astronomy
+  Full license text: THIRD_PARTY_LICENSES/ASTRONOMY_ENGINE_MIT.txt
+
 Third-party dependencies, artwork, fonts, user birth records, ephemeris
 kernels, proprietary databases, service credentials and server services
-are not included in the grant and require their own authorization.
+are not included in the CPAL grant and retain their own license/authorization
+requirements.
