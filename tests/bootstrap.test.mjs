@@ -56,6 +56,7 @@ test('foreground return refreshes live sky and error offers a retry', () => {
   const component = text('src/app/app.component.ts');
   assert.match(component, /visibilitychange/);
   assert.match(component, /document\.visibilityState === 'visible'/);
+  assert.match(component, /this\.refreshIfStale\(\)/);
   assert.match(component, /window\.addEventListener\('focus'/);
   assert.match(component, /document\.removeEventListener\('visibilitychange'/);
   assert.match(component, /window\.removeEventListener\('focus'/);
@@ -113,4 +114,12 @@ test('Windows Android gate validates prerequisites and checks fresh nonempty APK
   assert.match(script, /LastWriteTime -ge \$buildStart/);
   assert.match(script, /\$_.Length -gt 0/);
   assert.doesNotMatch(script, /git push|gh release|gradle publish/i);
+});
+
+test('foreground and focus events do not recalculate the sky twice in quick succession', () => {
+  const component = text('src/app/app.component.ts');
+  assert.match(component, /private lastRefreshAt = 0/);
+  assert.match(component, /Date\.now\(\) - this\.lastRefreshAt >= 1_000/);
+  assert.match(component, /this\.lastRefreshAt = Date\.now\(\)/);
+  assert.match(component, /new Date\(this\.lastRefreshAt\)/);
 });
