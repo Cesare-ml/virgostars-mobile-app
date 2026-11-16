@@ -49,11 +49,15 @@ export class LiveSkyService {
     const bodies = BODIES.map(({ id, glyph, body }) => {
       const equatorial = Astronomy.GeoVector(body, instant, true);
       const ecliptic = Astronomy.Ecliptic(equatorial);
-      if (!Number.isFinite(ecliptic.elon) || !Number.isFinite(ecliptic.elat)) {
+      if (!Number.isFinite(ecliptic.elon) || !Number.isFinite(ecliptic.elat) ||
+          Math.abs(ecliptic.elat) > 90) {
         throw new RangeError(`Non-finite ephemeris coordinates for ${id}.`);
       }
       return { id, glyph, ...tropicalPosition(ecliptic.elon), retrograde: null };
     }).sort((a, b) => a.longitude - b.longitude);
+    if (bodies.length !== 10 || new Set(bodies.map(body => body.id)).size !== 10) {
+      throw new Error('Incomplete planetary ephemeris snapshot.');
+    }
     return {
       instant: new Date(instant.getTime()),
       coordinateFrame: 'TRUE_ECLIPTIC_OF_DATE',
