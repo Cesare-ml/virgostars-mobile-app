@@ -6,20 +6,20 @@ import { CURRENT_SKY_MAX_FIX_AGE_MS, isValidCurrentSkyFix, shouldRefreshCurrentS
 
 @Injectable({ providedIn: 'root' })
 export class CurrentSkyService {
-  readonly state = signal<CurrentSkyUiState>({ status: 'starting', requestedAtUtc: null, snapshot: null, message: null });
+  readonly state = signal<CurrentSkyUiState>({ status: 'permission-required', requestedAtUtc: null, snapshot: null, message: 'location-consent-required' });
   private timer: number | null = null;
   private inFlight = false;
   private started = false;
+  private pollingStarted = false;
   private baseline: CurrentSkyRefreshBaseline | null = null;
-  private readonly onVisibilityChange = (): void => { if (document.visibilityState === 'visible') void this.refreshNow(true); };
+  private readonly onVisibilityChange = (): void => { if (document.visibilityState === 'visible' && this.pollingStarted) void this.refreshNow(true, false); };
 
+  /** Show rationale first; Android permission is requested only after an explicit tap. */
   start(): void {
     if (this.started) return;
     this.started = true;
     document.addEventListener('visibilitychange', this.onVisibilityChange);
-    if (document.visibilityState === 'visible') void this.refreshNow(true);
-    // Poll GPS every 15s to detect movement, but run astronomy at most once/minute.
-    this.timer = window.setInterval(() => { if (document.visibilityState === 'visible') void this.refreshNow(false); }, 15_000);
+    // No location permission prompt, GPS request or timer before user consent.
   }
 
   stop(): void {
@@ -28,14 +28,24 @@ export class CurrentSkyService {
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     if (this.timer !== null) window.clearInterval(this.timer);
     this.timer = null;
+    this.pollingStarted = false;
   }
 
+  /** Called by the explicit rationale CTA; this is the only path that opens a permission prompt. */
   async retry(): Promise<void> {
     this.baseline = null;
-    await this.refreshNow(true);
+    await this.refreshNow(true, true);
   }
 
-  private async refreshNow(force: boolean): Promise<void> {
+  private startPolling(): void {
+    if (this.pollingStarted) return;
+    this.pollingStarted = true;
+    this.timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void this.refreshNow(false, false);
+    }, 15_000);
+  }
+
+  private async refreshNow(force: boolean, requestPermission: boolean): Promise<void> {
     if (this.inFlight || document.visibilityState !== 'visible') return;
     this.inFlight = true;
     let requestedAtUtc = new Date().toISOString();
@@ -44,23 +54,21 @@ export class CurrentSkyService {
         this.state.set({ status: 'engine-unavailable', requestedAtUtc, snapshot: null, message: 'native-runtime-required' });
         return;
       }
-      const permission = await this.ensureLocationPermission();
+      const permission = await this.ensureLocationPermission(requestPermission);
       if (!permission) {
         this.state.set({ status: 'permission-required', requestedAtUtc, snapshot: null, message: 'location-permission-denied' });
         return;
       }
+      this.startPolling();
+      if (document.visibilityState !== 'visible') return;
 
-      // Capture the requested instant after the permission dialog, immediately before GPS.
+      // Capture the requested instant after consent, immediately before GPS.
       const capturedAt = new Date();
       const capturedAtMs = capturedAt.getTime();
       requestedAtUtc = capturedAt.toISOString();
       const position = await getCurrentPosition({ enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 });
-      const fix: CurrentSkyLocationFix = {
-        latitudeDeg: position.coords.latitude,
-        longitudeDegEast: position.coords.longitude,
-        accuracyMeters: position.coords.accuracy,
-        measuredAtMs: position.timestamp
-      };
+      if (document.visibilityState !== 'visible') return;
+      const fix: CurrentSkyLocationFix = { latitudeDeg: position.coords.latitude, longitudeDegEast: position.coords.longitude, accuracyMeters: position.coords.accuracy, measuredAtMs: position.timestamp };
       const nowMs = Date.now();
       if (!isValidCurrentSkyFix(fix, nowMs, CURRENT_SKY_MAX_FIX_AGE_MS) || Math.abs(fix.measuredAtMs - capturedAtMs) > CURRENT_SKY_MAX_FIX_AGE_MS) {
         this.state.set({ status: 'location-unavailable', requestedAtUtc, snapshot: null, message: 'location-fix-invalid-or-not-synchronous-with-request' });
@@ -79,9 +87,9 @@ export class CurrentSkyService {
         altitudeMeters: position.coords.altitude,
         locationAccuracyMeters: fix.accuracyMeters
       };
-      // Update before IPC so provider errors do not trigger a 15-second retry loop.
       this.baseline = { lastRequestAtMs: nowMs, latitudeDeg: fix.latitudeDeg, longitudeDegEast: fix.longitudeDegEast };
       const snapshot = await invoke<CurrentSkySnapshot>('calculate_current_sky', { input });
+      if (document.visibilityState !== 'visible') return;
       if (!this.isValidSnapshot(snapshot, input)) {
         this.state.set({ status: 'failed', requestedAtUtc, snapshot: null, message: 'engine-returned-invalid-snapshot' });
         return;
@@ -99,9 +107,11 @@ export class CurrentSkyService {
     }
   }
 
-  private async ensureLocationPermission(): Promise<boolean> {
+  private async ensureLocationPermission(askUser: boolean): Promise<boolean> {
     let permission = await checkPermissions();
-    if (permission.location === 'prompt' || permission.location === 'prompt-with-rationale') permission = await requestPermissions(['location']);
+    if (askUser && (permission.location === 'prompt' || permission.location === 'prompt-with-rationale')) {
+      permission = await requestPermissions(['location']);
+    }
     return permission.location === 'granted';
   }
 
@@ -129,6 +139,5 @@ export class CurrentSkyService {
     return 'current-sky-unexpected-error';
   }
 }
-
 function isLongitudeValid(value: number): boolean { return Number.isFinite(value) && value >= 0 && value < 360; }
 function isAngleValid(angle: { longitudeDeg: number; latitudeDeg: number }): boolean { return isLongitudeValid(angle.longitudeDeg) && Number.isFinite(angle.latitudeDeg); }
