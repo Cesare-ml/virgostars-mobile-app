@@ -28,7 +28,7 @@ npm run android:dev
 
 `npm run android:init` generates icons from the repository's original SVG and initializes the Android project (generated native project is ignored). Set `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME` as required by your toolchain. Launch an Android emulator or connect a device with USB debugging. To attempt an unsigned/local build later, use `npm run android:build`; Google Play publication requires separate signing and release work. No publication is automated.
 
-For Angular-only browser development, run `npm run dev`. The native probe displays a browser-safe fallback when Tauri is unavailable.
+For Angular-only browser development, run `npm run dev`. The geolocation plugin requires the native Tauri host; browser preview uses manual coordinate entry.
 
 ## iOS later
 
@@ -37,8 +37,8 @@ The shared Angular and Rust source remains platform-neutral. **On a Mac with Xco
 ## Architecture
 
 ```text
-src/                       Angular mobile UI and state (offline-friendly shell)
-src-tauri/                 Tauri 2 Rust mobile host / read-only IPC
+src/                       Angular live-sky chart UI, provider adapter and state
+src-tauri/                 Tauri 2 Rust host, runtime IPC and scoped geolocation plugin
 contracts/                 Planned versioned adapters and DTOs
 tests/                     Static bootstrap and safety checks
 docs/                      Architecture, roadmap, privacy, Android setup
@@ -50,7 +50,7 @@ Future:                    owned-profile SQLite storage, secure key storage,
                            OAuth2/PKCE, versioned server sync and offline outbox
 ```
 
-Do not copy production VirgoStars web/server code, private birth records, private assets or ephemeris kernels into this repository. The illustrative UI is not a horoscope or natal chart. Native application and online service require separate ownership and security boundaries.
+Do not copy production VirgoStars web/server code, private birth records, private assets or ephemeris kernels into this repository. The current chart uses a temporary third-party astronomy provider and is not yet scientifically certified or powered by VirgoStars-Ephemeris. Device coordinates stay in memory and are not transmitted or persisted. Native application and online service require separate ownership and security boundaries.
 
 ## Project policy
 
