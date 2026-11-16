@@ -68,3 +68,8 @@ p { color: #afb7c9; line-height: 1.62; font-size: 15px; }
   .app-shell { border-left: 1px solid #2d3853; border-right: 1px solid #2d3853; }
 }
 @media (prefers-reduced-motion: reduce) { .loader { animation: none; } }
+
+/* Interim native-data-only ecliptic wheel; shared chart renderer replaces this. */
+.chart-card { width: 100%; max-width: 480px; margin: 0 auto 1.5rem; text-align: center; }
+.chart-card svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart-card p { font-size: .8rem; opacity: .8; }
