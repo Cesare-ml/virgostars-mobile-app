@@ -4,18 +4,11 @@ import {
   CURRENT_SKY_REFRESH_MS,
   ZODIAC_GLYPHS,
   ZODIAC_SIGNS_IT,
-  type CurrentSkyBody,
   type CurrentSkySnapshot
 } from './current-sky-engine.mjs';
+import { layoutPlanetMarkers, needsSkyRefresh } from './current-sky-view.mjs';
 
 type Locale = 'it' | 'en';
-type ChartMarker = CurrentSkyBody & {
-  readonly x: number;
-  readonly y: number;
-  readonly labelX: number;
-  readonly labelY: number;
-};
-
 const ZODIAC_SIGNS_EN = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
@@ -58,21 +51,7 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   });
 
-  readonly chartMarkers = computed<readonly ChartMarker[]>(() => {
-    const bodies = this.snapshot()?.bodies ?? [];
-    return bodies.map((body, index) => {
-      const angle = (body.longitudeDeg - 90) * Math.PI / 180;
-      const radius = 88 + (index % 3) * 8;
-      const labelRadius = radius + 15;
-      return Object.freeze({
-        ...body,
-        x: 180 + Math.cos(angle) * radius,
-        y: 180 + Math.sin(angle) * radius,
-        labelX: 180 + Math.cos(angle) * labelRadius,
-        labelY: 180 + Math.sin(angle) * labelRadius
-      });
-    });
-  });
+  readonly chartMarkers = computed(() => layoutPlanetMarkers(this.snapshot()?.bodies ?? []));
 
   readonly positions = computed(() => (this.snapshot()?.bodies ?? []).map(body => ({
     ...body,
@@ -116,7 +95,7 @@ export class AppComponent implements OnInit, OnDestroy {
   onPageShow(): void {
     this.now.set(new Date());
     const lastCalculation = this.calculatedAt();
-    if (!lastCalculation || Date.now() - lastCalculation.getTime() >= CURRENT_SKY_REFRESH_MS) {
+    if (needsSkyRefresh(lastCalculation, new Date(), CURRENT_SKY_REFRESH_MS)) {
       this.refreshSky();
     }
   }
