@@ -4,66 +4,57 @@
       <div class="brand-mark" aria-hidden="true">✦</div>
       <div class="brand-text">Virgo<span>Stars</span><small>MOBILE</small></div>
     </div>
-    <button class="lang" type="button" (click)="switchLocale()" [attr.aria-label]="'Switch language / Cambia lingua'">
-      {{ locale() === 'it' ? 'EN' : 'IT' }}
-    </button>
+    <button class="lang" type="button" (click)="switchLocale()" aria-label="Switch language / Cambia lingua">{{ locale() === 'it' ? 'EN' : 'IT' }}</button>
   </header>
-
   <main id="main-content">
-    @if (tab() === 'home') {
-      <section class="hero">
-        <span class="eyebrow">{{ t('status') }}</span>
-        <div class="hero-star" aria-hidden="true">✧</div>
-        <h1>{{ t('welcome') }}</h1>
-        <p>{{ t('intro') }}</p>
-        <button class="primary" type="button" (click)="navigate('chart')">{{ t('explore') }} <span aria-hidden="true">→</span></button>
-      </section>
-      <section class="info-card" aria-labelledby="offline-title">
-        <div class="info-symbol" aria-hidden="true">◷</div>
-        <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
-      </section>
-    } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
-      <section class="chart-card" [attr.aria-label]="t('demoWarning')">
-        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
-          <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
-          <circle cx="160" cy="160" r="107" fill="none" stroke="#9b92b9" stroke-width="1.5"/>
-          <circle cx="160" cy="160" r="55" fill="none" stroke="#cdb17f" stroke-width="1" opacity=".8"/>
-          <path d="M160 15V305M15 160H305M57.5 57.5L262.5 262.5M262.5 57.5L57.5 262.5" stroke="#8c829f" stroke-width="1" opacity=".5"/>
-          <path d="M160 53L174 145L267 160L174 175L160 267L146 175L53 160L146 145Z" fill="none" stroke="#e6cb91" stroke-width="2"/>
-          <circle cx="160" cy="160" r="8" fill="#edcc89"/>
-        </svg>
-      </section>
-      <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
-    } @else if (tab() === 'archive') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
-    } @else {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
-      <div class="settings-card">
-        <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
-        <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
-        <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
-      </div>
-      <p class="disclaimer">{{ t('about') }}</p>
-    }
-  </main>
-
-  <footer class="attribution"><span>Powered by VirgoStars</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
-
-  <nav class="bottom-nav" aria-label="Navigation">
-    @for (item of navTabs; track item) {
-      <button type="button" (click)="navigate(item)" [class.active]="tab() === item" [attr.aria-current]="tab() === item ? 'page' : null">
-        <span class="nav-glyph" aria-hidden="true">
-          @switch (item) {
-            @case ('home') { ⌂ }
-            @case ('chart') { ✧ }
-            @case ('archive') { ▤ }
-            @case ('settings') { ⚙ }
+    <section class="section-head">
+      <span class="eyebrow">{{ t('eyebrow') }}</span>
+      <h1>{{ t('title') }}</h1>
+      <p>{{ t('subtitle') }}</p>
+      <div class="timestamp"><span class="live-dot" aria-hidden="true"></span>{{ t('updated') }} · {{ formattedInstant() }}</div>
+    </section>
+    @if (failed()) {
+      <p class="error" role="alert">{{ t('error') }}</p>
+    } @else if (sky(); as currentSky) {
+      <section class="chart-card" aria-label="Live tropical zodiac chart">
+        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('geocentric')">
+          <circle cx="160" cy="160" r="151" class="outer-ring"/>
+          <circle cx="160" cy="160" r="119" class="zodiac-ring"/>
+          <circle cx="160" cy="160" r="72" class="inner-ring"/>
+          @for (sign of zodiac; track sign.id; let i = $index) {
+            <line x1="160" y1="41" x2="160" y2="279" class="zodiac-divider" [attr.transform]="'rotate(' + (i * 30) + ' 160 160)'"/>
           }
-        </span>
-        <span>{{ t(item) }}</span>
-      </button>
+          <circle cx="160" cy="160" r="3" class="chart-center"/>
+          @for (sign of zodiacLabels; track sign.id) {
+            <text [attr.x]="sign.x" [attr.y]="sign.y" class="sign-glyph">{{ sign.glyph }}</text>
+          }
+          @for (point of chartPoints(); track point.id) {
+            <line x1="160" y1="160" [attr.x2]="point.x" [attr.y2]="point.y" class="planet-ray"/>
+            <circle [attr.cx]="point.x" [attr.cy]="point.y" r="3.2" class="planet-dot"/>
+            <text [attr.x]="point.x" [attr.y]="point.y - 8" class="planet-glyph">{{ point.glyph }}</text>
+          }
+        </svg>
+        <div class="chart-caption">{{ t('geocentric') }}</div>
+      </section>
+      <section class="positions" aria-labelledby="positions-title">
+        <div class="list-heading"><h2 id="positions-title">{{ t('bodies') }}</h2><span>{{ currentSky.bodies.length }}</span></div>
+        <div class="body-grid">
+          @for (body of currentSky.bodies; track body.id) {
+            <article class="body-row">
+              <span class="body-symbol" aria-hidden="true">{{ body.glyph }}</span>
+              <div class="body-copy"><strong>{{ bodyName(body.id) }}</strong><small>{{ signName(body.signIndex) }} · {{ formattedLongitude(body.signDegree) }}</small></div>
+              <span class="body-longitude">{{ formattedLongitude(body.longitude) }}</span>
+            </article>
+          }
+        </div>
+      </section>
+    } @else {
+      <div class="loading" role="status">{{ t('loading') }}</div>
     }
-  </nav>
+    <section class="method-note"><p>{{ t('accuracy') }}</p><p>{{ t('noHouses') }}</p></section>
+  </main>
+  <footer class="attribution">
+    <span>{{ t('powered') }}</span> · <span>{{ runtime() === 'android' ? t('native') : t('browser') }}</span>
+    · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a>
+  </footer>
 </div>
