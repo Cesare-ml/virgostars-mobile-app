@@ -13,7 +13,7 @@ Milestones represent intended work, not completed functionality.
 ## M1 — Current-sky MVP (source implemented; validation pending)
 - [x] Launch directly on the current-sky planetary chart
 - [x] Calculate Sun, Moon and eight planets locally from current UTC instant
-- [x] Show geocentric apparent ecliptic-of-date tropical zodiac positions
+- [x] Show geocentric true-ecliptic-of-date tropical zodiac positions
 - [x] Refresh planetary positions every 60 seconds and clock every second
 - [x] Surface calculation method and omit unsupported houses/angles
 - [ ] Run all Node contract tests and Angular production compilation
