@@ -36,3 +36,14 @@ test('the single screen requests consent and contains no fabricated chart', () =
   assert.doesNotMatch(service, /watchPosition|localStorage|sessionStorage|fetch\(/);
   assert.match(service, /requestPermissions\(\['location'\]\)/);
 });
+
+test('foreground lifecycle rejects stale GPS and native replies', () => {
+  const service = text('src/app/current-sky/current-sky.service.ts');
+  assert.match(service, /private lifecycleGeneration = 0/);
+  assert.match(service, /const isActive = \(\): boolean/);
+  assert.match(service, /if \(!isActive\(\)\) return;/);
+  assert.match(service, /const capturedAt = new Date\(\);/);
+  assert.match(service, /pendingForegroundRefresh/);
+  assert.ok(service.indexOf('const capturedAt = new Date();') > service.indexOf('await getCurrentPosition('));
+  assert.ok(service.indexOf('if (!isActive()) return;', service.indexOf("await invoke<CurrentSkySnapshot>")) > 0);
+});
