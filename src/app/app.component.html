@@ -22,7 +22,7 @@
           <circle cx="160" cy="160" r="119" class="zodiac-ring"/>
           <circle cx="160" cy="160" r="72" class="inner-ring"/>
           @for (sign of zodiac; track sign.id; let i = $index) {
-            <line x1="160" y1="41" x2="160" y2="279" class="zodiac-divider" [attr.transform]="'rotate(' + (i * 30) + ' 160 160)'"/>
+            <line x1="160" y1="9" x2="160" y2="41" class="zodiac-divider" [attr.transform]="'rotate(' + (i * 30) + ' 160 160)'"/>
           }
           <circle cx="160" cy="160" r="3" class="chart-center"/>
           @for (sign of zodiacLabels; track sign.id) {
