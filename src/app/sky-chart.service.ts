@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as Astronomy from 'astronomy-engine';
-import { calculateAscendant, normalizeDegrees } from './sky-chart-math.js';
+import { calculateAscendant, normalizeDegrees, planetGlyphRadius } from './sky-chart-math.js';
 
 export interface ObserverLocation {
   latitude: number;
@@ -54,23 +54,6 @@ const BODIES = [
 
 const CENTER_X = 160;
 const CENTER_Y = 160;
-
-/** Spread neighboring planet glyphs across concentric lanes without changing longitude. */
-export function planetGlyphRadius(longitude: number, prior: ReadonlyArray<{ longitude: number; radius: number }>): number {
-  const lanes = [91, 105, 77, 116];
-  const separation = 15;
-  for (const radius of lanes) {
-    const clear = prior.every(point => {
-      const a = longitude * Math.PI / 180;
-      const b = point.longitude * Math.PI / 180;
-      const distance = Math.sqrt(radius * radius + point.radius * point.radius - 2 * radius * point.radius * Math.cos(a - b));
-      return distance >= separation;
-    });
-    if (clear) return radius;
-  }
-  return lanes[prior.length % lanes.length];
-}
-
 
 /**
  * Temporary astronomy provider. Keep this adapter isolated so it can be
