@@ -41,7 +41,10 @@ const BODIES = [
   { id: 'pluto', name: 'Plutone', glyph: '♇', body: Astronomy.Body.Pluto }
 ] as const;
 
-const normalize = (degrees: number): number => ((degrees % 360) + 360) % 360;
+const normalize = (degrees: number): number => {
+  const remainder = degrees % 360;
+  return remainder < 0 ? remainder + 360 : remainder === 0 ? 0 : remainder;
+};
 
 @Injectable({ providedIn: 'root' })
 export class CurrentSkyService {
@@ -58,6 +61,10 @@ export class CurrentSkyService {
     const bodies = BODIES.map((item, index): CurrentSkyBody => {
       const vector = Astronomy.GeoVector(item.body, instant, true);
       const ecliptic = Astronomy.RotateVector(frame, vector);
+      if (![ecliptic.x, ecliptic.y, ecliptic.z].every(Number.isFinite) ||
+          Math.hypot(ecliptic.x, ecliptic.y, ecliptic.z) === 0) {
+        throw new RangeError('Invalid geocentric vector for ' + item.name);
+      }
       const longitude = normalize(Math.atan2(ecliptic.y, ecliptic.x) * 180 / Math.PI);
       const signIndex = Math.floor(longitude / 30);
       const degreeInSign = longitude - signIndex * 30;
