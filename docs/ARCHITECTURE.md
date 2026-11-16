@@ -1,49 +1,39 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **live geocentric sky-chart prototype** (2026-11-16). Android first, iOS later.
 
-## Decision
+## Current MVP
 
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
+Angular 20 mobile UI
+  -> CurrentSkyService (typed provider boundary)
+  -> Astronomy Engine 2.1.19 (temporary MIT astronomy provider)
+  -> geocentric vectors -> true ecliptic of date -> tropical longitudes
 
-```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
-      |
-Tauri 2 IPC (versioned, explicit permissions)
-      |
-Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
-      |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
-```
+Tauri 2 native host
+  -> minimal read-only runtime_info IPC
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The app launches directly into the chart. It calculates the Sun, Moon and eight planets for the current absolute device instant, and refreshes the snapshot every 30 seconds while the screen is active. Calculations run locally; this MVP does not request location or send chart data to a server.
 
-## Reuse policy
+**Scope boundary:** the result is a geocentric zodiac chart. It does not include Ascendant, MC, local horizon or houses. Those require a location source and approved shared astrology-function contracts; the app does not invent them.
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+## Calculation ownership and replacement path
+
+- Current temporary provider: astronomy-engine@2.1.19, an external MIT-licensed astronomy library consumed as a package. No source is copied or vendored.
+- Adapter location: src/app/current-sky.service.ts. UI components consume only a typed CurrentSkySnapshot; no zodiac placement arithmetic is implemented in the template.
+- Future canonical provider: validated Rust VirgoStars-Ephemeris through a thin Tauri/WASM adapter, followed by astrological-functions for astrology-specific semantics.
+- Future renderer: astrological-charts only after the repository's separate licensing and asset gates are cleared. The current wheel is original SVG and CSS.
+- Do not claim parity with Swiss Ephemeris, VirgoStars production outputs or NASA/JPL until matched reference vectors and a reviewed error budget exist.
+
+The VirgoStars Rust ephemeris remains experimental. Its documented real-kernel independent JPL validation, frames and correction gates are still open. Swiss Ephemeris is not bundled: the temporary library used here avoids adding an unreviewed AGPL/professional-license dependency to this public CPAL application.
 
 ## Android and iOS
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
+Generated Tauri Android/iOS IDE trees live under ignored src-tauri/gen/; no signing material is committed. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, iOS Rust targets, entitlements and separate validation.
 
-## Local-first, not localStorage-first
+## Local-first and privacy boundaries
 
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
+The current MVP has no login, persistence, GPS, personal birth records, network API, account cache or sync. It stores no user chart. A future personal archive requires OS-backed secure key storage, encrypted profile-owned SQLite, OAuth2 Authorization Code + PKCE via the system browser, versioned HTTPS API, transactional outbox and explicit revocation/conflict semantics. See SECURITY.md.
 
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
+## Release gate
 
-## Platform / release boundary
-
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+A configured machine must run npm checks, initialize the Android project, build and smoke-test an emulator and physical device. Check cold start, 30-second refresh, WebView resume, screen sizes, timezone correctness and astronomical reference vectors. Builds do not publish; signing, Play Store and iOS release decisions are maintainer-only.
