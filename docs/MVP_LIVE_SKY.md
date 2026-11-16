@@ -9,7 +9,7 @@ All'avvio l'app richiede il permesso di posizione tramite il plugin ufficiale Ta
 Il repository VirgoStars-Ephemeris non espone ancora binding mobile stabili né un motore scientificamente convalidato per posizioni apparenti complete. Non si effettua una sostituzione prematura. Le librerie astrological-charts e astrological-functions non vengono copiate perché non risulta concessa una licenza pubblica per questo consumer.
 
 ## Geolocalizzazione e permessi
-È integrato il plugin Tauri ufficiale `tauri-plugin-geolocation` / `@tauri-apps/plugin-geolocation`. Il codice verifica lo stato del permesso, richiede `location` quando è in stato prompt e legge la posizione solo dopo il consenso. La capability autorizza esclusivamente check, request e get-current-position; non abilita il tracking continuo. Il plugin aggiunge i permessi Android coarse/fine al progetto nativo generato.
+È integrato il plugin Tauri ufficiale `tauri-plugin-geolocation` / `@tauri-apps/plugin-geolocation` (versione 2.5.0). Il codice verifica lo stato del permesso, richiede `location` quando è in stato prompt e legge la posizione solo dopo il consenso. La capability autorizza esclusivamente check, request e get-current-position; non abilita il tracking continuo. Il plugin aggiunge i permessi Android coarse/fine al progetto nativo generato.
 
 ## Gate Android
 - Eseguire `npm install`, `npm run check`, `npm run android:init`, `npm run android:dev` e `npm run android:build` con SDK/NDK/JDK configurati.
