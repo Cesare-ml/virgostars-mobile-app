@@ -1,39 +1,37 @@
 # VirgoStars Mobile — roadmap
 
-Milestones represent intended work, not completed functionality.
+Milestones reflect repository source status, not release status.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
-
-## M0 — Bootstrap (this repository state)
+## M0 — Live current-sky prototype (feature branch)
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Responsive live zodiac wheel opens on launch
+- [x] Geocentric tropical ecliptic longitudes for Sun, Moon and eight planets
+- [x] Refresh current instant and positions every 30 seconds while the app is open
+- [x] Explicit calculation engine/frame metadata and no synthetic chart fallback
+- [x] Minimal Tauri permissions and required Powered by VirgoStars attribution
+- [x] Third-party MIT license notice for temporary Astronomy Engine provider
+- [ ] Generate a genuine npm lockfile and run npm ci && npm run check
+- [ ] Configure Android SDK/NDK/JDK, initialize Tauri Android project and run npm run android:build
+- [ ] Smoke-test Android emulator and physical device
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Validated VirgoStars astronomy integration
+- [ ] Validate the documented VirgoStars-Ephemeris Rust capabilities against independent JPL/NAIF references
+- [ ] Agree on typed Rust/Tauri or WASM contract for UTC instant, geocentric body vectors, frame, corrections, units and provenance
+- [ ] Parallel-run the temporary provider against approved reference vectors; publish documented error results
+- [ ] Swap provider behind CurrentSkyService without changing the mobile UI
+- [ ] Confirm permitted kernel/data packaging and license/provenance
 
-## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
-- [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
-- [ ] Verified offline unlock policy and explicit revocation limitations
-- [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
+## M2 — Location-aware chart
+- [ ] Add explicit, foreground-only location consent and a manual location alternative
+- [ ] Use astrological-functions contracts for Ascendant, MC and supported house systems
+- [ ] Add topocentric/horizon presentation only after validated location/time/frame semantics and device QA
 
 ## M3 — Android beta and release gate
-- [ ] Security, accessibility, performance and Play Store/data-safety review
+- [ ] Security, accessibility, performance and Google Play data-safety review
 - [ ] Signed Android build, recovery and staged distribution (maintainer-only decision)
-- [ ] Offline and network-failure QA on real low-end and high-end phones
+- [ ] Test offline startup, WebView recovery and representative devices
 
 ## M4 — iOS adaptation
 - [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
+- [ ] Validate WKWebView rendering, lifecycle, secure storage and privacy prompts
 - [ ] Signed iOS beta/release after explicit owner approval
