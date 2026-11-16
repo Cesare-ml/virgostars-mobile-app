@@ -6,7 +6,6 @@ export const CURRENT_SKY_REFRESH_INTERVAL_MS = 60_000;
 export const CURRENT_SKY_LOCATION_CHANGE_METERS = 250;
 export const CURRENT_SKY_MAX_FIX_AGE_MS = 45_000;
 export const CURRENT_SKY_MAX_FUTURE_FIX_SKEW_MS = 5_000;
-export const CURRENT_SKY_SNAPSHOT_MAX_AGE_MS = 75_000;
 
 const EARTH_MEAN_RADIUS_METERS = 6_371_008.8;
 
@@ -18,7 +17,7 @@ export interface CurrentSkyLocationFix {
 }
 
 export interface CurrentSkyRefreshBaseline {
-  calculatedAtMs: number;
+  lastRequestAtMs: number;
   latitudeDeg: number;
   longitudeDegEast: number;
 }
@@ -52,10 +51,10 @@ export function shouldRefreshCurrentSky(
 ): boolean {
   if (!isValidCurrentSkyFix(fix, nowMs)) return false;
   if (!baseline) return true;
-  if (!Number.isFinite(baseline.calculatedAtMs)) return true;
+  if (!Number.isFinite(baseline.lastRequestAtMs)) return true;
   if (!isValidCoordinatePair(baseline.latitudeDeg, baseline.longitudeDegEast)) return true;
-  if (nowMs < baseline.calculatedAtMs) return true;
-  if (nowMs - baseline.calculatedAtMs >= CURRENT_SKY_REFRESH_INTERVAL_MS) return true;
+  if (nowMs < baseline.lastRequestAtMs) return true;
+  if (nowMs - baseline.lastRequestAtMs >= CURRENT_SKY_REFRESH_INTERVAL_MS) return true;
 
   return distanceMeters(
     baseline.latitudeDeg,
@@ -63,21 +62,6 @@ export function shouldRefreshCurrentSky(
     fix.latitudeDeg,
     fix.longitudeDegEast
   ) >= CURRENT_SKY_LOCATION_CHANGE_METERS;
-}
-
-export function isCurrentSkySnapshotFresh(
-  calculatedAtMs: number,
-  nowMs: number,
-  maxAgeMs = CURRENT_SKY_SNAPSHOT_MAX_AGE_MS
-): boolean {
-  if (
-    !Number.isFinite(calculatedAtMs) ||
-    !Number.isFinite(nowMs) ||
-    !Number.isFinite(maxAgeMs) ||
-    maxAgeMs < 0 ||
-    calculatedAtMs > nowMs
-  ) return false;
-  return nowMs - calculatedAtMs <= maxAgeMs;
 }
 
 export function distanceMeters(
