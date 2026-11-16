@@ -100,8 +100,8 @@ export class AppComponent implements OnInit, OnDestroy {
     x: number; y: number; x1: number; y1: number; x2: number; y2: number;
   }> {
     return ZODIAC_SIGNS.map((sign, index) => {
-      const middle = (index * 30 + 15 + 180) * Math.PI / 180;
-      const boundary = (index * 30 + 180) * Math.PI / 180;
+      const middle = (180 - (index * 30 + 15)) * Math.PI / 180;
+      const boundary = (180 - index * 30) * Math.PI / 180;
       return {
         ...sign,
         x: 160 + 127 * Math.cos(middle), y: 160 + 127 * Math.sin(middle),
