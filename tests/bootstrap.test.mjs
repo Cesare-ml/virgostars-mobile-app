@@ -61,6 +61,10 @@ test('live chart uses the pinned temporary provider and native location flow', (
   assert.match(math, /eastProjectionAt/);
   assert.match(app, /formatDegreeMinute/);
   assert.match(app, /refreshChart\(\)/);
+  assert.match(app, /editingLocation = signal\(false\)/);
+  assert.match(app, /toggleLocationEditor\(\)/);
+  assert.match(ui, /Modifica posizione/);
+  assert.match(ui, /Usa GPS/);
   assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
   assert.equal(pkg.dependencies['@tauri-apps/plugin-geolocation'], '2.5.0');
   assert.equal(pkg.private, true);
