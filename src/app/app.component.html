@@ -48,11 +48,8 @@
             <circle cx="180" cy="180" r="112" class="wheel-inner"/>
             <circle cx="180" cy="180" r="65" class="wheel-core"/>
             @for (sign of zodiac; track sign.glyph) {
-              <line [attr.x1]="180 + Math.cos((($index * 30) - 90) * Math.PI / 180) * 132"
-                    [attr.y1]="180 + Math.sin((($index * 30) - 90) * Math.PI / 180) * 132"
-                    [attr.x2]="180 + Math.cos((($index * 30) - 90) * Math.PI / 180) * 166"
-                    [attr.y2]="180 + Math.sin((($index * 30) - 90) * Math.PI / 180) * 166"
-                    class="wheel-tick"/>
+              <line [attr.x1]="sign.x1" [attr.y1]="sign.y1"
+                    [attr.x2]="sign.x2" [attr.y2]="sign.y2" class="wheel-tick"/>
               <text [attr.x]="sign.x" [attr.y]="sign.y" class="zodiac-glyph">{{ sign.glyph }}</text>
             }
             @for (marker of chartMarkers(); track marker.id) {
