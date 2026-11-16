@@ -14,7 +14,7 @@ const messages = {
     accuracy: 'Motore temporaneo: accuratezza dichiarata entro 1 minuto d’arco rispetto a NOVAS. Non è ancora il motore VirgoStars.',
     noHouses: 'Questa MVP mostra le posizioni planetarie geocentriche. Ascendente e case, che richiedono una località di osservazione, non sono inclusi.',
     native: 'App Android', browser: 'Anteprima browser', powered: 'Powered by VirgoStars',
-    error: 'Impossibile calcolare il cielo. Riprova tra qualche istante.',
+    error: 'Impossibile calcolare il cielo. Riprova tra qualche istante.', retry: 'Riprova',
     bodies: 'Posizioni planetarie', loading: 'Calcolo del cielo…',
     bodyNames: { Sun: 'Sole', Moon: 'Luna', Mercury: 'Mercurio', Venus: 'Venere', Mars: 'Marte', Jupiter: 'Giove', Saturn: 'Saturno', Uranus: 'Urano', Neptune: 'Nettuno', Pluto: 'Plutone' },
     signNames: ['Ariete','Toro','Gemelli','Cancro','Leone','Vergine','Bilancia','Scorpione','Sagittario','Capricorno','Acquario','Pesci']
@@ -27,7 +27,7 @@ const messages = {
     accuracy: 'Temporary engine: stated accuracy within 1 arcminute against NOVAS. This is not yet the VirgoStars engine.',
     noHouses: 'This MVP shows geocentric planetary positions. Ascendant and houses, which require an observer location, are not included.',
     native: 'Android app', browser: 'Browser preview', powered: 'Powered by VirgoStars',
-    error: 'Unable to calculate the sky. Please retry in a moment.',
+    error: 'Unable to calculate the sky. Please retry in a moment.', retry: 'Retry',
     bodies: 'Planetary positions', loading: 'Calculating the sky…',
     bodyNames: { Sun: 'Sun', Moon: 'Moon', Mercury: 'Mercury', Venus: 'Venus', Mars: 'Mars', Jupiter: 'Jupiter', Saturn: 'Saturn', Uranus: 'Uranus', Neptune: 'Neptune', Pluto: 'Pluto' },
     signNames: ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
@@ -42,6 +42,10 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly failed = signal(false);
   readonly zodiac = ZODIAC_SIGNS;
   private refreshTimer: number | undefined;
+  private readonly onVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') this.refresh();
+  };
+  private readonly onFocus = (): void => this.refresh();
 
   readonly chartPoints = computed(() => {
     const bodies = this.sky()?.bodies ?? [];
@@ -61,7 +65,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(private readonly liveSky: LiveSkyService) {}
 
-  t(key: 'eyebrow' | 'title' | 'subtitle' | 'geocentric' | 'updated' | 'accuracy' | 'noHouses' | 'native' | 'browser' | 'powered' | 'error' | 'bodies' | 'loading'): string {
+  t(key: 'eyebrow' | 'title' | 'subtitle' | 'geocentric' | 'updated' | 'accuracy' | 'noHouses' | 'native' | 'browser' | 'powered' | 'error' | 'retry' | 'bodies' | 'loading'): string {
     return messages[this.locale()][key];
   }
   bodyName(id: string): string {
@@ -84,15 +88,21 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   ngOnInit(): void {
     this.refresh();
-    this.refreshTimer = window.setInterval(() => this.refresh(), 30_000);
+    this.refreshTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') this.refresh();
+    }, 30_000);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    window.addEventListener('focus', this.onFocus);
     invoke<RuntimeInfo>('runtime_info')
       .then(info => { if (info.schema_version === 1) this.runtime.set(info.platform); })
       .catch(() => this.runtime.set(null));
   }
   ngOnDestroy(): void {
     if (this.refreshTimer !== undefined) window.clearInterval(this.refreshTimer);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    window.removeEventListener('focus', this.onFocus);
   }
-  private refresh(): void {
+  refresh(): void {
     try { this.sky.set(this.liveSky.calculate(new Date())); this.failed.set(false); }
     catch { this.sky.set(null); this.failed.set(true); }
   }
