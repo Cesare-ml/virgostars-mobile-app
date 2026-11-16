@@ -32,7 +32,33 @@
           Riprova GPS
         </button>
 
-        <div class="manual-coordinates">
+
+      </section>
+    }
+
+    @if (chart(); as sky) {
+      <section class="meta-card">
+        <div>
+          <span class="meta-label">OSSERVAZIONE LOCALE</span>
+          <strong>{{ formatClock(sky.timestamp) }}</strong>
+          <small>{{ formatCoordinates(sky.location) }}</small>
+        </div>
+        <div class="meta-actions">
+          <button class="edit-location" type="button" [attr.aria-expanded]="editingLocation()" (click)="toggleLocationEditor()">Coordinate</button>
+          <button
+            class="refresh"
+            type="button"
+            aria-label="Aggiorna ora e cielo"
+            (click)="refreshChart()"
+          >↻</button>
+        </div>
+      </section>
+
+      @if (editingLocation() && !error()) {
+        <section class="location-card" aria-label="Modifica coordinate">
+          <h2>Modifica posizione</h2>
+          <p>Inserisci le coordinate desiderate oppure torna al GPS.</p>
+          <div class="manual-coordinates">
           <label for="latitude">Latitudine</label>
           <input
             id="latitude"
@@ -63,23 +89,9 @@
             Calcola il cielo
           </button>
         </div>
-      </section>
-    }
-
-    @if (chart(); as sky) {
-      <section class="meta-card">
-        <div>
-          <span class="meta-label">OSSERVAZIONE LOCALE</span>
-          <strong>{{ formatClock(sky.timestamp) }}</strong>
-          <small>{{ formatCoordinates(sky.location) }}</small>
-        </div>
-        <button
-          class="refresh"
-          type="button"
-          aria-label="Aggiorna ora e cielo"
-          (click)="refreshChart()"
-        >↻</button>
-      </section>
+          <button class="secondary" type="button" (click)="requestDeviceLocation()">Usa GPS</button>
+        </section>
+      }
 
       <section class="chart-panel" aria-label="Carta astrologica del cielo attuale">
         <div class="chart-heading">
