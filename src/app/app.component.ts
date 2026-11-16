@@ -74,9 +74,20 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.refreshSky();
-    this.clockTimer = setInterval(() => this.now.set(new Date()), 1_000);
+    this.clockTimer = setInterval(() => {
+      const current = new Date();
+      const previous = this.now();
+      this.now.set(current);
+      // Recalculate if the device clock was changed while the app stayed open.
+      if (current.getTime() < previous.getTime() && document.visibilityState === 'visible') {
+        this.refreshSky();
+      }
+    }, 1_000);
     this.refreshTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') this.refreshSky();
+      if (document.visibilityState === 'visible' &&
+          needsSkyRefresh(this.calculatedAt(), new Date(), CURRENT_SKY_REFRESH_MS)) {
+        this.refreshSky();
+      }
     }, CURRENT_SKY_REFRESH_MS);
   }
 
@@ -105,6 +116,11 @@ export class AppComponent implements OnInit, OnDestroy {
   switchLocale(): void {
     this.locale.update(value => value === 'it' ? 'en' : 'it');
     document.documentElement.lang = this.locale();
+    if (this.error()) {
+      this.error.set(this.locale() === 'it'
+        ? 'Non è stato possibile calcolare il cielo. Riprova.'
+        : 'The sky could not be calculated. Please try again.');
+    }
   }
 
   refreshSky(): void {
