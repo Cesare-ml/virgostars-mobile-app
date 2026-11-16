@@ -1,17 +1,12 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "default",
-  "description": "Least-privilege one-shot foreground location and optional native capture notification",
-  "windows": [
-    "main"
-  ],
+  "description": "Foreground-only geolocation for current-sky calculation",
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "geolocation:allow-check-permissions",
     "geolocation:allow-request-permissions",
-    "geolocation:allow-get-current-position",
-    "notification:allow-is-permission-granted",
-    "notification:allow-request-permission",
-    "notification:allow-notify"
+    "geolocation:allow-get-current-position"
   ]
 }
