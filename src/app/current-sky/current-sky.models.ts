@@ -6,7 +6,7 @@ export interface DeviceLocationFix {
 }
 
 export interface CurrentSkyRequest {
-  /** UTC instant corresponding to the observed device location fix. */
+  /** UTC calculation instant (current clock time); location fix is checked for freshness separately. */
   instantUtc: string;
   timezoneId: string;
   latitude: number;
