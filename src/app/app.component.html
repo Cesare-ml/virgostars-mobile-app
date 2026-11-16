@@ -44,6 +44,35 @@
         <p>{{ t('engine') }}</p>
         <button class="secondary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
       </section>
+    } @else if (state() === 'ready' && response()?.chart; as chart) {
+      <section class="wheel-card" aria-label="Current sky wheel">
+        <h2>{{ t('wheel') }}</h2>
+        <svg class="sky-wheel" viewBox="0 0 320 320" role="img" aria-label="Calculated ecliptic positions">
+          <circle cx="160" cy="160" r="145" class="wheel-outer"/>
+          <circle cx="160" cy="160" r="94" class="wheel-inner"/>
+          @for (sign of ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']; track $index) {
+            <text class="sign-glyph"
+              [attr.x]="160 + 134 * Math.cos(($index * 30 - 75) * Math.PI / 180)"
+              [attr.y]="160 + 134 * Math.sin(($index * 30 - 75) * Math.PI / 180)"
+              text-anchor="middle" dominant-baseline="middle">{{ sign }}</text>
+          }
+          @for (body of chart.bodies; track body.id) {
+            <line class="body-spoke" x1="160" y1="160"
+              [attr.x2]="wheelX(body.longitudeDeg)"
+              [attr.y2]="wheelY(body.longitudeDeg)"/>
+            <circle class="body-marker" [attr.cx]="wheelX(body.longitudeDeg)"
+              [attr.cy]="wheelY(body.longitudeDeg)" r="11"/>
+            <text class="body-glyph" [attr.x]="wheelX(body.longitudeDeg)"
+              [attr.y]="wheelY(body.longitudeDeg)" text-anchor="middle"
+              dominant-baseline="middle">{{ bodySymbol(body) }}</text>
+          }
+        </svg>
+        <div class="body-list">
+          @for (body of chart.bodies; track body.id) {
+            <div><span>{{ bodySymbol(body) }} {{ body.id }}</span><strong>{{ body.longitudeDeg.toFixed(3) }}°</strong></div>
+          }
+        </div>
+      </section>
     } @else if (state() === 'renderer-unavailable') {
       <section class="status-card" role="status">
         <span class="status-symbol" aria-hidden="true">✧</span>
