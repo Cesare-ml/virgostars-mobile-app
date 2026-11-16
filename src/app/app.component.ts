@@ -43,11 +43,17 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly zodiac = ZODIAC_SIGNS;
   private refreshTimer: number | undefined;
   private destroyed = false;
+  private lastRefreshAt = 0;
+  private refreshIfStale(): void {
+    if (document.visibilityState === 'visible' && Date.now() - this.lastRefreshAt >= 1_000) {
+      this.refresh();
+    }
+  }
   private readonly onVisibilityChange = (): void => {
-    if (document.visibilityState === 'visible') this.refresh();
+    this.refreshIfStale();
   };
   private readonly onFocus = (): void => {
-    if (document.visibilityState === 'visible') this.refresh();
+    this.refreshIfStale();
   };
 
   readonly chartPoints = computed(() => {
@@ -99,7 +105,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroyed = false;
     this.refresh();
     this.refreshTimer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') this.refresh();
+      this.refreshIfStale();
     }, 30_000);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     window.addEventListener('focus', this.onFocus);
@@ -114,7 +120,8 @@ export class AppComponent implements OnInit, OnDestroy {
     window.removeEventListener('focus', this.onFocus);
   }
   refresh(): void {
-    try { this.sky.set(this.liveSky.calculate(new Date())); this.failed.set(false); }
+    this.lastRefreshAt = Date.now();
+    try { this.sky.set(this.liveSky.calculate(new Date(this.lastRefreshAt))); this.failed.set(false); }
     catch { this.sky.set(null); this.failed.set(true); }
   }
 }
