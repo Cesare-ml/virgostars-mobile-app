@@ -23,6 +23,17 @@ export interface EngineProvenance {
   positionMode: string;
 }
 
+export interface ChartBody {
+  id: string;
+  /** Tropical geocentric ecliptic longitude in degrees [0, 360). */
+  longitudeDeg: number;
+}
+
+export interface ChartPayload {
+  schemaVersion: 1;
+  bodies: ChartBody[];
+}
+
 export type CurrentSkyStatus = 'ready' | 'unavailable' | 'failed';
 
 export interface CurrentSkyResponse {
@@ -31,7 +42,7 @@ export interface CurrentSkyResponse {
   calculatedAtUtc: string | null;
   engine: EngineProvenance | null;
   /** Payload belongs to the canonical astrological-functions chart contract. */
-  chart: unknown | null;
+  chart: ChartPayload | null;
   errorCode: string | null;
   message: string | null;
 }
