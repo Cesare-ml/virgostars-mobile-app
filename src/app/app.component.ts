@@ -70,6 +70,8 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly isRefreshing = signal(false);
 
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private destroyed = false;
+  private refreshGeneration = 0;
 
   t(key: keyof typeof messages.it): string {
     return messages[this.locale()][key];
@@ -83,6 +85,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async refreshCurrentSky(): Promise<void> {
     if (this.isRefreshing()) return;
     this.stopRefreshTimer();
+    const generation = ++this.refreshGeneration;
     this.isRefreshing.set(true);
     this.state.set('loading');
     this.response.set(null);
@@ -91,6 +94,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     try {
       const fix = await getCurrentSkyLocation();
+      if (this.destroyed || generation !== this.refreshGeneration) return;
       // The chart instant and coordinates must describe the same observed fix.
       const instant = new Date(fix.measuredAtMs);
       if (!Number.isFinite(instant.getTime()) || Math.abs(Date.now() - fix.measuredAtMs) > 45_000) {
@@ -109,6 +113,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.locationAccuracy.set(fix.accuracyMeters);
 
       const response = await calculateCurrentSky(request);
+      if (this.destroyed || generation !== this.refreshGeneration) return;
       if (response.schemaVersion !== 1) {
         this.state.set('failed');
         return;
@@ -128,6 +133,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // A computed payload is not a visible chart until the shared renderer is wired.
       this.state.set('renderer-unavailable');
     } catch (error: unknown) {
+      if (this.destroyed || generation !== this.refreshGeneration) return;
       if (error instanceof CurrentSkyLocationError) {
         if (error.code === 'native-runtime-required') this.state.set('browser-preview');
         else this.state.set(error.code === 'permission-denied'
@@ -136,6 +142,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.state.set('failed');
       }
     } finally {
+      if (this.destroyed || generation !== this.refreshGeneration) return;
       this.isRefreshing.set(false);
       // Once a real provider/renderer is integrated, keep the current chart fresh.
       if (this.state() === 'renderer-unavailable') this.startRefreshTimer();
@@ -158,13 +165,17 @@ export class AppComponent implements OnInit, OnDestroy {
   @HostListener('document:visibilitychange')
   onVisibilityChange(): void {
     if (document.visibilityState === 'visible') {
-      void this.refreshCurrentSky();
+      if (!this.isRefreshing()) void this.refreshCurrentSky();
     } else {
+      this.refreshGeneration++;
+      this.isRefreshing.set(false);
       this.stopRefreshTimer();
     }
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.refreshGeneration++;
     this.stopRefreshTimer();
   }
 
