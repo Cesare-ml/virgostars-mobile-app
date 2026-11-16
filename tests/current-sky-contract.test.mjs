@@ -112,3 +112,17 @@ test('native boundary never declares ready for incomplete or duplicated planetar
   assert.match(source, /Ok\(chart\) if valid_chart\(&chart\)/);
   assert.match(source, /incomplete_or_invalid_planetary_payload_is_rejected/);
 });
+
+test('provider metadata is only retained after chart validation', () => {
+  const component = read('src/app/app.component.ts');
+  const validation = component.indexOf('const parsedChart = parseSkyChart(response.chart)');
+  const stored = component.indexOf('this.response.set(response)');
+  assert.ok(validation >= 0 && stored > validation);
+});
+
+test('native boundary rejects missing astronomical provenance', () => {
+  const source = read('src-tauri/src/current_sky.rs');
+  assert.match(source, /fn valid_provenance/);
+  assert.match(source, /ephemeris_provenance_invalid/);
+  assert.match(source, /provenance_requires_all_six_descriptors/);
+});
