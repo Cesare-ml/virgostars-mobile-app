@@ -7,7 +7,7 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 - **Android:** first supported development target.
 - **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
 - **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
-- **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
+- **Present functionality:** a single live-sky chart screen, opt-in Android location via the official Tauri plugin, current-time refresh, manual coordinate fallback, and a temporary MIT astronomy provider. No login, personal-data persistence or sync.
 
 ## Idee e sviluppo delle funzioni native
 
