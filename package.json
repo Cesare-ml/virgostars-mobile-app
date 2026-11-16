@@ -28,7 +28,8 @@
     "rxjs": "^7.8.0",
     "tslib": "^2.8.1",
     "zone.js": "~0.15.1",
-    "astronomy-engine": "2.1.19"
+    "astronomy-engine": "2.1.19",
+    "@tauri-apps/plugin-geolocation": "2.5.0"
   },
   "devDependencies": {
     "@angular/build": "20.3.5",
