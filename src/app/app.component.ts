@@ -1,68 +1,31 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import {
+  calculateCurrentSky,
+  CURRENT_SKY_REFRESH_MS,
+  ZODIAC_GLYPHS,
+  ZODIAC_SIGNS_IT,
+  type CurrentSkyBody,
+  type CurrentSkySnapshot
+} from './current-sky-engine.mjs';
 
-type Tab = 'home' | 'chart' | 'archive' | 'settings';
 type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
+type ChartMarker = CurrentSkyBody & {
+  readonly x: number;
+  readonly y: number;
+  readonly labelX: number;
+  readonly labelY: number;
+};
 
-const messages = {
-  it: {
-    tagline: 'Il cielo, a portata di mano',
-    status: 'Prototipo Android',
-    welcome: 'Benvenuto in VirgoStars',
-    intro: 'Il tuo futuro spazio astrologico personale, progettato per funzionare anche offline.',
-    explore: 'Esplora il laboratorio',
-    offlineTitle: 'Pensato per l’offline',
-    offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
-    chartTitle: 'Tema astrologico',
-    chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
-    demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
-    archiveTitle: 'Il mio archivio',
-    archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
-    settingsTitle: 'Impostazioni',
-    language: 'Lingua',
-    runtime: 'Ambiente',
-    data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
-    about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
-    home: 'Home',
-    chart: 'Carta',
-    archive: 'Archivio',
-    settings: 'Opzioni',
-    native: 'Host nativo',
-    connected: 'Connesso al bridge locale',
-    browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo'
-  },
-  en: {
-    tagline: 'The sky, in your hands',
-    status: 'Android prototype',
-    welcome: 'Welcome to VirgoStars',
-    intro: 'Your future personal astrology workspace, designed to work offline.',
-    explore: 'Explore the prototype',
-    offlineTitle: 'Designed for offline',
-    offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
-    chartTitle: 'Astrological chart',
-    chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
-    demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
-    archiveTitle: 'My library',
-    archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
-    settingsTitle: 'Settings',
-    language: 'Language',
-    runtime: 'Environment',
-    data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
-    about: 'Experimental project, not connected to VirgoStars services yet.',
-    home: 'Home',
-    chart: 'Chart',
-    archive: 'Library',
-    settings: 'Settings',
-    native: 'Native host',
-    connected: 'Local bridge connected',
-    browser: 'Browser preview',
-    build: 'Development shell'
-  }
-} as const;
+const ZODIAC_SIGNS_EN = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+];
+
+const BODY_NAMES_EN: Record<string, string> = {
+  sun: 'Sun', moon: 'Moon', mercury: 'Mercury', venus: 'Venus', mars: 'Mars',
+  jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus',
+  neptune: 'Neptune', pluto: 'Pluto'
+};
 
 @Component({
   selector: 'app-root',
@@ -70,18 +33,70 @@ const messages = {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  readonly tab = signal<Tab>('home');
+export class AppComponent implements OnInit, OnDestroy {
   readonly locale = signal<Locale>('it');
-  readonly runtime = signal<string | null>(null);
-  readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
+  readonly now = signal(new Date());
+  readonly snapshot = signal<CurrentSkySnapshot | null>(null);
+  readonly calculatedAt = signal<Date | null>(null);
+  readonly error = signal<string | null>(null);
+  readonly refreshing = signal(false);
+  private refreshTimer?: number;
+  private clockTimer?: number;
 
-  t(key: keyof typeof messages.it): string {
-    return messages[this.locale()][key];
+  readonly zodiac = ZODIAC_GLYPHS.map((glyph, index) => {
+    const angle = (index * 30 + 15 - 90) * Math.PI / 180;
+    return Object.freeze({
+      glyph,
+      name: ZODIAC_SIGNS_IT[index],
+      x: 180 + Math.cos(angle) * 147,
+      y: 180 + Math.sin(angle) * 147
+    });
+  });
+
+  readonly chartMarkers = computed<readonly ChartMarker[]>(() => {
+    const bodies = this.snapshot()?.bodies ?? [];
+    return bodies.map((body, index) => {
+      const angle = (body.longitudeDeg - 90) * Math.PI / 180;
+      const radius = 88 + (index % 3) * 8;
+      const labelRadius = radius + 15;
+      return Object.freeze({
+        ...body,
+        x: 180 + Math.cos(angle) * radius,
+        y: 180 + Math.sin(angle) * radius,
+        labelX: 180 + Math.cos(angle) * labelRadius,
+        labelY: 180 + Math.sin(angle) * labelRadius
+      });
+    });
+  });
+
+  readonly positions = computed(() => (this.snapshot()?.bodies ?? []).map(body => ({
+    ...body,
+    displayName: this.locale() === 'it' ? body.name : BODY_NAMES_EN[body.id],
+    displaySign: (this.locale() === 'it' ? ZODIAC_SIGNS_IT : ZODIAC_SIGNS_EN)[body.signIndex]
+  })));
+
+  readonly formattedNow = computed(() => new Intl.DateTimeFormat(
+    this.locale() === 'it' ? 'it-IT' : 'en-GB',
+    { dateStyle: 'full', timeStyle: 'medium' }
+  ).format(this.now()));
+
+  readonly formattedCalculation = computed(() => {
+    const value = this.calculatedAt();
+    return value ? new Intl.DateTimeFormat(
+      this.locale() === 'it' ? 'it-IT' : 'en-GB',
+      { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+    ).format(value) : '—';
+  });
+
+  ngOnInit(): void {
+    this.refreshSky();
+    this.clockTimer = setInterval(() => this.now.set(new Date()), 1_000) as unknown as number;
+    this.refreshTimer = setInterval(() => this.refreshSky(), CURRENT_SKY_REFRESH_MS) as unknown as number;
   }
 
-  navigate(tab: Tab): void {
-    this.tab.set(tab);
+  ngOnDestroy(): void {
+    if (this.clockTimer !== undefined) clearInterval(this.clockTimer);
+    if (this.refreshTimer !== undefined) clearInterval(this.refreshTimer);
   }
 
   switchLocale(): void {
@@ -89,13 +104,38 @@ export class AppComponent implements OnInit {
     document.documentElement.lang = this.locale();
   }
 
-  ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1 && info.mode === 'prototype') {
-          this.runtime.set(info.platform);
-        }
-      })
-      .catch(() => this.runtime.set(null)); // Expected in the browser.
+  refreshSky(): void {
+    this.refreshing.set(true);
+    try {
+      const instant = new Date();
+      this.snapshot.set(calculateCurrentSky(instant));
+      this.calculatedAt.set(instant);
+      this.error.set(null);
+    } catch {
+      this.snapshot.set(null);
+      this.error.set(this.locale() === 'it'
+        ? 'Non è stato possibile calcolare il cielo. Riprova.'
+        : 'The sky could not be calculated. Please try again.');
+    } finally {
+      this.refreshing.set(false);
+    }
+  }
+
+  formatDegree(value: number): string {
+    return value.toFixed(1).replace('.', '°') + '′';
+  }
+
+  signFor(index: number): string {
+    return (this.locale() === 'it' ? ZODIAC_SIGNS_IT : ZODIAC_SIGNS_EN)[index];
+  }
+
+  get title(): string {
+    return this.locale() === 'it' ? 'Il cielo di adesso' : 'The sky right now';
+  }
+
+  get subtitle(): string {
+    return this.locale() === 'it'
+      ? 'La carta astrologica del momento, calcolata in locale.'
+      : 'The astrological chart for this moment, calculated on device.';
   }
 }
