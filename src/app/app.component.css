@@ -256,3 +256,5 @@ button:focus-visible, input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .loader { animation: none; }
 }
+
+.form-error { color: #ffb8ad; font-weight: 600; }
