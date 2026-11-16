@@ -9,7 +9,7 @@
 use chrono::{DateTime, FixedOffset};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,6 +32,38 @@ pub struct EngineProvenance {
     pub position_mode: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChartBody {
+    pub id: String,
+    /// Tropical geocentric ecliptic longitude in degrees [0, 360).
+    pub longitude_deg: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChartPayload {
+    pub schema_version: u8,
+    pub bodies: Vec<ChartBody>,
+}
+
+impl ChartPayload {
+    fn is_valid(&self) -> bool {
+        self.schema_version == 1
+            && self.bodies.len() >= 2
+            && self.bodies.iter().all(|body| {
+                !body.id.trim().is_empty()
+                    && body.longitude_deg.is_finite()
+                    && (0.0..360.0).contains(&body.longitude_deg)
+            })
+            && self.bodies.iter().any(|body| body.id == "sun")
+            && self.bodies.iter().any(|body| body.id == "moon")
+            && self.bodies.iter().enumerate().all(|(index, body)| {
+                self.bodies[..index].iter().all(|other| other.id != body.id)
+            })
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrentSkyResponse {
@@ -39,14 +71,14 @@ pub struct CurrentSkyResponse {
     pub status: &'static str,
     pub calculated_at_utc: Option<String>,
     pub engine: Option<EngineProvenance>,
-    pub chart: Option<Value>,
+    pub chart: Option<ChartPayload>,
     pub error_code: Option<&'static str>,
     pub message: Option<&'static str>,
 }
 
 pub trait CurrentSkyProvider: Send + Sync {
     fn provenance(&self) -> EngineProvenance;
-    fn calculate(&self, request: &CurrentSkyRequest) -> Result<Value, String>;
+    fn calculate(&self, request: &CurrentSkyRequest) -> Result<ChartPayload, String>;
 }
 
 fn valid_utc_instant(value: &str) -> bool {
@@ -99,7 +131,7 @@ pub fn calculate_with_provider(
     };
 
     match provider.calculate(request) {
-        Ok(chart) => CurrentSkyResponse {
+        Ok(chart) if chart.is_valid() => CurrentSkyResponse {
             schema_version: 1,
             status: "ready",
             calculated_at_utc: Some(request.instant_utc.clone()),
@@ -108,7 +140,7 @@ pub fn calculate_with_provider(
             error_code: None,
             message: None,
         },
-        Err(_) => unavailable(
+        Ok(_) | Err(_) => unavailable(
             "ephemeris_calculation_failed",
             "Il calcolo del cielo non è riuscito. Nessun grafico è stato mostrato.",
         ),
@@ -139,9 +171,35 @@ mod tests {
             }
         }
 
-        fn calculate(&self, _request: &CurrentSkyRequest) -> Result<Value, String> {
-            Ok(serde_json::json!({"fixture": true}))
+        fn calculate(&self, _request: &CurrentSkyRequest) -> Result<ChartPayload, String> {
+            Ok(ChartPayload { schema_version: 1, bodies: vec![
+                ChartBody { id: "sun".into(), longitude_deg: 42.0 },
+                ChartBody { id: "moon".into(), longitude_deg: 123.0 },
+            ] })
         }
+    }
+
+    struct InvalidProvider;
+
+    impl CurrentSkyProvider for InvalidProvider {
+        fn provenance(&self) -> EngineProvenance {
+            TestProvider.provenance()
+        }
+
+        fn calculate(&self, _request: &CurrentSkyRequest) -> Result<ChartPayload, String> {
+            Ok(ChartPayload { schema_version: 1, bodies: vec![
+                ChartBody { id: "sun".into(), longitude_deg: f64::NAN },
+                ChartBody { id: "moon".into(), longitude_deg: 42.0 },
+            ] })
+        }
+    }
+
+    #[test]
+    fn malformed_provider_chart_is_rejected() {
+        let result = calculate_with_provider(&request(), Some(&InvalidProvider));
+        assert_eq!(result.status, "unavailable");
+        assert_eq!(result.error_code, Some("ephemeris_calculation_failed"));
+        assert!(result.chart.is_none());
     }
 
     fn request() -> CurrentSkyRequest {
@@ -195,6 +253,6 @@ mod tests {
         let result = calculate_with_provider(&request(), Some(&TestProvider));
         assert_eq!(result.status, "ready");
         assert_eq!(result.engine.unwrap().provider, "test-fixture");
-        assert_eq!(result.chart.unwrap()["fixture"], true);
+        assert_eq!(result.chart.unwrap().bodies.len(), 2);
     }
 }
