@@ -98,7 +98,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // The fix must be fresh, but the sky must be calculated for NOW, not
       // the moment when the GPS receiver measured the coordinates.
       const nowMs = Date.now();
-      if (!Number.isFinite(fix.measuredAtMs) || Math.abs(nowMs - fix.measuredAtMs) > 45_000) {
+      if (!Number.isFinite(fix.measuredAtMs) || fix.measuredAtMs > nowMs + 2_000 || nowMs - fix.measuredAtMs > 45_000) {
         this.state.set('location-unavailable');
         return;
       }
@@ -145,8 +145,8 @@ export class AppComponent implements OnInit, OnDestroy {
     } finally {
       if (this.destroyed || generation !== this.refreshGeneration) return;
       this.isRefreshing.set(false);
-      // Once a real provider/renderer is integrated, keep the current chart fresh.
-      if (this.state() === 'renderer-unavailable') this.startRefreshTimer();
+      // Refresh foreground location and sky even while the provider is unavailable.
+      if (document.visibilityState === 'visible') this.startRefreshTimer();
     }
   }
 
