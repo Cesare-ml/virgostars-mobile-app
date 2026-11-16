@@ -167,7 +167,7 @@ export class CurrentSkyService {
     const calculatedAtMs = Date.parse(snapshot.calculatedAtUtc);
     const requestedAtMs = Date.parse(input.capturedAtUtc);
     if (!Number.isFinite(calculatedAtMs) || !Number.isFinite(requestedAtMs) || Math.abs(calculatedAtMs - requestedAtMs) > 2_000 || calculatedAtMs > Date.now() + 2_000) return false;
-    if (!snapshot.provider?.id || !snapshot.provider.version || !snapshot.provider.ephemeris || !snapshot.provider.timeScale || !snapshot.provider.coordinateFrame || !snapshot.provider.houseSystem || !Array.isArray(snapshot.provider.limitations) || !snapshot.provider.limitations.every((limitation) => typeof limitation === 'string')) return false;
+    if (!snapshot.provider || !['id', 'version', 'ephemeris', 'timeScale', 'coordinateFrame', 'houseSystem'].every((key) => typeof (snapshot.provider as unknown as Record<string, unknown>)[key] === 'string' && ((snapshot.provider as unknown as Record<string, string>)[key]).trim().length > 0) || !Array.isArray(snapshot.provider.limitations) || !snapshot.provider.limitations.every((limitation) => typeof limitation === 'string')) return false;
     if (snapshot.provider.zodiac !== 'tropical' && snapshot.provider.zodiac !== 'sidereal') return false;
     if (!Array.isArray(snapshot.positions) || !Array.isArray(snapshot.houseCusps) || snapshot.houseCusps.length !== 12 || !Array.isArray(snapshot.aspects)) return false;
     if (!snapshot.ascendant || !snapshot.midheaven || !isAngleValid(snapshot.ascendant) || !isAngleValid(snapshot.midheaven)) return false;
@@ -175,12 +175,12 @@ export class CurrentSkyService {
     const expected = new Set(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']);
     const seen = new Set<string>();
     for (const position of snapshot.positions) {
-      if (!expected.has(position.body) || seen.has(position.body) || !isLongitudeValid(position.longitudeDeg) || (!Number.isFinite(position.latitudeDeg) || position.latitudeDeg < -90 || position.latitudeDeg > 90) || (position.retrograde !== null && typeof position.retrograde !== 'boolean')) return false;
+      if (!position || !expected.has(position.body) || seen.has(position.body) || !isLongitudeValid(position.longitudeDeg) || (!Number.isFinite(position.latitudeDeg) || position.latitudeDeg < -90 || position.latitudeDeg > 90) || (position.retrograde !== null && typeof position.retrograde !== 'boolean')) return false;
       seen.add(position.body);
     }
     if (seen.size !== expected.size) return false;
     const aspectBodies = new Set([...expected, 'ascendant', 'midheaven']);
-    return snapshot.aspects.every((aspect) => aspectBodies.has(aspect.firstBody) && aspectBodies.has(aspect.secondBody) && aspect.firstBody !== aspect.secondBody && typeof aspect.aspect === 'string' && aspect.aspect.length > 0 && Number.isFinite(aspect.exactAngleDeg) && aspect.exactAngleDeg >= 0 && aspect.exactAngleDeg <= 180 && Number.isFinite(aspect.orbDeg) && aspect.orbDeg >= 0 && aspect.orbDeg <= 180 && (aspect.applying === null || typeof aspect.applying === 'boolean'));
+    return snapshot.aspects.every((aspect) => !!aspect && aspectBodies.has(aspect.firstBody) && aspectBodies.has(aspect.secondBody) && aspect.firstBody !== aspect.secondBody && typeof aspect.aspect === 'string' && aspect.aspect.length > 0 && Number.isFinite(aspect.exactAngleDeg) && aspect.exactAngleDeg >= 0 && aspect.exactAngleDeg <= 180 && Number.isFinite(aspect.orbDeg) && aspect.orbDeg >= 0 && aspect.orbDeg <= 180 && (aspect.applying === null || typeof aspect.applying === 'boolean'));
   }
 
   private errorCode(error: unknown): string {
@@ -190,4 +190,4 @@ export class CurrentSkyService {
   }
 }
 function isLongitudeValid(value: number): boolean { return Number.isFinite(value) && value >= 0 && value < 360; }
-function isAngleValid(angle: { longitudeDeg: number; latitudeDeg: number }): boolean { return isLongitudeValid(angle.longitudeDeg) && Number.isFinite(angle.latitudeDeg) && angle.latitudeDeg >= -90 && angle.latitudeDeg <= 90; }
+function isAngleValid(angle: { longitudeDeg: number; latitudeDeg: number }): boolean { return !!angle && isLongitudeValid(angle.longitudeDeg) && Number.isFinite(angle.latitudeDeg) && angle.latitudeDeg >= -90 && angle.latitudeDeg <= 90; }
