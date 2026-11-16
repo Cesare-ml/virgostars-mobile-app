@@ -12,3 +12,5 @@ export function calculateAscendant(
 ): AscendantResult;
 
 export function formatDegreeMinute(value: number): string;
+
+export function planetGlyphRadius(longitude: number, prior: ReadonlyArray<{ longitude: number; radius: number }>): number;
