@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct RuntimeInfo {
     platform: &'static str,
     mode: &'static str,
@@ -23,6 +24,88 @@ struct CurrentSkyInput {
     location_accuracy_meters: f64,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum SkyBody {
+    Sun,
+    Moon,
+    Mercury,
+    Venus,
+    Mars,
+    Jupiter,
+    Saturn,
+    Uranus,
+    Neptune,
+    Pluto,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentSkyPosition {
+    body: SkyBody,
+    longitude_deg: f64,
+    latitude_deg: f64,
+    retrograde: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentSkyAngle {
+    longitude_deg: f64,
+    latitude_deg: f64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentSkyAspect {
+    first_body: String,
+    second_body: String,
+    aspect: String,
+    exact_angle_deg: f64,
+    orb_deg: f64,
+    applying: Option<bool>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentSkyObserver {
+    latitude_deg: f64,
+    longitude_deg_east: f64,
+    altitude_meters: Option<f64>,
+    location_accuracy_meters: f64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentSkyProvider {
+    id: String,
+    version: String,
+    ephemeris: String,
+    time_scale: String,
+    coordinate_frame: String,
+    zodiac: String,
+    ayanamsa_id: Option<String>,
+    house_system: String,
+    limitations: Vec<String>,
+}
+
+/// Must remain structurally aligned with src/app/current-sky/contracts.ts.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CurrentSkySnapshot {
+    schema_version: u8,
+    calculated_at_utc: String,
+    timezone_id: String,
+    utc_offset_minutes: i16,
+    observer: CurrentSkyObserver,
+    provider: CurrentSkyProvider,
+    positions: Vec<CurrentSkyPosition>,
+    ascendant: CurrentSkyAngle,
+    midheaven: CurrentSkyAngle,
+    house_cusps: Vec<f64>,
+    aspects: Vec<CurrentSkyAspect>,
+}
+
 #[tauri::command]
 fn runtime_info() -> RuntimeInfo {
     RuntimeInfo {
@@ -38,10 +121,10 @@ fn runtime_info() -> RuntimeInfo {
     }
 }
 
-/// Input/permission boundary. Replace the unavailable result only when a
-/// legally redistributable, independently validated engine is linked.
+/// Typed IPC response. This remains unavailable until a legally distributable,
+/// independently validated ephemeris + astrology provider is linked.
 #[tauri::command]
-fn calculate_current_sky(input: CurrentSkyInput) -> Result<(), String> {
+fn calculate_current_sky(input: CurrentSkyInput) -> Result<CurrentSkySnapshot, String> {
     if input.schema_version != 1 {
         return Err("current_sky_unsupported_contract_version".into());
     }
