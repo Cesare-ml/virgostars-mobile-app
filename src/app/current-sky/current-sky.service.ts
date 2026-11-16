@@ -22,7 +22,7 @@ export class CurrentSkyService {
       return;
     }
     if (this.pollingStarted) {
-      this.pendingForegroundRefresh = true;
+      this.pendingForegroundRefresh = this.inFlight;
       void this.refreshNow(true, false);
     }
   };
