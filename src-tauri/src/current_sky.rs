@@ -202,6 +202,36 @@ mod tests {
         assert!(result.chart.is_none());
     }
 
+    fn chart(bodies: &[(&str, f64)]) -> ChartPayload {
+        ChartPayload {
+            schema_version: 1,
+            bodies: bodies.iter().map(|(id, longitude_deg)| ChartBody {
+                id: (*id).into(),
+                longitude_deg: *longitude_deg,
+            }).collect(),
+        }
+    }
+
+    #[test]
+    fn chart_validation_rejects_missing_or_duplicate_bodies() {
+        assert!(!chart(&[("sun", 10.0)]).is_valid());
+        assert!(!chart(&[("sun", 10.0), ("mars", 20.0)]).is_valid());
+        assert!(!chart(&[("moon", 10.0), ("mars", 20.0)]).is_valid());
+        assert!(!chart(&[("sun", 10.0), ("moon", 20.0), ("sun", 30.0)]).is_valid());
+        assert!(!chart(&[("sun", 10.0), ("moon", 20.0), (" ", 30.0)]).is_valid());
+    }
+
+    #[test]
+    fn chart_validation_rejects_invalid_longitudes_and_schema() {
+        for longitude in [-0.001, 360.0, f64::INFINITY, f64::NEG_INFINITY, f64::NAN] {
+            assert!(!chart(&[("sun", longitude), ("moon", 20.0)]).is_valid());
+        }
+        let mut wrong_version = chart(&[("sun", 0.0), ("moon", 359.999)]);
+        wrong_version.schema_version = 2;
+        assert!(!wrong_version.is_valid());
+        assert!(chart(&[("sun", 0.0), ("moon", 359.999)]).is_valid());
+    }
+
     fn request() -> CurrentSkyRequest {
         CurrentSkyRequest {
             instant_utc: "2026-11-16T11:00:00.000Z".into(),
