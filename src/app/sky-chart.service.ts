@@ -79,21 +79,35 @@ export class SkyChartService {
     );
     const siderealAngle = localSiderealDegrees * Math.PI / 180;
     const rotation = Astronomy.Rotation_EQD_ECT(timestamp).rot;
-    const trueObliquity = Math.atan2(rotation[2][1], rotation[1][1]);
     const latitude = location.latitude * Math.PI / 180;
 
-    // Transform the observer's zenith from true equatorial to true ecliptic
-    // coordinates. Its intersection with the ecliptic gives the two horizon
-    // nodes; select the node lying on the eastern horizon.
-    const zenithEclipticX = Math.cos(latitude) * Math.cos(siderealAngle);
-    const zenithEclipticY =
-      Math.cos(trueObliquity) * Math.cos(latitude) * Math.sin(siderealAngle) -
-      Math.sin(trueObliquity) * Math.sin(latitude);
+    // Transform the observer's zenith vector from true equatorial coordinates
+    // (EQD) into the true ecliptic frame (ECT) with the library's own matrix.
+    const zenithEquatorial = [
+      Math.cos(latitude) * Math.cos(siderealAngle),
+      Math.cos(latitude) * Math.sin(siderealAngle),
+      Math.sin(latitude)
+    ];
+    const zenithEcliptic = rotation.map(row =>
+      row[0] * zenithEquatorial[0] +
+      row[1] * zenithEquatorial[1] +
+      row[2] * zenithEquatorial[2]
+    );
 
-    let ascendantRadians = Math.atan2(zenithEclipticX, -zenithEclipticY);
+    // The local horizon intersects the ecliptic at two opposite points.
+    let ascendantRadians = Math.atan2(zenithEcliptic[0], -zenithEcliptic[1]);
+
+    // Convert the candidate point back to EQD and retain the eastern crossing.
+    const eclipticX = Math.cos(ascendantRadians);
+    const eclipticY = Math.sin(ascendantRadians);
+    const candidateEquatorial = [
+      rotation[0][0] * eclipticX + rotation[1][0] * eclipticY,
+      rotation[0][1] * eclipticX + rotation[1][1] * eclipticY,
+      rotation[0][2] * eclipticX + rotation[1][2] * eclipticY
+    ];
     const eastProjection =
-      -Math.sin(siderealAngle) * Math.cos(ascendantRadians) +
-      Math.cos(trueObliquity) * Math.cos(siderealAngle) * Math.sin(ascendantRadians);
+      -Math.sin(siderealAngle) * candidateEquatorial[0] +
+      Math.cos(siderealAngle) * candidateEquatorial[1];
     if (eastProjection < 0) ascendantRadians += Math.PI;
 
     const ascendant = normalizeDegrees(ascendantRadians * 180 / Math.PI);
