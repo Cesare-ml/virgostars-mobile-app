@@ -110,3 +110,10 @@ This deliberately excludes `tests/current-sky.test.mjs`, which imports
 contract run is a **partial source-level check only**; it does not prove
 the ephemeris output, Angular compilation, Tauri packaging or device behavior.
 The complete check remains `npm run check` after installing dependencies.
+
+### Zodiac position display
+
+The list of planetary positions uses conventional degrees and arcminutes
+(e.g. `12° 30′`), with minute truncation to avoid displaying `30°` before a
+sign boundary. The calculation and data contract continue to retain full
+floating-point longitude precision; only the presentation is formatted.
