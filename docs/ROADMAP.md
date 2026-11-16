@@ -2,38 +2,34 @@
 
 Milestones represent intended work, not completed functionality.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
-
-## M0 — Bootstrap (this repository state)
+## M0 — Bootstrap
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Responsive mobile shell, Italian/English, attribution
+- [x] Non-sensitive read-only native runtime probe
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Live-sky Android MVP
+- [x] App opens directly on the live chart screen
+- [x] Local calculation of Sun, Moon and eight planets in tropical geocentric ecliptic-of-date coordinates using a temporary MIT provider
+- [x] Zodiac wheel and per-body longitude/sign list
+- [x] Refresh every 30 seconds; no account, backend, personal data or network
+- [x] Replaceable provider boundary for VirgoStars-Ephemeris migration
+- [ ] Lockfile and independently recorded local npm run check
+- [ ] Android toolchain initialization and APK/AAB build on configured machine
+- [ ] Physical device/emulator smoke test and low-memory/WebView lifecycle check
 
-## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
-- [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
-- [ ] Verified offline unlock policy and explicit revocation limitations
-- [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
+## M2 — Canonical astronomy migration
+- [ ] Stable VirgoStars-Ephemeris Rust API and Android-compatible packaging
+- [ ] Independently validate real kernel vectors and app-facing coordinate conventions
+- [ ] Replace temporary provider with the Rust canonical adapter
+- [ ] Regression vectors for Sun/Moon/planets, UTC boundaries and DST
+- [ ] Consider location, Ascendant and houses only after explicit permission UX and tested house contracts
 
-## M3 — Android beta and release gate
-- [ ] Security, accessibility, performance and Play Store/data-safety review
+## M3 — Android release gate
+- [ ] Accuracy/reproducibility review, accessibility and performance QA
+- [ ] Security, dependency/license and Play Store data-safety review
 - [ ] Signed Android build, recovery and staged distribution (maintainer-only decision)
-- [ ] Offline and network-failure QA on real low-end and high-end phones
 
 ## M4 — iOS adaptation
 - [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
-- [ ] Signed iOS beta/release after explicit owner approval
+- [ ] Validate WKWebView rendering and lifecycle separately
+- [ ] Review iOS privacy prompts and distribution signing
