@@ -58,7 +58,7 @@ export class CurrentSkyService {
     // deriving tropical longitudes. No local clock or timezone offset is added:
     // JavaScript Date already represents an absolute UTC instant.
     const frame = Astronomy.Rotation_EQJ_ECT(instant);
-    const bodies = BODIES.map((item, index): CurrentSkyBody => {
+    const bodies = BODIES.map((item): CurrentSkyBody => {
       const vector = Astronomy.GeoVector(item.body, instant, true);
       const ecliptic = Astronomy.RotateVector(frame, vector);
       if (![ecliptic.x, ecliptic.y, ecliptic.z].every(Number.isFinite) ||
@@ -68,9 +68,7 @@ export class CurrentSkyService {
       const longitude = normalize(Math.atan2(ecliptic.y, ecliptic.x) * 180 / Math.PI);
       const signIndex = Math.floor(longitude / 30);
       const degreeInSign = longitude - signIndex * 30;
-      // Keep every 10px marker inside the 320px SVG viewport (outer radius 154).
-      const radius = index < 2 ? 112 : index % 2 === 0 ? 128 : 142;
-      const angle = (longitude - 90) * Math.PI / 180;
+      // Longitude is the source of truth; glyph layout is applied afterwards.
 
       return {
         id: item.id,
@@ -79,16 +77,37 @@ export class CurrentSkyService {
         longitude,
         sign: ZODIAC[signIndex].name,
         degreeInSign,
-        x: 160 + Math.cos(angle) * radius,
-        y: 160 + Math.sin(angle) * radius
+        x: 0,
+        y: 0
       };
     });
 
+    // Spread conjunctions across three concentric tracks without changing
+    // their true longitudes. Circular distance handles 359° versus 1°.
+    const tracks = [112, 128, 142];
+    const occupied: Array<{ x: number; y: number }> = [];
+    const placedBodies = [...bodies].sort((a, b) => a.longitude - b.longitude).map((body) => {
+      const angle = (body.longitude - 90) * Math.PI / 180;
+      const candidates = tracks.map((radius) => ({
+        x: 160 + Math.cos(angle) * radius,
+        y: 160 + Math.sin(angle) * radius
+      }));
+      const position = candidates.find(({ x, y }) =>
+        occupied.every((other) => Math.hypot(x - other.x, y - other.y) >= 21)
+      ) ?? candidates.reduce((best, candidate) => {
+        const clearance = (p: { x: number; y: number }): number =>
+          occupied.length ? Math.min(...occupied.map((other) => Math.hypot(p.x - other.x, p.y - other.y))) : Infinity;
+        return clearance(candidate) > clearance(best) ? candidate : best;
+      });
+      occupied.push(position);
+      return { ...body, ...position };
+    });
+    const byId = new Map(placedBodies.map((body) => [body.id, body]));
     return {
       calculatedAt: new Date(instant.getTime()),
       engine: 'Astronomy Engine 2.1.19',
       frame: 'Geocentric · eclittica vera della data · longitudine tropicale',
-      bodies
+      bodies: bodies.map((body) => byId.get(body.id)!)
     };
   }
 
