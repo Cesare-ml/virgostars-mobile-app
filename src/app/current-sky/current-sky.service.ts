@@ -9,15 +9,25 @@ export class CurrentSkyService {
   readonly state = signal<CurrentSkyUiState>({ status: 'permission-required', requestedAtUtc: null, snapshot: null, message: 'location-consent-required' });
   private timer: number | null = null;
   private inFlight = false;
+  private lifecycleGeneration = 0;
+  private pendingForegroundRefresh = false;
   private started = false;
   private pollingStarted = false;
   private baseline: CurrentSkyRefreshBaseline | null = null;
-  private readonly onVisibilityChange = (): void => { if (document.visibilityState === 'visible' && this.pollingStarted) void this.refreshNow(true, false); };
+  private readonly onVisibilityChange = (): void => {
+    if (document.visibilityState !== 'visible') {
+      this.lifecycleGeneration++;
+      this.pendingForegroundRefresh = true;
+      return;
+    }
+    if (this.pollingStarted) void this.refreshNow(true, false);
+  };
 
   /** Show rationale first; Android permission is requested only after an explicit tap. */
   start(): void {
     if (this.started) return;
     this.started = true;
+    this.lifecycleGeneration++;
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     // No location permission prompt, GPS request or timer before user consent.
   }
@@ -25,6 +35,8 @@ export class CurrentSkyService {
   stop(): void {
     if (!this.started) return;
     this.started = false;
+    this.lifecycleGeneration++;
+    this.pendingForegroundRefresh = false;
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.stopPolling();
   }
@@ -50,8 +62,14 @@ export class CurrentSkyService {
   }
 
   private async refreshNow(force: boolean, requestPermission: boolean): Promise<void> {
-    if (this.inFlight || document.visibilityState !== 'visible') return;
+    if (!this.started || document.visibilityState !== 'visible') return;
+    if (this.inFlight) {
+      if (force) this.pendingForegroundRefresh = true;
+      return;
+    }
     this.inFlight = true;
+    const generation = this.lifecycleGeneration;
+    const isActive = (): boolean => this.started && generation === this.lifecycleGeneration && document.visibilityState === 'visible';
     let requestedAtUtc = new Date().toISOString();
     try {
       if (!isTauri()) {
@@ -59,23 +77,22 @@ export class CurrentSkyService {
         return;
       }
       const permission = await this.ensureLocationPermission(requestPermission);
+      if (!isActive()) return;
       if (!permission) {
         this.stopPolling();
         this.state.set({ status: 'permission-required', requestedAtUtc, snapshot: null, message: 'location-permission-denied' });
         return;
       }
       this.startPolling();
-      if (document.visibilityState !== 'visible') return;
+      if (!isActive()) return;
 
       // Capture the requested instant after consent, immediately before GPS.
-      const capturedAt = new Date();
-      const capturedAtMs = capturedAt.getTime();
-      requestedAtUtc = capturedAt.toISOString();
+      const gpsRequestStartedAtMs = Date.now();
       const position = await getCurrentPosition({ enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 });
       if (document.visibilityState !== 'visible') return;
       const fix: CurrentSkyLocationFix = { latitudeDeg: position.coords.latitude, longitudeDegEast: position.coords.longitude, accuracyMeters: position.coords.accuracy, measuredAtMs: position.timestamp };
       const nowMs = Date.now();
-      if (!isValidCurrentSkyFix(fix, nowMs, CURRENT_SKY_MAX_FIX_AGE_MS) || Math.abs(fix.measuredAtMs - capturedAtMs) > CURRENT_SKY_MAX_FIX_AGE_MS) {
+      if (!isValidCurrentSkyFix(fix, nowMs, CURRENT_SKY_MAX_FIX_AGE_MS) || fix.measuredAtMs < gpsRequestStartedAtMs - CURRENT_SKY_MAX_FIX_AGE_MS) {
         this.state.set({ status: 'location-unavailable', requestedAtUtc, snapshot: null, message: 'location-fix-invalid-or-not-synchronous-with-request' });
         return;
       }
@@ -101,6 +118,7 @@ export class CurrentSkyService {
       }
       this.state.set({ status: 'ready', requestedAtUtc, snapshot, message: null });
     } catch (error: unknown) {
+      if (!isActive()) return;
       const code = this.errorCode(error);
       const normalized = code.toLowerCase();
       const status = normalized.includes('permission') ? 'permission-required'
@@ -110,6 +128,10 @@ export class CurrentSkyService {
       this.state.set({ status, requestedAtUtc, snapshot: null, message: code });
     } finally {
       this.inFlight = false;
+      if (this.pendingForegroundRefresh && this.started && document.visibilityState === 'visible') {
+        this.pendingForegroundRefresh = false;
+        void this.refreshNow(true, false);
+      }
     }
   }
 
