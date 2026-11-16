@@ -47,6 +47,10 @@ test('live chart uses the pinned temporary provider and native location flow', (
   assert.match(service, /Astronomy\.GeoVector/);
   assert.match(service, /Astronomy\.Ecliptic/);
   assert.match(service, /const eastProjection/);
+  assert.match(service, /Astronomy\.Rotation_EQD_ECT/);
+  assert.match(service, /const zenithEquatorial/);
+  assert.match(service, /const zenithEcliptic = rotation\.map/);
+  assert.match(service, /const candidateEquatorial/);
   assert.match(service, /if \(eastProjection < 0\) ascendantRadians \+= Math\.PI/);
   assert.match(app, /const degrees\s*=\s*Math\.floor\(value\)/);
   assert.match(app, /Math\.min\(\s*59\.9,\s*Math\.round\(\(value\s*-\s*degrees\)\s*\*\s*600\)\s*\/\s*10\s*\)/);
