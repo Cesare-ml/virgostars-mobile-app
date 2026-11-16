@@ -12,7 +12,6 @@
     "geolocation:allow-get-current-position"
   ],
   "platforms": [
-    "iOS",
     "android"
   ]
 }
