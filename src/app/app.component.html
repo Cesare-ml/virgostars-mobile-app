@@ -1,19 +1,165 @@
 <div class="app-shell">
-<header class="topbar"><div class="brand-mark" aria-hidden="true">✦</div><div class="brand-copy"><div class="brand-name">Virgo<span>Stars</span></div><div class="brand-subtitle">LIVE SKY</div></div><span class="live-indicator"><i></i> LIVE</span></header>
-<main id="main-content">
-<section class="intro"><span class="eyebrow">IL CIELO DI ADESSO</span><h1>La tua carta del cielo</h1><p>Il tema astrologico del momento, calcolato per la tua posizione.</p></section>
-@if(loading()){<section class="loading-card" role="status"><div class="loader"></div><h2>{{locating()?'Rilevo la tua posizione…':'Calcolo il cielo…'}}</h2><p>Uso l’ora corrente e le coordinate del dispositivo.</p></section>}
-@if(error()){<section class="location-card" aria-live="polite"><div class="notice-icon" aria-hidden="true">⌖</div><h2>Posizione non disponibile</h2><p>{{error()}}</p><button class="secondary" type="button" (click)="requestDeviceLocation()">Riprova GPS</button><div class="manual-coordinates"><label for="latitude">Latitudine</label><input id="latitude" type="number" inputmode="decimal" step="any" min="-90" max="90" placeholder="es. 45.4642" [value]="latitudeInput()" (input)="onLatitudeChange($any($event.target).value)"><label for="longitude">Longitudine</label><input id="longitude" type="number" inputmode="decimal" step="any" min="-180" max="180" placeholder="es. 9.1900" [value]="longitudeInput()" (input)="onLongitudeChange($any($event.target).value)"><button class="primary" type="button" (click)="useManualLocation()">Calcola il cielo</button></div></section>}
-@if(chart();as sky){
-<section class="meta-card"><div><span class="meta-label">OSSERVAZIONE LOCALE</span><strong>{{formatClock(sky.timestamp)}}</strong><small>{{formatCoordinates(sky.location)}}</small></div><button class="refresh" type="button" aria-label="Aggiorna ora e cielo" (click)="refreshChart()">↻</button></section>
-<section class="chart-panel" aria-label="Carta astrologica del cielo attuale"><div class="chart-heading"><span>RUOTA ZODIACALE</span><span>{{sky.zodiac}} · {{sky.houseSystem}}</span></div>
-<svg class="chart-wheel" viewBox="0 0 320 320" role="img" aria-label="Carta zodiacale con posizioni geocentriche dei pianeti e ascendente">
-<circle cx="160" cy="160" r="151" class="wheel-outer"/><circle cx="160" cy="160" r="119" class="wheel-inner"/><circle cx="160" cy="160" r="68" class="wheel-core"/>
-@for(sign of signs;track sign.index){<line x1="160" y1="9" x2="160" y2="41" class="sign-divider" [attr.transform]="'rotate('+(sign.index*30)+' 160 160)'"/><text class="sign-label" [attr.x]="sign.x" [attr.y]="sign.y">{{sign.name}}</text>}
-<line x1="160" y1="41" x2="160" y2="279" class="axis-line" [attr.transform]="'rotate('+sky.ascendant+' 160 160)'"/><text x="160" y="153" class="center-mark">✦</text><text x="160" y="172" class="center-caption">VIRGOSTARS</text>
-@for(body of sky.bodies;track body.id){<g class="planet-point" [attr.transform]="'translate('+body.x+' '+body.y+')'"><circle r="11" class="planet-back"/><text y="4" text-anchor="middle" class="planet-symbol">{{body.symbol}}</text></g>}
-<circle cx="160" cy="160" r="4" class="wheel-center"/></svg><div class="ascendant"><span>ASCENDENTE</span><strong>{{sky.ascendantSign}} {{formatLongitude(sky.ascendantDegree)}}</strong></div></section>
-<section class="positions"><div class="section-title"><h2>Posizioni planetarie</h2><span>LONGITUDINE E CASE</span></div>
-@for(body of sky.bodies;track body.id){<div class="position-row"><span class="planet-glyph">{{body.symbol}}</span><strong>{{body.name}}</strong><span class="position-sign">{{body.sign}} {{formatLongitude(body.degreeInSign)}}</span><span class="house-number">C{{body.house}}</span></div>}</section>
-<p class="provenance">Provider provvisorio: {{sky.engine}}. Longitudini geocentriche tropicali, case Whole Sign. Il provider VirgoStars verrà integrato dopo validazione scientifica e disponibilità di binding mobile stabili.</p>}
-<footer class="attribution">Powered by VirgoStars</footer></main></div>
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">✦</div>
+    <div class="brand-copy">
+      <div class="brand-name">Virgo<span>Stars</span></div>
+      <div class="brand-subtitle">LIVE SKY</div>
+    </div>
+    <span class="live-indicator"><i></i> LIVE</span>
+  </header>
+
+  <main id="main-content">
+    <section class="intro">
+      <span class="eyebrow">IL CIELO DI ADESSO</span>
+      <h1>La tua carta del cielo</h1>
+      <p>Il tema astrologico del momento, calcolato per la tua posizione.</p>
+    </section>
+
+    @if (loading()) {
+      <section class="loading-card" role="status">
+        <div class="loader"></div>
+        <h2>{{ locating() ? 'Rilevo la tua posizione…' : 'Calcolo il cielo…' }}</h2>
+        <p>Uso l’ora corrente e le coordinate del dispositivo.</p>
+      </section>
+    }
+
+    @if (error()) {
+      <section class="location-card" aria-live="polite">
+        <div class="notice-icon" aria-hidden="true">⌖</div>
+        <h2>Posizione non disponibile</h2>
+        <p>{{ error() }}</p>
+        <button class="secondary" type="button" (click)="requestDeviceLocation()">
+          Riprova GPS
+        </button>
+
+        <div class="manual-coordinates">
+          <label for="latitude">Latitudine</label>
+          <input
+            id="latitude"
+            type="number"
+            inputmode="decimal"
+            step="any"
+            min="-90"
+            max="90"
+            placeholder="es. 45.4642"
+            [value]="latitudeInput()"
+            (input)="onLatitudeChange($any($event.target).value)"
+          >
+
+          <label for="longitude">Longitudine</label>
+          <input
+            id="longitude"
+            type="number"
+            inputmode="decimal"
+            step="any"
+            min="-180"
+            max="180"
+            placeholder="es. 9.1900"
+            [value]="longitudeInput()"
+            (input)="onLongitudeChange($any($event.target).value)"
+          >
+
+          <button class="primary" type="button" (click)="useManualLocation()">
+            Calcola il cielo
+          </button>
+        </div>
+      </section>
+    }
+
+    @if (chart(); as sky) {
+      <section class="meta-card">
+        <div>
+          <span class="meta-label">OSSERVAZIONE LOCALE</span>
+          <strong>{{ formatClock(sky.timestamp) }}</strong>
+          <small>{{ formatCoordinates(sky.location) }}</small>
+        </div>
+        <button
+          class="refresh"
+          type="button"
+          aria-label="Aggiorna ora e cielo"
+          (click)="refreshChart()"
+        >↻</button>
+      </section>
+
+      <section class="chart-panel" aria-label="Carta astrologica del cielo attuale">
+        <div class="chart-heading">
+          <span>RUOTA ZODIACALE</span>
+          <span>{{ sky.zodiac }} · {{ sky.houseSystem }}</span>
+        </div>
+
+        <svg
+          class="chart-wheel"
+          viewBox="0 0 320 320"
+          role="img"
+          aria-label="Carta zodiacale con posizioni geocentriche dei pianeti e ascendente"
+        >
+          <circle cx="160" cy="160" r="151" class="wheel-outer" />
+          <circle cx="160" cy="160" r="119" class="wheel-inner" />
+          <circle cx="160" cy="160" r="68" class="wheel-core" />
+
+          @for (sign of signs; track sign.index) {
+            <line
+              x1="160"
+              y1="9"
+              x2="160"
+              y2="41"
+              class="sign-divider"
+              [attr.transform]="'rotate(' + (sign.index * 30) + ' 160 160)'"
+            />
+            <text class="sign-label" [attr.x]="sign.x" [attr.y]="sign.y">
+              {{ sign.name }}
+            </text>
+          }
+
+          <line
+            x1="160"
+            y1="41"
+            x2="160"
+            y2="279"
+            class="axis-line"
+            [attr.transform]="'rotate(' + sky.ascendant + ' 160 160)'"
+          />
+          <text x="160" y="153" class="center-mark">✦</text>
+          <text x="160" y="172" class="center-caption">VIRGOSTARS</text>
+
+          @for (body of sky.bodies; track body.id) {
+            <g class="planet-point" [attr.transform]="'translate(' + body.x + ' ' + body.y + ')'">
+              <circle r="11" class="planet-back" />
+              <text y="4" text-anchor="middle" class="planet-symbol">{{ body.symbol }}</text>
+            </g>
+          }
+
+          <circle cx="160" cy="160" r="4" class="wheel-center" />
+        </svg>
+
+        <div class="ascendant">
+          <span>ASCENDENTE</span>
+          <strong>{{ sky.ascendantSign }} {{ formatLongitude(sky.ascendantDegree) }}</strong>
+        </div>
+      </section>
+
+      <section class="positions">
+        <div class="section-title">
+          <h2>Posizioni planetarie</h2>
+          <span>LONGITUDINE E CASE</span>
+        </div>
+
+        @for (body of sky.bodies; track body.id) {
+          <div class="position-row">
+            <span class="planet-glyph">{{ body.symbol }}</span>
+            <strong>{{ body.name }}</strong>
+            <span class="position-sign">{{ body.sign }} {{ formatLongitude(body.degreeInSign) }}</span>
+            <span class="house-number">C{{ body.house }}</span>
+          </div>
+        }
+      </section>
+
+      <p class="provenance">
+        Provider provvisorio: {{ sky.engine }}. Longitudini geocentriche tropicali, case Whole Sign.
+        Il provider VirgoStars verrà integrato dopo validazione scientifica e disponibilità di binding mobile stabili.
+      </p>
+    }
+
+    <footer class="attribution">Powered by VirgoStars</footer>
+  </main>
+</div>
