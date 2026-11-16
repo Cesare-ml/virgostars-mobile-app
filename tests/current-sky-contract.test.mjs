@@ -77,3 +77,13 @@ test('backgrounding clears potentially stale chart and location metadata', () =>
   assert.match(visibilityHandler, /this\.request\.set\(null\)/);
   assert.match(visibilityHandler, /this\.state\.set\('loading'\)/);
 });
+
+test('native provider boundary rejects invalid chart payloads and frontend uses typed DTO', () => {
+  const rust = read('src-tauri/src/current_sky.rs');
+  const models = read('src/app/current-sky/current-sky.models.ts');
+  assert.match(rust, /struct ChartPayload/);
+  assert.match(rust, /chart\.is_valid\(\)/);
+  assert.match(rust, /malformed_provider_chart_is_rejected/);
+  assert.match(models, /interface ChartPayload/);
+  assert.match(models, /chart: ChartPayload \| null/);
+});
