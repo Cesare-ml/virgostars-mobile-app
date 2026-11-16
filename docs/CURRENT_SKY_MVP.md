@@ -4,7 +4,7 @@
 
 ## User experience
 
-The app opens directly on the current-sky chart. There is no registration, birth-data form, archive or settings section. The display shows the local device time, a zodiac wheel, ten planetary positions and calculation provenance. The clock ticks each second; positions are recalculated locally every 60 seconds and can be refreshed on demand.
+The app opens directly on the current-sky chart. There is no registration, birth-data form, archive or settings section. The display shows the local device time, a zodiac wheel, ten planetary positions and calculation provenance. The clock ticks each second; positions are recalculated locally every 60 seconds while the app is visible and can be refreshed on demand. Returning from background forces a fresh calculation; timer callbacks do not intentionally poll in background. A collision-aware SVG layout separates close planetary glyphs without changing the underlying longitude or dot coordinates.
 
 ## Calculation contract
 
@@ -17,7 +17,7 @@ Output: schema `VirgoStarsCurrentSky/1`:
 - Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto.
 - Provider and refresh-interval metadata.
 
-The Moon uses `EclipticGeoMoon`; the other bodies use `GeoVector(..., aberration=true)` and `Ecliptic`. These are provider functions, not formulas implemented in the UI. The UI identifies the provider used.
+The chart refreshes after device-clock rollback as well as after a stale interval. The Moon uses `EclipticGeoMoon`; the other bodies use `GeoVector(..., aberration=true)` and `Ecliptic`. These are provider functions, not formulas implemented in the UI. The UI identifies the provider used.
 
 ## Temporary astronomy provider
 
