@@ -1,100 +1,44 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
-import { captureMoment, type MomentCaptureRecord } from './moment/moment-capture';
-import { getMomentPosition, notifyMomentCaptured } from './moment/native-capabilities';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { getMomentPosition } from './moment/native-capabilities';
+import { readLiveSkySnapshot, type LiveSkySnapshot } from './live-sky/live-sky-session';
 
-type Tab = 'home' | 'chart' | 'archive' | 'settings';
 type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
+type ViewStatus = 'loading' | 'ready' | 'permission-denied' | 'browser-preview' | 'location-unavailable';
 
 const messages = {
   it: {
-    tagline: 'Il cielo, a portata di mano',
-    status: 'Prototipo Android',
-    welcome: 'Benvenuto in VirgoStars',
-    intro: 'Il tuo futuro spazio astrologico personale, progettato per funzionare anche offline.',
-    explore: 'Esplora il laboratorio',
-    offlineTitle: 'Pensato per l’offline',
-    offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
-    chartTitle: 'Tema astrologico',
-    chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
-    demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
-    archiveTitle: 'Il mio archivio',
-    archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
-    settingsTitle: 'Impostazioni',
-    language: 'Lingua',
-    runtime: 'Ambiente',
-    data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
-    about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
-    home: 'Home',
-    chart: 'Carta',
-    archive: 'Archivio',
-    settings: 'Opzioni',
-    native: 'Host nativo',
-    connected: 'Connesso al bridge locale',
-    browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo',
-    captureTitle: 'Cattura il momento',
-    captureBody: 'Acquisisce l’ora del comando e una posizione GPS con il tuo consenso. Per ora le bozze restano solo in questa sessione.',
-    captureEnable: 'Abilita cattura (solo questa sessione)',
-    captureNotifications: 'Abilita notifica di conferma',
-    captureAction: 'Cattura adesso',
-    captureWorking: 'Acquisizione posizione…',
-    captureSuccess: 'Momento acquisito: bozza temporanea, non salvata sul dispositivo.',
-    capturePermission: 'Posizione non autorizzata. Attiva il permesso nelle impostazioni del dispositivo.',
-    captureFailed: 'Acquisizione non riuscita. Controlla la posizione, la precisione e l’app nativa.',
-    captureEnableHint: 'Attiva la funzione dalle impostazioni per iniziare.',
-    archiveTemporary: 'Bozze della sessione (scompaiono chiudendo l’app)',
-    archivePosition: 'Coordinate GPS',
-    archiveAccuracy: 'Precisione stimata',
-    archivePending: 'Tema non calcolato',
-    archiveEmpty: 'Non ci sono momenti acquisiti in questa sessione.',
-    privacyNote: 'Nessun dato viene ancora archiviato in modo permanente, sincronizzato o inviato al server.'
+    title: 'Il cielo di adesso',
+    subtitle: 'Il tema astrologico del luogo in cui ti trovi, riferito all’istante presente.',
+    privacy: 'La posizione viene richiesta solo mentre l’app è aperta e resta sul dispositivo. Non viene inviata a un server.',
+    loading: 'Acquisizione della posizione…',
+    ready: 'Posizione acquisita',
+    permissionDenied: 'Permesso di localizzazione non concesso. Concedilo dalle impostazioni Android e riprova.',
+    browserPreview: 'La geolocalizzazione nativa è disponibile nella versione Android, non nell’anteprima browser.',
+    locationUnavailable: 'Posizione non disponibile o non sufficientemente recente. Verifica il GPS e riprova.',
+    accuracy: 'Precisione stimata',
+    measured: 'Fix GPS',
+    chartPending: 'Calcolo astrologico non ancora disponibile',
+    chartPendingBody: 'Il provider astronomico e il renderer condiviso non hanno ancora superato le verifiche necessarie. Per questo non mostriamo un grafico simulato.',
+    retry: 'Aggiorna il cielo',
+    updating: 'Aggiornamento…',
+    powered: 'Powered by VirgoStars'
   },
   en: {
-    tagline: 'The sky, in your hands',
-    status: 'Android prototype',
-    welcome: 'Welcome to VirgoStars',
-    intro: 'Your future personal astrology workspace, designed to work offline.',
-    explore: 'Explore the prototype',
-    offlineTitle: 'Designed for offline',
-    offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
-    chartTitle: 'Astrological chart',
-    chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
-    demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
-    archiveTitle: 'My library',
-    archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
-    settingsTitle: 'Settings',
-    language: 'Language',
-    runtime: 'Environment',
-    data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
-    about: 'Experimental project, not connected to VirgoStars services yet.',
-    home: 'Home',
-    chart: 'Chart',
-    archive: 'Library',
-    settings: 'Settings',
-    native: 'Native host',
-    connected: 'Local bridge connected',
-    browser: 'Browser preview',
-    build: 'Development shell',
-    captureTitle: 'Capture the moment',
-    captureBody: 'Records the instant you tap and requests a one-shot GPS fix with your permission. Drafts only last for this session.',
-    captureEnable: 'Enable capture (this session only)',
-    captureNotifications: 'Enable confirmation notification',
-    captureAction: 'Capture now',
-    captureWorking: 'Acquiring location…',
-    captureSuccess: 'Moment captured: temporary draft, not saved on the device.',
-    capturePermission: 'Location not authorized. Enable permission in system settings.',
-    captureFailed: 'Capture failed. Check location, accuracy and the native app.',
-    captureEnableHint: 'Enable the feature in Settings first.',
-    archiveTemporary: 'Session drafts (lost when you close the app)',
-    archivePosition: 'GPS coordinates',
-    archiveAccuracy: 'Estimated accuracy',
-    archivePending: 'Chart not calculated',
-    archiveEmpty: 'No moments captured in this session.',
-    privacyNote: 'Nothing is permanently archived, synchronized or sent to a server yet.'
+    title: 'The sky right now',
+    subtitle: 'The astrological chart for your current location and the present instant.',
+    privacy: 'Location is requested only while the app is open and stays on this device. It is never sent to a server.',
+    loading: 'Acquiring location…',
+    ready: 'Location acquired',
+    permissionDenied: 'Location permission was not granted. Enable it in Android settings and try again.',
+    browserPreview: 'Native geolocation is available in the Android app, not in the browser preview.',
+    locationUnavailable: 'Location is unavailable or too old. Check GPS and try again.',
+    accuracy: 'Estimated accuracy',
+    measured: 'GPS fix',
+    chartPending: 'Astrological calculation is not available yet',
+    chartPendingBody: 'The astronomy provider and shared chart renderer have not passed their required validation gates. No simulated chart is displayed.',
+    retry: 'Refresh the sky',
+    updating: 'Refreshing…',
+    powered: 'Powered by VirgoStars'
   }
 } as const;
 
@@ -104,23 +48,25 @@ const messages = {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  readonly tab = signal<Tab>('home');
+export class AppComponent implements OnInit, OnDestroy {
   readonly locale = signal<Locale>('it');
-  readonly runtime = signal<string | null>(null);
-  readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
-  readonly captureEnabled = signal(false);
-  readonly notificationsEnabled = signal(false);
-  readonly isCapturing = signal(false);
-  readonly captureState = signal<'none' | 'success' | 'permission' | 'failure'>('none');
-  readonly moments = signal<readonly MomentCaptureRecord[]>([]);
+  readonly status = signal<ViewStatus>('loading');
+  readonly snapshot = signal<LiveSkySnapshot | null>(null);
+  readonly refreshing = signal(false);
+
+  private refreshTimer: ReturnType<typeof setInterval> | undefined;
+  private refreshPending = false;
+
+  private readonly onVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') void this.refresh();
+  };
+
+  private readonly onWindowFocus = (): void => {
+    if (document.visibilityState === 'visible') void this.refresh();
+  };
 
   t(key: keyof typeof messages.it): string {
     return messages[this.locale()][key];
-  }
-
-  navigate(tab: Tab): void {
-    this.tab.set(tab);
   }
 
   switchLocale(): void {
@@ -128,48 +74,66 @@ export class AppComponent implements OnInit {
     document.documentElement.lang = this.locale();
   }
 
-  toggleCapture(): void {
-    this.captureEnabled.update((value) => !value);
-    this.captureState.set('none');
-  }
-
-  async captureNow(): Promise<void> {
-    if (!this.captureEnabled() || this.isCapturing()) return;
-    this.isCapturing.set(true);
-    this.captureState.set('none');
-    try {
-      const captured = await captureMoment(getMomentPosition);
-      if (!this.captureEnabled()) return; // Opt-out during the GPS request.
-      // Deliberately *in-memory only* until encrypted, profile-scoped storage exists.
-      this.moments.update((items) => [captured, ...items].slice(0, 50));
-      this.captureState.set('success');
-      if (this.notificationsEnabled()) {
-        try { await notifyMomentCaptured(); } catch { /* Optional: capture still succeeded. */ }
-      }
-    } catch (error: unknown) {
-      this.captureState.set(
-        error instanceof Error && error.message === 'location-permission-denied'
-          ? 'permission' : 'failure'
-      );
-    } finally {
-      this.isCapturing.set(false);
-    }
-  }
-
-  momentLocalTime(moment: MomentCaptureRecord): string {
-    return new Date(moment.capturedAtUtc).toLocaleString(
+  formatInstant(value: string, timezoneId: string): string {
+    return new Date(value).toLocaleString(
       this.locale() === 'it' ? 'it-IT' : 'en-GB',
-      { timeZone: moment.timezoneId, dateStyle: 'medium', timeStyle: 'medium' }
+      { timeZone: timezoneId, dateStyle: 'full', timeStyle: 'medium' }
     );
   }
 
-  ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1 && info.mode === 'prototype') {
-          this.runtime.set(info.platform);
+  async refresh(): Promise<void> {
+    if (document.visibilityState !== 'visible') return;
+    if (this.refreshing()) {
+      this.refreshPending = true;
+      return;
+    }
+
+    this.refreshing.set(true);
+    this.snapshot.set(null);
+    this.status.set('loading');
+
+    try {
+      const current = await readLiveSkySnapshot(getMomentPosition);
+      if (document.visibilityState === 'visible') {
+        this.snapshot.set(current);
+        this.status.set('ready');
+      } else {
+        this.refreshPending = true;
+      }
+    } catch (error: unknown) {
+      if (document.visibilityState === 'visible') {
+        const code = error instanceof Error ? error.message : '';
+        if (code === 'location-permission-denied') {
+          this.status.set('permission-denied');
+        } else if (code === 'native-only') {
+          this.status.set('browser-preview');
+        } else {
+          this.status.set('location-unavailable');
         }
-      })
-      .catch(() => this.runtime.set(null)); // Expected in the browser.
+      } else {
+        this.refreshPending = true;
+      }
+    } finally {
+      this.refreshing.set(false);
+      if (this.refreshPending && document.visibilityState === 'visible') {
+        this.refreshPending = false;
+        queueMicrotask(() => void this.refresh());
+      }
+    }
+  }
+
+  ngOnInit(): void {
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    window.addEventListener('focus', this.onWindowFocus);
+    void this.refresh();
+    this.refreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') void this.refresh();
+    }, 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer !== undefined) clearInterval(this.refreshTimer);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    window.removeEventListener('focus', this.onWindowFocus);
   }
 }
