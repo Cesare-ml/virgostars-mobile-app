@@ -53,3 +53,27 @@ test('snapshot and planetary positions are immutable', () => {
   assert.ok(Object.isFrozen(snapshot.bodies));
   assert.ok(snapshot.bodies.every(Object.isFrozen));
 });
+
+test('solar longitude tracks the tropical equinoxes and solstices', () => {
+  const cases = [
+    ['2026-03-20T14:46:00.000Z', 0],
+    ['2026-06-21T08:24:00.000Z', 90],
+    ['2026-09-23T00:05:00.000Z', 180],
+    ['2026-12-21T20:50:00.000Z', 270]
+  ];
+  for (const [instant, expectedLongitude] of cases) {
+    const snapshot = calculateCurrentSky(new Date(instant));
+    const sun = snapshot.bodies.find(body => body.id === 'sun');
+    const distance = Math.abs(((sun.longitudeDeg - expectedLongitude + 540) % 360) - 180);
+    assert.ok(distance < 3, `Sun at ${instant}: expected near ${expectedLongitude}°, got ${sun.longitudeDeg}°`);
+  }
+});
+
+test('sky coordinates evolve across distinct UTC instants', () => {
+  const before = calculateCurrentSky(new Date('2026-11-16T00:00:00.000Z'));
+  const after = calculateCurrentSky(new Date('2026-11-17T00:00:00.000Z'));
+  const sunBefore = before.bodies.find(body => body.id === 'sun');
+  const sunAfter = after.bodies.find(body => body.id === 'sun');
+  assert.notEqual(sunBefore.longitudeDeg, sunAfter.longitudeDeg);
+  assert.notEqual(before.datetimeUtc, after.datetimeUtc);
+});
