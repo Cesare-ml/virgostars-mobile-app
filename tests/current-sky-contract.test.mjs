@@ -47,3 +47,10 @@ test('foreground lifecycle rejects stale GPS and native replies', () => {
   assert.ok(service.indexOf('const capturedAt = new Date();') > service.indexOf('await getCurrentPosition('));
   assert.ok(service.indexOf('if (!isActive()) return;', service.indexOf("await invoke<CurrentSkySnapshot>")) > 0);
 });
+
+test('astronomy failures are not misreported as GPS failures', () => {
+  const service = text('src/app/current-sky/current-sky.service.ts');
+  assert.match(service, /this\.calculationStarted = true;\s*const snapshot = await invoke/);
+  assert.match(service, /this\.calculationStarted \? 'failed' : 'location-unavailable'/);
+  assert.match(service, /this\.calculationStarted = false;/);
+});
