@@ -153,6 +153,14 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  signX(index: number): number {
+    return 160 + 134 * Math.cos((index * 30 - 75) * Math.PI / 180);
+  }
+
+  signY(index: number): number {
+    return 160 + 134 * Math.sin((index * 30 - 75) * Math.PI / 180);
+  }
+
   wheelX(longitudeDeg: number): number {
     return 160 + 114 * Math.cos((longitudeDeg - 90) * Math.PI / 180);
   }
