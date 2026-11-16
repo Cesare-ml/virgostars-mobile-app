@@ -27,7 +27,7 @@ fn runtime_info() -> RuntimeInfo {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            #[cfg(mobile)]
+            #[cfg(target_os = "android")]
             app.handle().plugin(tauri_plugin_geolocation::init())?;
             Ok(())
         })
