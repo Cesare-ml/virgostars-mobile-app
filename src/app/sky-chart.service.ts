@@ -61,11 +61,10 @@ export function planetGlyphRadius(longitude: number, prior: ReadonlyArray<{ long
   const separation = 15;
   for (const radius of lanes) {
     const clear = prior.every(point => {
-      const delta = Math.abs(((longitude - point.longitude + 540) % 360) - 180);
       const a = longitude * Math.PI / 180;
       const b = point.longitude * Math.PI / 180;
       const distance = Math.sqrt(radius * radius + point.radius * point.radius - 2 * radius * point.radius * Math.cos(a - b));
-      return delta >= 30 || distance >= separation;
+      return distance >= separation;
     });
     if (clear) return radius;
   }
