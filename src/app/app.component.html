@@ -23,7 +23,7 @@
       </section>
     }
 
-    @if (error()) {
+    @if (error() && !chart()) {
       <section class="location-card" aria-live="polite">
         <div class="notice-icon" aria-hidden="true">⌖</div>
         <h2>Posizione non disponibile</h2>
@@ -84,10 +84,11 @@
         </div>
       </section>
 
-      @if (editingLocation() && !error()) {
+      @if (editingLocation()) {
         <section id="location-editor" class="location-card" aria-label="Modifica coordinate">
           <h2>Modifica posizione</h2>
           <p>Inserisci le coordinate desiderate oppure torna al GPS.</p>
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
           <div class="manual-coordinates">
           <label for="latitude-edit">Latitudine</label>
           <input
