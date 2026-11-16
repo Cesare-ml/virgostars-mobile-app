@@ -2,6 +2,7 @@
 //! Location stays on-device. The provider adapter fails closed until a
 //! legally distributable and independently validated implementation is linked.
 use serde::{Deserialize, Serialize};
+use tauri::State;
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -76,12 +77,23 @@ impl std::fmt::Display for CurrentSkyError {
 
 /// Stable native boundary. Concrete Swiss/DE441 implementations must be separate
 /// adapters and may only be selected after the required license and validation gates.
-trait CurrentSkyProvider {
+trait CurrentSkyProvider: Send + Sync {
     fn id(&self) -> &'static str;
     fn calculate(&self, input: &CurrentSkyInput) -> Result<CurrentSkySnapshot, CurrentSkyError>;
 }
 
 struct NoCurrentSkyProvider;
+
+struct CurrentSkyProviderState {
+    provider: Box<dyn CurrentSkyProvider>,
+}
+
+impl Default for CurrentSkyProviderState {
+    fn default() -> Self {
+        Self { provider: Box::new(NoCurrentSkyProvider) }
+    }
+}
+
 impl CurrentSkyProvider for NoCurrentSkyProvider {
     fn id(&self) -> &'static str { "unavailable" }
     fn calculate(&self, _input: &CurrentSkyInput) -> Result<CurrentSkySnapshot, CurrentSkyError> {
@@ -131,11 +143,9 @@ fn is_valid_utc_timestamp(value: &str) -> bool {
 }
 
 #[tauri::command]
-fn calculate_current_sky(input: CurrentSkyInput) -> Result<CurrentSkySnapshot, String> {
+fn calculate_current_sky(input: CurrentSkyInput, state: State<'_, CurrentSkyProviderState>) -> Result<CurrentSkySnapshot, String> {
     validate_current_sky_input(&input).map_err(|error| error.to_string())?;
-    let provider = NoCurrentSkyProvider;
-    let _provider_id = provider.id();
-    provider.calculate(&input).map_err(|error| error.to_string())
+    state.provider.calculate(&input).map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -144,6 +154,7 @@ pub fn run() {
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_geolocation::init());
     builder
+        .manage(CurrentSkyProviderState::default())
         .invoke_handler(tauri::generate_handler![runtime_info, calculate_current_sky])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
@@ -157,5 +168,5 @@ mod tests {
     #[test] fn rejects_out_of_range_location() { let mut input = valid_input(); input.latitude_deg = 91.0; assert_eq!(validate_current_sky_input(&input), Err(CurrentSkyError::InvalidInput("latitude"))); }
     #[test] fn rejects_invalid_civil_time_not_just_bad_suffix() { for value in ["notTnotZ", "2026-02-30T12:00:00Z", "2026-11-16T25:00:00Z", "2026-11-16T12:61:00Z", "2026-11-16T12:00:61Z", "2026-11-16T12:00:00.9999999999Z"] { assert!(!is_valid_utc_timestamp(value), "accepted {value}"); } }
     #[test] fn accepts_fractional_utc_timestamp() { assert!(is_valid_utc_timestamp("2026-11-16T11:00:00.123456Z")); }
-    #[test] fn native_command_does_not_fabricate_a_chart_without_provider() { assert_eq!(calculate_current_sky(valid_input()).unwrap_err(), "sky_engine_unavailable"); }
+    #[test] fn native_provider_contract_does_not_fabricate_a_chart_without_provider() { assert_eq!(NoCurrentSkyProvider.calculate(&valid_input()).unwrap_err(), CurrentSkyError::ProviderUnavailable); }
 }
