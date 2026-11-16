@@ -80,3 +80,10 @@ test('explicit permission retry is retained when a GPS request is already runnin
   assert.match(service, /void this\.refreshNow\(true, askPermission\)/);
   assert.match(service, /this\.pendingPermissionRequest = false;/);
 });
+
+test('malformed native array elements and provider fields fail closed', () => {
+  const service = text('src/app/current-sky/current-sky.service.ts');
+  assert.match(service, /if \(!position \|\| !expected\.has\(position\.body\)/);
+  assert.match(service, /!!aspect && aspectBodies\.has/);
+  assert.match(service, /typeof \(snapshot\.provider as unknown as Record<string, unknown>\)\[key\] === 'string'/);
+});
