@@ -26,6 +26,10 @@ export class CurrentSkyService {
     if (!this.started) return;
     this.started = false;
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.stopPolling();
+  }
+
+  private stopPolling(): void {
     if (this.timer !== null) window.clearInterval(this.timer);
     this.timer = null;
     this.pollingStarted = false;
@@ -56,6 +60,7 @@ export class CurrentSkyService {
       }
       const permission = await this.ensureLocationPermission(requestPermission);
       if (!permission) {
+        this.stopPolling();
         this.state.set({ status: 'permission-required', requestedAtUtc, snapshot: null, message: 'location-permission-denied' });
         return;
       }
@@ -101,6 +106,7 @@ export class CurrentSkyService {
       const status = normalized.includes('permission') ? 'permission-required'
         : normalized.includes('sky_engine_unavailable') || normalized.includes('native-runtime-required') ? 'engine-unavailable'
         : 'location-unavailable';
+      if (status === 'permission-required') this.stopPolling();
       this.state.set({ status, requestedAtUtc, snapshot: null, message: code });
     } finally {
       this.inFlight = false;
@@ -119,7 +125,8 @@ export class CurrentSkyService {
     if (!snapshot || snapshot.schemaVersion !== CURRENT_SKY_CONTRACT_VERSION || snapshot.timezoneId !== input.timezoneId || snapshot.utcOffsetMinutes !== input.utcOffsetMinutes) return false;
     if (!snapshot.observer || Math.abs(snapshot.observer.latitudeDeg - input.latitudeDeg) > 1e-7 || Math.abs(snapshot.observer.longitudeDegEast - input.longitudeDegEast) > 1e-7) return false;
     if (!Number.isFinite(Date.parse(snapshot.calculatedAtUtc)) || Date.parse(snapshot.calculatedAtUtc) > Date.now() + 2_000) return false;
-    if (!snapshot.provider?.id || !snapshot.provider.version || !snapshot.provider.ephemeris || !snapshot.provider.timeScale || !snapshot.provider.coordinateFrame || !snapshot.provider.houseSystem) return false;
+    if (!snapshot.provider?.id || !snapshot.provider.version || !snapshot.provider.ephemeris || !snapshot.provider.timeScale || !snapshot.provider.coordinateFrame || !snapshot.provider.houseSystem || !Array.isArray(snapshot.provider.limitations)) return false;
+    if (snapshot.provider.zodiac !== 'tropical' && snapshot.provider.zodiac !== 'sidereal') return false;
     if (!Array.isArray(snapshot.positions) || !Array.isArray(snapshot.houseCusps) || snapshot.houseCusps.length !== 12 || !Array.isArray(snapshot.aspects)) return false;
     if (!snapshot.ascendant || !snapshot.midheaven || !isAngleValid(snapshot.ascendant) || !isAngleValid(snapshot.midheaven)) return false;
     if (!snapshot.houseCusps.every(isLongitudeValid)) return false;
@@ -130,7 +137,8 @@ export class CurrentSkyService {
       seen.add(position.body);
     }
     if (seen.size !== expected.size) return false;
-    return snapshot.aspects.every((aspect) => !!aspect.firstBody && !!aspect.secondBody && !!aspect.aspect && Number.isFinite(aspect.exactAngleDeg) && Number.isFinite(aspect.orbDeg) && aspect.orbDeg >= 0);
+    const aspectBodies = new Set([...expected, 'ascendant', 'midheaven']);
+    return snapshot.aspects.every((aspect) => aspectBodies.has(aspect.firstBody) && aspectBodies.has(aspect.secondBody) && !!aspect.aspect && Number.isFinite(aspect.exactAngleDeg) && aspect.exactAngleDeg >= 0 && aspect.exactAngleDeg <= 360 && Number.isFinite(aspect.orbDeg) && aspect.orbDeg >= 0 && (aspect.applying === null || typeof aspect.applying === 'boolean'));
   }
 
   private errorCode(error: unknown): string {
