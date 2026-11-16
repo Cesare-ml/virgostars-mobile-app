@@ -38,6 +38,7 @@ test('live chart uses the pinned temporary provider and native location flow', (
   const ui = text('src/app/app.component.html');
   const app = text('src/app/app.component.ts');
   const service = text('src/app/sky-chart.service.ts');
+  const math = text('src/app/sky-chart-math.js');
   assert.match(ui, /Powered by VirgoStars/);
   assert.match(ui, /Posizioni planetarie/);
   assert.match(app, /checkPermissions/);
@@ -46,14 +47,10 @@ test('live chart uses the pinned temporary provider and native location flow', (
   assert.match(app, /30_000/);
   assert.match(service, /Astronomy\.GeoVector/);
   assert.match(service, /Astronomy\.Ecliptic/);
-  assert.match(service, /const eastProjection/);
   assert.match(service, /Astronomy\.Rotation_EQD_ECT/);
-  assert.match(service, /const zenithEquatorial/);
-  assert.match(service, /const zenithEcliptic = rotation\.map/);
-  assert.match(service, /const candidateEquatorial/);
-  assert.match(service, /if \(eastProjection < 0\) ascendantRadians \+= Math\.PI/);
-  assert.match(app, /const degrees\s*=\s*Math\.floor\(value\)/);
-  assert.match(app, /Math\.min\(\s*59\.9,\s*Math\.round\(\(value\s*-\s*degrees\)\s*\*\s*600\)\s*\/\s*10\s*\)/);
+  assert.match(service, /calculateAscendant\(/);
+  assert.match(math, /eastProjectionAt/);
+  assert.match(app, /formatDegreeMinute/);
   assert.match(app, /refreshChart\(\)/);
   assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
   assert.equal(pkg.dependencies['@tauri-apps/plugin-geolocation'], '2.5.0');
