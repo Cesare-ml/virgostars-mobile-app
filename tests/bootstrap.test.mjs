@@ -12,6 +12,7 @@ test('Android-first app uses the Tauri / Angular toolchain', () => {
 });
 test('native capabilities grant only foreground one-shot geolocation', () => {
   assert.deepEqual(capabilities.windows, ['main']);
+  assert.deepEqual(capabilities.platforms, ['android', 'iOS']);
   assert.deepEqual(new Set(capabilities.permissions), new Set(['core:default','geolocation:allow-check-permissions','geolocation:allow-request-permissions','geolocation:allow-get-current-position']));
   assert.equal(capabilities.permissions.some((permission) => permission.includes('watch')), false);
   assert.match(config.app.security.csp, /connect-src 'self'/); assert.doesNotMatch(config.app.security.csp, /unsafe-eval/);
