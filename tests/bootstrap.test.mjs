@@ -46,6 +46,9 @@ test('launch screen renders a live geocentric sky chart, not a placeholder', () 
   assert.match(service, /RotateVector\(frame, vector\)/);
   assert.match(service, /every\(Number\.isFinite\)/);
   assert.match(service, /remainder < 0/);
+  assert.match(service, /const tracks = \[112, 128, 142\]/);
+  assert.match(service, /occupied\.every/);
+  assert.match(service, /Math\.hypot/);
   assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
 });
