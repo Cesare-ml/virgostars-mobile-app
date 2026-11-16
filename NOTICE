@@ -16,3 +16,9 @@ trademark is not offered under the source code license.
 Third-party dependencies, artwork, fonts, user birth records, ephemeris
 kernels, proprietary databases, service credentials and server services
 are not included in the grant and require their own authorization.
+
+Temporary MVP dependency:
+  Astronomy Engine 2.1.19
+  Copyright (c) 2019-2025 Don Cross <cosinekitty@gmail.com>
+  MIT License — https://github.com/cosinekitty/astronomy/blob/master/LICENSE
+  Preserve this notice while code from that project remains in the distributed app.
