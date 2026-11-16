@@ -25,7 +25,10 @@ test('refreshes on foreground return and has a bounded minute refresh after prov
   const source = read('src/app/app.component.ts');
   assert.match(source, /document:visibilitychange/);
   assert.match(source, /60_000/);
-  assert.match(source, /Math\.abs\(Date\.now\(\) - fix\.measuredAtMs\) > 45_000/);
+  assert.match(source, /fix\.measuredAtMs > nowMs \+ 2_000/);
+  assert.match(source, /nowMs - fix\.measuredAtMs > 45_000/);
+  assert.match(source, /if \(document\.visibilityState === 'visible'\) this\.startRefreshTimer\(\)/);
+  assert.doesNotMatch(source, /if \(this\.state\(\) === 'renderer-unavailable'\) this\.startRefreshTimer\(\)/);
 });
 
 test('native calculation fails closed until a real provider is registered', () => {
