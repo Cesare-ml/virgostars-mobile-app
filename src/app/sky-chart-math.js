@@ -88,3 +88,21 @@ export function formatDegreeMinute(value) {
   );
   return degrees + '° ' + minutes.toFixed(1) + '′';
 }
+
+/** Spread neighboring planet glyphs across concentric lanes without changing longitude. */
+export function planetGlyphRadius(longitude, prior): number {
+  const lanes = [91, 105, 77, 116];
+  const separation = 15;
+  for (const radius of lanes) {
+    const clear = prior.every(point => {
+      const a = longitude * Math.PI / 180;
+      const b = point.longitude * Math.PI / 180;
+      const distance = Math.sqrt(radius * radius + point.radius * point.radius - 2 * radius * point.radius * Math.cos(a - b));
+      return distance >= separation;
+    });
+    if (clear) return radius;
+  }
+  return lanes[prior.length % lanes.length];
+}
+
+
