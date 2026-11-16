@@ -45,3 +45,17 @@ export function layoutPlanetMarkers(bodies) {
     return Object.freeze({ ...body, x, y, labelX: best.labelX, labelY: best.labelY });
   });
 }
+
+/**
+ * Formats a longitude within one zodiac sign as degrees and arcminutes.
+ * Truncation prevents an apparent 30° position before the sign boundary.
+ */
+export function formatZodiacDegree(degreeInSign) {
+  if (!Number.isFinite(degreeInSign) || degreeInSign < 0 || degreeInSign >= 30) {
+    throw new RangeError('Degree within sign must be in [0, 30)');
+  }
+  const totalMinutes = Math.floor(degreeInSign * 60 + 1e-9);
+  const degrees = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${degrees}° ${String(minutes).padStart(2, '0')}′`;
+}
