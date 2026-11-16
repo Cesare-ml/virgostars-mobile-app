@@ -49,6 +49,8 @@ test('live chart uses the pinned temporary provider and native location flow', (
   assert.match(app, /checkPermissions/);
   assert.match(app, /requestPermissions\(\['location'\]\)/);
   assert.match(app, /getCurrentPosition/);
+  assert.match(app, /requestId !== this\.locationRequestId/);
+  assert.match(app, /this\.locationRequestId\+\+/);
   assert.match(app, /30_000/);
   assert.match(service, /Astronomy\.GeoVector/);
   assert.match(service, /Astronomy\.Ecliptic/);
