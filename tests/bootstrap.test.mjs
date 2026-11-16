@@ -49,3 +49,15 @@ test('attribution and provider boundary remain explicit', () => {
   assert.match(service, /No house cusps or Ascendant/);
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
 });
+
+test('foreground return refreshes live sky and error offers a retry', () => {
+  const ui = text('src/app/app.component.html');
+  const component = text('src/app/app.component.ts');
+  assert.match(component, /visibilitychange/);
+  assert.match(component, /document\.visibilityState === 'visible'/);
+  assert.match(component, /window\.addEventListener\('focus'/);
+  assert.match(component, /document\.removeEventListener\('visibilitychange'/);
+  assert.match(component, /window\.removeEventListener\('focus'/);
+  assert.match(ui, /\(click\)="refresh\(\)"/);
+  assert.match(ui, /t\('retry'\)/);
+});
