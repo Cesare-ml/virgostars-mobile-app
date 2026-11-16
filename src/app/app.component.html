@@ -74,7 +74,7 @@
           <small>{{ formatCoordinates(sky.location) }}</small>
         </div>
         <div class="meta-actions">
-          <button class="edit-location" type="button" [attr.aria-expanded]="editingLocation()" (click)="toggleLocationEditor()">Coordinate</button>
+          <button class="edit-location" type="button" aria-controls="location-editor" [attr.aria-expanded]="editingLocation()" (click)="toggleLocationEditor()">Coordinate</button>
           <button
             class="refresh"
             type="button"
@@ -85,13 +85,13 @@
       </section>
 
       @if (editingLocation() && !error()) {
-        <section class="location-card" aria-label="Modifica coordinate">
+        <section id="location-editor" class="location-card" aria-label="Modifica coordinate">
           <h2>Modifica posizione</h2>
           <p>Inserisci le coordinate desiderate oppure torna al GPS.</p>
           <div class="manual-coordinates">
-          <label for="latitude">Latitudine</label>
+          <label for="latitude-edit">Latitudine</label>
           <input
-            id="latitude"
+            id="latitude-edit"
             type="number"
             inputmode="decimal"
             step="any"
@@ -102,9 +102,9 @@
             (input)="onLatitudeChange($any($event.target).value)"
           >
 
-          <label for="longitude">Longitudine</label>
+          <label for="longitude-edit">Longitudine</label>
           <input
-            id="longitude"
+            id="longitude-edit"
             type="number"
             inputmode="decimal"
             step="any"
