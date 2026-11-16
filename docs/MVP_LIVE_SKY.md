@@ -24,7 +24,7 @@ astrological-functions currently identifies itself as private, pre-release, with
 
 ### Swiss Ephemeris fallback
 
-Swiss Ephemeris remains a possible temporary provider behind the future Rust provider interface. The Rust crate `sweph` currently vendors Swiss Ephemeris 2.10.03 under AGPL-3.0-only; this app's original source is CPAL-1.0. No Swiss code, binary or data file is bundled until the owner documents either a compatible licensing path or an applicable Swiss Ephemeris Professional License. The fallback must not bypass this gate.
+Swiss Ephemeris remains a possible temporary provider behind the future Rust provider interface. Astrodienst publishes Swiss Ephemeris under a dual-licensing choice: AGPL or a Swiss Ephemeris Professional License; the choice must be made before distribution or public-service activation, and the AGPL route requires the whole software project to be AGPL or compatibly licensed ([official licensing page](https://www.astro.com/swisseph/sweph_p.htm?lang=z)). The inspected Rust package `rust-swisseph-bindings` 1.0.0 declares `AGPL-3.0-only` in its Cargo manifest ([published manifest](https://docs.rs/crate/rust-swisseph-bindings/1.0.0/source/Cargo.toml.orig)); this does not by itself establish that this specific binding/port is also available under Astrodienst's Professional License. No Swiss code, binary or data file is bundled until the owner confirms a binding with an applicable license or obtains written professional-license coverage for the exact distribution. The fallback must not bypass this gate.
 
 ## Required next work before the MVP can be called functional
 
