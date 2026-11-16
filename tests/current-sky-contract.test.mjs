@@ -40,3 +40,14 @@ test('no Swiss code or binary is bundled without a verified license decision', (
   const cargo = read('src-tauri/Cargo.toml');
   assert.doesNotMatch(cargo, /swisseph|sweph/i);
 });
+
+test('native request rejects malformed instants and invalid IANA timezones', () => {
+  const source = read('src-tauri/src/current_sky.rs');
+  const cargo = read('src-tauri/Cargo.toml');
+  assert.match(source, /valid_utc_instant\(&request\.instant_utc\)/);
+  assert.match(source, /valid_iana_timezone\(&request\.timezone_id\)/);
+  assert.match(source, /parse_from_rfc3339/);
+  assert.match(source, /malformed_and_offset_instants_are_rejected/);
+  assert.match(source, /invalid_timezone_is_rejected/);
+  assert.match(cargo, /chrono-tz/);
+});
