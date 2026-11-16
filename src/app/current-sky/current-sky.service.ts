@@ -11,6 +11,7 @@ export class CurrentSkyService {
   private inFlight = false;
   private lifecycleGeneration = 0;
   private pendingForegroundRefresh = false;
+  private calculationStarted = false;
   private started = false;
   private pollingStarted = false;
   private baseline: CurrentSkyRefreshBaseline | null = null;
@@ -68,6 +69,7 @@ export class CurrentSkyService {
       return;
     }
     this.inFlight = true;
+    this.calculationStarted = false;
     const generation = this.lifecycleGeneration;
     const isActive = (): boolean => this.started && generation === this.lifecycleGeneration && document.visibilityState === 'visible';
     let requestedAtUtc = new Date().toISOString();
@@ -112,6 +114,7 @@ export class CurrentSkyService {
         locationAccuracyMeters: fix.accuracyMeters
       };
       this.baseline = { lastRequestAtMs: nowMs, latitudeDeg: fix.latitudeDeg, longitudeDegEast: fix.longitudeDegEast };
+      this.calculationStarted = true;
       const snapshot = await invoke<CurrentSkySnapshot>('calculate_current_sky', { input });
       if (!isActive()) return;
       if (!this.isValidSnapshot(snapshot, input)) {
@@ -125,11 +128,12 @@ export class CurrentSkyService {
       const normalized = code.toLowerCase();
       const status = normalized.includes('permission') ? 'permission-required'
         : normalized.includes('sky_engine_unavailable') || normalized.includes('native-runtime-required') ? 'engine-unavailable'
-        : 'location-unavailable';
+        : this.calculationStarted ? 'failed' : 'location-unavailable';
       if (status === 'permission-required') this.stopPolling();
       this.state.set({ status, requestedAtUtc, snapshot: null, message: code });
     } finally {
       this.inFlight = false;
+      this.calculationStarted = false;
       if (this.pendingForegroundRefresh && this.started && document.visibilityState === 'visible') {
         this.pendingForegroundRefresh = false;
         void this.refreshNow(true, false);
