@@ -1,69 +1,113 @@
 <div class="app-shell">
   <header class="masthead">
-    <div class="brand" aria-label="VirgoStars Mobile">
-      <div class="brand-mark" aria-hidden="true">✦</div>
-      <div class="brand-text">Virgo<span>Stars</span><small>MOBILE</small></div>
+    <a class="brand" href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener" aria-label="VirgoStars">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <span class="brand-text">Virgo<span>Stars</span><small>MOBILE</small></span>
+    </a>
+    <div class="header-actions">
+      <span class="live-indicator"><i aria-hidden="true"></i>{{ locale() === 'it' ? 'CIELO LIVE' : 'LIVE SKY' }}</span>
+      <button class="lang" type="button" (click)="switchLocale()" [attr.aria-label]="locale() === 'it' ? 'Switch to English' : 'Passa all’italiano'">
+        {{ locale() === 'it' ? 'EN' : 'IT' }}
+      </button>
     </div>
-    <button class="lang" type="button" (click)="switchLocale()" [attr.aria-label]="'Switch language / Cambia lingua'">
-      {{ locale() === 'it' ? 'EN' : 'IT' }}
-    </button>
   </header>
 
   <main id="main-content">
-    @if (tab() === 'home') {
-      <section class="hero">
-        <span class="eyebrow">{{ t('status') }}</span>
-        <div class="hero-star" aria-hidden="true">✧</div>
-        <h1>{{ t('welcome') }}</h1>
-        <p>{{ t('intro') }}</p>
-        <button class="primary" type="button" (click)="navigate('chart')">{{ t('explore') }} <span aria-hidden="true">→</span></button>
-      </section>
-      <section class="info-card" aria-labelledby="offline-title">
-        <div class="info-symbol" aria-hidden="true">◷</div>
-        <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
-      </section>
-    } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
-      <section class="chart-card" [attr.aria-label]="t('demoWarning')">
-        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
-          <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
-          <circle cx="160" cy="160" r="107" fill="none" stroke="#9b92b9" stroke-width="1.5"/>
-          <circle cx="160" cy="160" r="55" fill="none" stroke="#cdb17f" stroke-width="1" opacity=".8"/>
-          <path d="M160 15V305M15 160H305M57.5 57.5L262.5 262.5M262.5 57.5L57.5 262.5" stroke="#8c829f" stroke-width="1" opacity=".5"/>
-          <path d="M160 53L174 145L267 160L174 175L160 267L146 175L53 160L146 145Z" fill="none" stroke="#e6cb91" stroke-width="2"/>
-          <circle cx="160" cy="160" r="8" fill="#edcc89"/>
-        </svg>
-      </section>
-      <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
-    } @else if (tab() === 'archive') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
-    } @else {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
-      <div class="settings-card">
-        <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
-        <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
-        <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
+    <section class="intro">
+      <div class="eyebrow">{{ locale() === 'it' ? 'IL MOMENTO PRESENTE' : 'THE PRESENT MOMENT' }}</div>
+      <h1>{{ title }}</h1>
+      <p>{{ subtitle }}</p>
+      <div class="time-line">
+        <span class="time-dot" aria-hidden="true"></span>
+        <time>{{ formattedNow() }}</time>
       </div>
-      <p class="disclaimer">{{ t('about') }}</p>
+    </section>
+
+    @if (error()) {
+      <section class="error-card" role="alert">
+        <p>{{ error() }}</p>
+        <button type="button" class="refresh-button" (click)="refreshSky()">{{ locale() === 'it' ? 'Riprova' : 'Try again' }}</button>
+      </section>
+    } @else if (snapshot(); as sky) {
+      <section class="chart-panel" aria-label="Carta zodiacale del cielo attuale">
+        <div class="chart-panel-head">
+          <div>
+            <span class="eyebrow">{{ locale() === 'it' ? 'CARTA DEL CIELO' : 'SKY CHART' }}</span>
+            <h2>{{ locale() === 'it' ? 'Posizioni planetarie' : 'Planetary positions' }}</h2>
+          </div>
+          <button class="refresh-button" type="button" (click)="refreshSky()" [disabled]="refreshing()" [attr.aria-label]="locale() === 'it' ? 'Aggiorna il cielo' : 'Refresh sky'">
+            <span [class.spinning]="refreshing()" aria-hidden="true">↻</span>
+            {{ locale() === 'it' ? 'Aggiorna' : 'Refresh' }}
+          </button>
+        </div>
+
+        <div class="wheel-wrap">
+          <svg class="chart-wheel" viewBox="0 0 360 360" role="img" [attr.aria-label]="locale() === 'it' ? 'Ruota zodiacale con le posizioni apparenti dei pianeti' : 'Zodiac wheel with apparent planetary positions'">
+            <circle cx="180" cy="180" r="166" class="wheel-outer"/>
+            <circle cx="180" cy="180" r="132" class="wheel-sign-ring"/>
+            <circle cx="180" cy="180" r="112" class="wheel-inner"/>
+            <circle cx="180" cy="180" r="65" class="wheel-core"/>
+            @for (sign of zodiac; track sign.glyph) {
+              <line [attr.x1]="180 + Math.cos((($index * 30) - 90) * Math.PI / 180) * 132"
+                    [attr.y1]="180 + Math.sin((($index * 30) - 90) * Math.PI / 180) * 132"
+                    [attr.x2]="180 + Math.cos((($index * 30) - 90) * Math.PI / 180) * 166"
+                    [attr.y2]="180 + Math.sin((($index * 30) - 90) * Math.PI / 180) * 166"
+                    class="wheel-tick"/>
+              <text [attr.x]="sign.x" [attr.y]="sign.y" class="zodiac-glyph">{{ sign.glyph }}</text>
+            }
+            @for (marker of chartMarkers(); track marker.id) {
+              <line x1="180" y1="180" [attr.x2]="marker.x" [attr.y2]="marker.y" class="planet-spoke"/>
+              <circle [attr.cx]="marker.x" [attr.cy]="marker.y" r="3.5" class="planet-dot"/>
+              <text [attr.x]="marker.labelX" [attr.y]="marker.labelY" class="planet-glyph">{{ marker.glyph }}</text>
+            }
+            <text x="180" y="171" text-anchor="middle" class="core-caption">VIRGOSTARS</text>
+            <text x="180" y="190" text-anchor="middle" class="core-subcaption">{{ locale() === 'it' ? 'TROPICALE' : 'TROPICAL' }}</text>
+            <text x="180" y="205" text-anchor="middle" class="core-subcaption">GEOCENTRIC</text>
+          </svg>
+        </div>
+
+        <div class="legend">
+          <span><i class="legend-dot"></i>{{ locale() === 'it' ? 'Pianeti' : 'Planets' }}</span>
+          <span>{{ locale() === 'it' ? 'Zodiaco tropicale' : 'Tropical zodiac' }}</span>
+        </div>
+      </section>
+
+      <section class="positions-panel">
+        <div class="positions-head">
+          <div>
+            <span class="eyebrow">{{ locale() === 'it' ? 'DETTAGLIO' : 'DETAIL' }}</span>
+            <h2>{{ locale() === 'it' ? 'Dove si trovano' : 'Where they are' }}</h2>
+          </div>
+          <span class="updated-at">{{ locale() === 'it' ? 'Calcolato' : 'Calculated' }} {{ formattedCalculation() }}</span>
+        </div>
+        <div class="planet-grid">
+          @for (body of positions(); track body.id) {
+            <article class="planet-row">
+              <span class="planet-symbol" aria-hidden="true">{{ body.glyph }}</span>
+              <span class="planet-name">{{ body.displayName }}</span>
+              <span class="planet-location">
+                <strong>{{ formatDegree(body.degreeInSign) }}</strong>
+                <span>{{ body.displaySign }}</span>
+              </span>
+            </article>
+          }
+        </div>
+      </section>
+
+      <p class="method-note">
+        {{ locale() === 'it'
+          ? 'Posizioni apparenti geocentriche, eclittica della data. Ascendente e case non sono ancora inclusi: richiedono il calcolo verificato degli angoli per un luogo di osservazione.'
+          : 'Apparent geocentric positions, ecliptic of date. Ascendant and houses are not included yet; they require a verified angle calculation for an observing location.' }}
+      </p>
+      <div class="engine-line">
+        <span>{{ sky.engine }}</span>
+        <span>·</span>
+        <span>{{ locale() === 'it' ? 'Aggiornamento ogni 60 secondi' : 'Refresh every 60 seconds' }}</span>
+      </div>
+    } @else {
+      <div class="loading-card" role="status">{{ locale() === 'it' ? 'Calcolo del cielo…' : 'Calculating the sky…' }}</div>
     }
   </main>
 
   <footer class="attribution"><span>Powered by VirgoStars</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
-
-  <nav class="bottom-nav" aria-label="Navigation">
-    @for (item of navTabs; track item) {
-      <button type="button" (click)="navigate(item)" [class.active]="tab() === item" [attr.aria-current]="tab() === item ? 'page' : null">
-        <span class="nav-glyph" aria-hidden="true">
-          @switch (item) {
-            @case ('home') { ⌂ }
-            @case ('chart') { ✧ }
-            @case ('archive') { ▤ }
-            @case ('settings') { ⚙ }
-          }
-        </span>
-        <span>{{ t(item) }}</span>
-      </button>
-    }
-  </nav>
 </div>
