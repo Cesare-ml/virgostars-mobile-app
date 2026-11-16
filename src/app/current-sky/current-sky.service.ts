@@ -86,10 +86,12 @@ export class CurrentSkyService {
       this.startPolling();
       if (!isActive()) return;
 
-      // Capture the requested instant after consent, immediately before GPS.
+      // Capture the calculation instant after the GPS fix, not before its potentially long wait.
       const gpsRequestStartedAtMs = Date.now();
       const position = await getCurrentPosition({ enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 });
-      if (document.visibilityState !== 'visible') return;
+      if (!isActive()) return;
+      const capturedAt = new Date();
+      requestedAtUtc = capturedAt.toISOString();
       const fix: CurrentSkyLocationFix = { latitudeDeg: position.coords.latitude, longitudeDegEast: position.coords.longitude, accuracyMeters: position.coords.accuracy, measuredAtMs: position.timestamp };
       const nowMs = Date.now();
       if (!isValidCurrentSkyFix(fix, nowMs, CURRENT_SKY_MAX_FIX_AGE_MS) || fix.measuredAtMs < gpsRequestStartedAtMs - CURRENT_SKY_MAX_FIX_AGE_MS) {
@@ -111,7 +113,7 @@ export class CurrentSkyService {
       };
       this.baseline = { lastRequestAtMs: nowMs, latitudeDeg: fix.latitudeDeg, longitudeDegEast: fix.longitudeDegEast };
       const snapshot = await invoke<CurrentSkySnapshot>('calculate_current_sky', { input });
-      if (document.visibilityState !== 'visible') return;
+      if (!isActive()) return;
       if (!this.isValidSnapshot(snapshot, input)) {
         this.state.set({ status: 'failed', requestedAtUtc, snapshot: null, message: 'engine-returned-invalid-snapshot' });
         return;
