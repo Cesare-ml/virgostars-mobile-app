@@ -8,7 +8,7 @@ Status: **current-sky MVP source implementation** (2026-11-16); build and Androi
 Angular 20 mobile UI
   |  current-sky-engine.mjs
   |  astronomy-engine 2.1.19 (temporary MIT adapter)
-  |  geocentric apparent ecliptic-of-date positions, tropical zodiac
+  |  geocentric true-ecliptic-of-date positions, tropical zodiac
   |  UI update every 60 seconds
   v
 Tauri 2 WebView on Android / browser preview
@@ -26,7 +26,7 @@ The UI does not contain astronomy formula implementations. All planet positions 
 
 ## Scope boundaries
 
-- Coordinates are geocentric apparent positions in the true ecliptic of date and tropical zodiac.
+- Coordinates are geocentric positions in the true ecliptic of date and tropical zodiac. Planet vectors use light-time and aberration corrections; the Moon uses the provider's dedicated lunar theory.
 - The Moon is calculated with the provider's dedicated geocentric ecliptic routine.
 - The first screen opens directly on the current sky chart; it refreshes positions every 60 seconds and the displayed clock every second.
 - No Ascendant or houses: observer location and a validated local-angle pipeline are not yet available. Do not infer or default location.
