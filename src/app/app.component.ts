@@ -5,7 +5,9 @@ import {
   getCurrentSkyLocation
 } from './current-sky/native-current-sky';
 import { parseSkyChart } from './current-sky/current-sky.models';
+import { SkyWheelComponent } from './current-sky/sky-wheel.component';
 import type {
+  SkyChart,
   CurrentSkyRequest,
   CurrentSkyResponse,
   CurrentSkyScreenState
@@ -59,6 +61,7 @@ const messages = {
 @Component({
   selector: 'app-root',
   standalone: true,
+  imports: [SkyWheelComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -66,6 +69,7 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly locale = signal<Locale>('it');
   readonly state = signal<CurrentSkyScreenState>('loading');
   readonly response = signal<CurrentSkyResponse | null>(null);
+  readonly chart = signal<SkyChart | null>(null);
   readonly request = signal<CurrentSkyRequest | null>(null);
   readonly locationAccuracy = signal<number | null>(null);
   readonly isRefreshing = signal(false);
@@ -90,6 +94,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isRefreshing.set(true);
     this.state.set('loading');
     this.response.set(null);
+    this.chart.set(null);
     this.request.set(null);
     this.locationAccuracy.set(null);
 
@@ -133,12 +138,13 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       // Reject incomplete, non-finite or fabricated-looking chart contracts.
-      if (parseSkyChart(response.chart) === null) {
+      const parsedChart = parseSkyChart(response.chart);
+      if (parsedChart === null) {
         this.state.set('failed');
         return;
       }
-      // A validated payload is not a visible chart until the renderer is wired.
-      this.state.set('renderer-unavailable');
+      this.chart.set(parsedChart);
+      this.state.set('ready');
     } catch (error: unknown) {
       if (this.destroyed || generation !== this.refreshGeneration) return;
       if (error instanceof CurrentSkyLocationError) {
@@ -152,7 +158,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (this.destroyed || generation !== this.refreshGeneration) return;
       this.isRefreshing.set(false);
       // Once a real provider/renderer is integrated, keep the current chart fresh.
-      if (this.state() === 'renderer-unavailable') this.startRefreshTimer();
+      if (this.state() === 'ready') this.startRefreshTimer();
     }
   }
 
@@ -179,6 +185,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.stopRefreshTimer();
       // Never expose an old chart as live when the app is resumed.
       this.response.set(null);
+      this.chart.set(null);
       this.request.set(null);
       this.locationAccuracy.set(null);
       this.state.set('loading');
