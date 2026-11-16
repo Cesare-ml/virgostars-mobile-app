@@ -72,3 +72,11 @@ test('native snapshot verification rejects NaN observer coordinates and impossib
   assert.match(service, /aspect\.exactAngleDeg <= 180/);
   assert.match(service, /aspect\.orbDeg <= 180/);
 });
+
+test('explicit permission retry is retained when a GPS request is already running', () => {
+  const service = text('src/app/current-sky/current-sky.service.ts');
+  assert.match(service, /if \(requestPermission\) this\.pendingPermissionRequest = true;/);
+  assert.match(service, /const askPermission = this\.pendingPermissionRequest;/);
+  assert.match(service, /void this\.refreshNow\(true, askPermission\)/);
+  assert.match(service, /this\.pendingPermissionRequest = false;/);
+});
