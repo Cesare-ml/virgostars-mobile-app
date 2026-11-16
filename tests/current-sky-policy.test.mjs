@@ -29,14 +29,16 @@ test('the first valid fix triggers a calculation', () => {
 
 test('periodic refresh uses a one-minute cadence', () => {
   const baseline = { lastRequestAtMs: 100_000, latitudeDeg: 44.5, longitudeDegEast: 11.3 };
-  assert.equal(shouldRefreshCurrentSky(baseline, 100_000 + CURRENT_SKY_REFRESH_INTERVAL_MS - 1, fix()), false);
-  assert.equal(shouldRefreshCurrentSky(baseline, 100_000 + CURRENT_SKY_REFRESH_INTERVAL_MS, fix()), true);
+  const justBeforeDue = 100_000 + CURRENT_SKY_REFRESH_INTERVAL_MS - 1;
+  const due = 100_000 + CURRENT_SKY_REFRESH_INTERVAL_MS;
+  assert.equal(shouldRefreshCurrentSky(baseline, justBeforeDue, fix({ measuredAtMs: justBeforeDue - 1_000 })), false);
+  assert.equal(shouldRefreshCurrentSky(baseline, due, fix({ measuredAtMs: due - 1_000 })), true);
 });
 
 test('meaningful movement triggers recalculation inside the one-minute interval', () => {
   const baseline = { lastRequestAtMs: 100_000, latitudeDeg: 44.5, longitudeDegEast: 11.3 };
-  assert.equal(shouldRefreshCurrentSky(baseline, 110_000, fix({ latitudeDeg: 44.5025 })), true);
-  assert.equal(shouldRefreshCurrentSky(baseline, 110_000, fix({ latitudeDeg: 44.5001 })), false);
+  assert.equal(shouldRefreshCurrentSky(baseline, 110_000, fix({ latitudeDeg: 44.5025, measuredAtMs: 109_000 })), true);
+  assert.equal(shouldRefreshCurrentSky(baseline, 110_000, fix({ latitudeDeg: 44.5001, measuredAtMs: 109_000 })), false);
 });
 
 test('haversine distance handles longitude wrap at the antimeridian', () => {
