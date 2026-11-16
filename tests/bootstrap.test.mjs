@@ -77,3 +77,10 @@ test('ephemeris output must reject non-finite values before entering the chart',
   assert.match(service, /Number\.isFinite\(ecliptic\.elat\)/);
   assert.match(service, /throw new RangeError/);
 });
+
+test('snapshot contract requires ten distinct bodies and valid ecliptic latitudes', () => {
+  const service = text('src/app/live-sky.service.ts');
+  assert.match(service, /Math\.abs\(ecliptic\.elat\) > 90/);
+  assert.match(service, /bodies\.length !== 10/);
+  assert.match(service, /new Set\(bodies\.map\(body => body\.id\)\)\.size !== 10/);
+});
