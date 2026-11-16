@@ -4,66 +4,91 @@
       <div class="brand-mark" aria-hidden="true">✦</div>
       <div class="brand-text">Virgo<span>Stars</span><small>MOBILE</small></div>
     </div>
-    <button class="lang" type="button" (click)="switchLocale()" [attr.aria-label]="'Switch language / Cambia lingua'">
+    <button class="lang" type="button" (click)="switchLocale()">
       {{ locale() === 'it' ? 'EN' : 'IT' }}
     </button>
   </header>
 
-  <main id="main-content">
-    @if (tab() === 'home') {
-      <section class="hero">
-        <span class="eyebrow">{{ t('status') }}</span>
-        <div class="hero-star" aria-hidden="true">✧</div>
-        <h1>{{ t('welcome') }}</h1>
-        <p>{{ t('intro') }}</p>
-        <button class="primary" type="button" (click)="navigate('chart')">{{ t('explore') }} <span aria-hidden="true">→</span></button>
+  <main id="main-content" aria-live="polite">
+    <section class="sky-heading">
+      <span class="eyebrow">{{ t('live') }}</span>
+      <h1>{{ t('title') }}</h1>
+      <p>{{ t('subtitle') }}</p>
+    </section>
+
+    @if (state() === 'loading') {
+      <section class="status-card" role="status">
+        <span class="loader" aria-hidden="true"></span>
+        <p>{{ t('loading') }}</p>
       </section>
-      <section class="info-card" aria-labelledby="offline-title">
-        <div class="info-symbol" aria-hidden="true">◷</div>
-        <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
+    } @else if (state() === 'browser-preview') {
+      <section class="status-card" role="status">
+        <span class="status-symbol" aria-hidden="true">⌖</span>
+        <p>{{ t('browser') }}</p>
       </section>
-    } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
-      <section class="chart-card" [attr.aria-label]="t('demoWarning')">
-        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
-          <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
-          <circle cx="160" cy="160" r="107" fill="none" stroke="#9b92b9" stroke-width="1.5"/>
-          <circle cx="160" cy="160" r="55" fill="none" stroke="#cdb17f" stroke-width="1" opacity=".8"/>
-          <path d="M160 15V305M15 160H305M57.5 57.5L262.5 262.5M262.5 57.5L57.5 262.5" stroke="#8c829f" stroke-width="1" opacity=".5"/>
-          <path d="M160 53L174 145L267 160L174 175L160 267L146 175L53 160L146 145Z" fill="none" stroke="#e6cb91" stroke-width="2"/>
-          <circle cx="160" cy="160" r="8" fill="#edcc89"/>
-        </svg>
+    } @else if (state() === 'permission-denied') {
+      <section class="status-card" role="alert">
+        <span class="status-symbol" aria-hidden="true">⌖</span>
+        <p>{{ t('permission') }}</p>
+        <button class="primary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
       </section>
-      <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
-    } @else if (tab() === 'archive') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
+    } @else if (state() === 'location-unavailable') {
+      <section class="status-card" role="alert">
+        <span class="status-symbol" aria-hidden="true">⌖</span>
+        <p>{{ t('location') }}</p>
+        <button class="primary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
+      </section>
+    } @else if (state() === 'engine-unavailable') {
+      <section class="status-card" role="status">
+        <span class="status-symbol" aria-hidden="true">✧</span>
+        <p>{{ t('engine') }}</p>
+        <button class="secondary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
+      </section>
+    } @else if (state() === 'renderer-unavailable') {
+      <section class="status-card" role="status">
+        <span class="status-symbol" aria-hidden="true">✧</span>
+        <p>{{ t('renderer') }}</p>
+      </section>
     } @else {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
-      <div class="settings-card">
-        <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
-        <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
-        <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
-      </div>
-      <p class="disclaimer">{{ t('about') }}</p>
+      <section class="status-card" role="alert">
+        <span class="status-symbol" aria-hidden="true">!</span>
+        <p>{{ t('failed') }}</p>
+        <button class="primary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
+      </section>
     }
+
+    @if (request(); as current) {
+      <section class="metadata-card" aria-label="Calculation metadata">
+        <div class="metadata-row">
+          <span>{{ t('updated') }}</span>
+          <strong>{{ localDateTime(current.instantUtc) }}</strong>
+        </div>
+        <div class="metadata-row">
+          <span>{{ t('locationLabel') }}</span>
+          <strong>{{ current.latitude.toFixed(4) }}°, {{ current.longitude.toFixed(4) }}°</strong>
+        </div>
+        <div class="metadata-row">
+          <span>{{ t('accuracy') }}</span>
+          <strong>±{{ (locationAccuracy() ?? 0).toFixed(0) }} m</strong>
+        </div>
+        <div class="metadata-row">
+          <span>{{ t('timezone') }}</span>
+          <strong>{{ current.timezoneId }}</strong>
+        </div>
+        @if (response()?.engine; as engine) {
+          <div class="metadata-row">
+            <span>{{ t('source') }}</span>
+            <strong>{{ engine.provider }} {{ engine.version }}</strong>
+          </div>
+        }
+      </section>
+    }
+
+    <p class="privacy-note">{{ t('footer') }}</p>
   </main>
 
-  <footer class="attribution"><span>Powered by VirgoStars</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
-
-  <nav class="bottom-nav" aria-label="Navigation">
-    @for (item of navTabs; track item) {
-      <button type="button" (click)="navigate(item)" [class.active]="tab() === item" [attr.aria-current]="tab() === item ? 'page' : null">
-        <span class="nav-glyph" aria-hidden="true">
-          @switch (item) {
-            @case ('home') { ⌂ }
-            @case ('chart') { ✧ }
-            @case ('archive') { ▤ }
-            @case ('settings') { ⚙ }
-          }
-        </span>
-        <span>{{ t(item) }}</span>
-      </button>
-    }
-  </nav>
+  <footer class="attribution">
+    {{ t('powered') }} ·
+    <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a>
+  </footer>
 </div>
