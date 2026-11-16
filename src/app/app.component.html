@@ -42,7 +42,7 @@
         </div>
 
         <div class="wheel-wrap">
-          <svg class="chart-wheel" viewBox="0 0 360 360" role="img" [attr.aria-label]="locale() === 'it' ? 'Ruota zodiacale con le posizioni apparenti dei pianeti' : 'Zodiac wheel with apparent planetary positions'">
+          <svg class="chart-wheel" viewBox="0 0 360 360" role="img" [attr.aria-label]="locale() === 'it' ? 'Ruota zodiacale con le posizioni geocentriche dei pianeti' : 'Zodiac wheel with apparent planetary positions'">
             <circle cx="180" cy="180" r="166" class="wheel-outer"/>
             <circle cx="180" cy="180" r="132" class="wheel-sign-ring"/>
             <circle cx="180" cy="180" r="112" class="wheel-inner"/>
@@ -93,8 +93,8 @@
 
       <p class="method-note">
         {{ locale() === 'it'
-          ? 'Posizioni apparenti geocentriche, eclittica della data. Ascendente e case non sono ancora inclusi: richiedono il calcolo verificato degli angoli per un luogo di osservazione.'
-          : 'Apparent geocentric positions, ecliptic of date. Ascendant and houses are not included yet; they require a verified angle calculation for an observing location.' }}
+          ? 'Posizioni geocentriche in eclittica vera della data. I vettori planetari includono le correzioni di tempo-luce e aberrazione; la Luna usa il modello lunare dedicato del provider. Ascendente e case non sono ancora inclusi: richiedono il calcolo verificato degli angoli per un luogo di osservazione.'
+          : 'Geocentric positions in the true ecliptic of date. Planet vectors include light-time and aberration corrections; the Moon uses the provider's dedicated lunar theory. Ascendant and houses are not included yet; they require a verified angle calculation for an observing location.' }}
       </p>
       <div class="engine-line">
         <span>{{ sky.engine }}</span>
