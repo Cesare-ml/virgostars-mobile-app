@@ -54,3 +54,33 @@ test('formats zodiac degrees and minutes without carrying into the next sign', (
   assert.equal(formatDegreeMinute(29.999999), '29° 59.9′');
   assert.throws(() => formatDegreeMinute(30), RangeError);
 });
+
+test('Ascendant lies on the local horizon after inverse coordinate rotation', () => {
+  for (const latitude of [-80, -66, -35, 0, 10, 48, 80]) {
+    for (const sidereal of [0, 67, 180, 299]) {
+      const result = calculateAscendant(eqdToEct, latitude, sidereal);
+      const ascendant = result.longitudeDegrees * Math.PI / 180;
+      const phi = latitude * Math.PI / 180;
+      const theta = sidereal * Math.PI / 180;
+
+      const zenith = [
+        Math.cos(phi) * Math.cos(theta),
+        Math.cos(phi) * Math.sin(theta),
+        Math.sin(phi)
+      ];
+      const eclipticPoint = [Math.cos(ascendant), Math.sin(ascendant), 0];
+      const equatorialPoint = [
+        eqdToEct[0][0] * eclipticPoint[0] + eqdToEct[1][0] * eclipticPoint[1],
+        eqdToEct[0][1] * eclipticPoint[0] + eqdToEct[1][1] * eclipticPoint[1],
+        eqdToEct[0][2] * eclipticPoint[0] + eqdToEct[1][2] * eclipticPoint[1]
+      ];
+      const horizonDot = zenith.reduce(
+        (sum, value, index) => sum + value * equatorialPoint[index],
+        0
+      );
+
+      assert.ok(Math.abs(horizonDot) < 1e-12);
+      assert.ok(result.eastProjection >= -1e-12);
+    }
+  }
+});
