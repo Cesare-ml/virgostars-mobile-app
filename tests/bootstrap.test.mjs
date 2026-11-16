@@ -81,3 +81,12 @@ test('coordinate forms use distinct accessible input identifiers', () => {
   }
   assert.match(ui, /aria-controls="location-editor"/);
 });
+
+test('coordinate editor stays accessible when a chart has validation errors', () => {
+  const ui = text('src/app/app.component.html');
+  const app = text('src/app/app.component.ts');
+  assert.match(ui, /@if \(error\(\) && !chart\(\)\)/);
+  assert.match(ui, /@if \(editingLocation\(\)\)/);
+  assert.match(ui, /class="form-error" role="alert"/);
+  assert.match(app, /if \(hasExistingChart\) this\.editingLocation\.set\(true\)/);
+});
