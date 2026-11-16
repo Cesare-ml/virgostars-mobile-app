@@ -36,6 +36,16 @@
             <div><small>{{ t('coordinates') }}</small><strong>{{ snapshot.observer.latitudeDeg.toFixed(4) }}, {{ snapshot.observer.longitudeDegEast.toFixed(4) }}</strong></div>
             <div><small>{{ t('accuracy') }}</small><strong>±{{ snapshot.observer.locationAccuracyMeters.toFixed(0) }} m</strong></div>
           </div>
+          <div class="sky-positions">
+            <h2>{{ t('positions') }}</h2>
+            @for (position of snapshot.positions; track position.body) {
+              <div class="sky-position">
+                <span>{{ position.body }}</span>
+                <strong>{{ position.longitudeDeg.toFixed(2) }}°</strong>
+                <small>{{ position.retrograde === null ? '—' : position.retrograde ? 'R' : 'D' }}</small>
+              </div>
+            }
+          </div>
           <p class="renderer-pending">{{ t('rendererMissing') }}</p>
         } @else {
           <h2>{{ t('failure') }}</h2>
