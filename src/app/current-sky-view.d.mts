@@ -10,3 +10,5 @@ export type PositionedPlanet<T extends PlanetLongitude> = T & {
   readonly labelY: number;
 };
 export declare function layoutPlanetMarkers<T extends PlanetLongitude>(bodies: readonly T[]): readonly Readonly<PositionedPlanet<T>>[];
+
+export declare function formatZodiacDegree(degreeInSign: number): string;
