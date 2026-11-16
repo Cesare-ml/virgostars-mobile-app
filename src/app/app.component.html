@@ -44,6 +44,22 @@
         <p>{{ t('engine') }}</p>
         <button class="secondary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
       </section>
+    } @else if (state() === 'ready') {
+      <section class="chart-card" aria-label="Current sky ecliptic longitude wheel">
+        <svg viewBox="0 0 320 320" role="img" aria-label="Planetary positions on a tropical ecliptic wheel">
+          <circle cx="160" cy="160" r="146" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <circle cx="160" cy="160" r="128" fill="none" stroke="currentColor" stroke-opacity=".45" />
+          <circle cx="160" cy="160" r="82" fill="none" stroke="currentColor" stroke-opacity=".25" />
+          @for (spoke of zodiacSpokes; track $index) {
+            <line x1="160" y1="160" [attr.x2]="spoke.x" [attr.y2]="spoke.y" stroke="currentColor" stroke-opacity=".22" />
+          }
+          @for (body of wheelBodies(); track body.id) {
+            <circle [attr.cx]="body.x" [attr.cy]="body.y" r="8" fill="#f1d18b" stroke="#222" stroke-width="1" />
+            <text [attr.x]="body.x" [attr.y]="body.y - 14" text-anchor="middle" fill="currentColor" font-size="10">{{ body.id }}</text>
+          }
+        </svg>
+        <p>{{ locale() === 'it' ? 'Posizioni eclittiche calcolate dal motore nativo.' : 'Ecliptic positions calculated by the native engine.' }}</p>
+      </section>
     } @else if (state() === 'renderer-unavailable') {
       <section class="status-card" role="status">
         <span class="status-symbol" aria-hidden="true">✧</span>

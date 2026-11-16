@@ -87,3 +87,13 @@ test('native provider boundary rejects invalid chart payloads and frontend uses 
   assert.match(models, /interface ChartPayload/);
   assert.match(models, /chart: ChartPayload \| null/);
 });
+
+test('wheel renders only for a native ready response and never contains fixture positions', () => {
+  const html = read('src/app/app.component.html');
+  const component = read('src/app/app.component.ts');
+  assert.match(html, /state\(\) === 'ready'/);
+  assert.match(html, /wheelBodies\(\)/);
+  assert.match(component, /this\.response\(\)\?\.status === 'ready'/);
+  assert.match(component, /this\.state\.set\('ready'\)/);
+  assert.doesNotMatch(html, /fixture|demoPlanet|fakePlanet/);
+});

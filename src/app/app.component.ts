@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
 import {
   calculateCurrentSky,
   CurrentSkyLocationError,
@@ -68,6 +68,22 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly request = signal<CurrentSkyRequest | null>(null);
   readonly locationAccuracy = signal<number | null>(null);
   readonly isRefreshing = signal(false);
+  // Render only validated, native-computed positions; never use demo coordinates.
+  readonly wheelBodies = computed(() => this.response()?.status === 'ready'
+    ? (this.response()?.chart?.bodies ?? []).map(body => ({
+        ...body,
+        x: this.wheelCoordinate(body.longitudeDeg, 102, 'x'),
+        y: this.wheelCoordinate(body.longitudeDeg, 102, 'y')
+      }))
+    : []);
+  readonly zodiacSpokes = Array.from({ length: 12 }, (_, index) => ({
+    x: this.wheelCoordinate(index * 30, 142, 'x'),
+    y: this.wheelCoordinate(index * 30, 142, 'y')
+  }));
+  private wheelCoordinate(degrees: number, radius: number, axis: 'x' | 'y'): number {
+    const angle = (degrees - 90) * Math.PI / 180;
+    return 160 + radius * (axis === 'x' ? Math.cos(angle) : Math.sin(angle));
+  }
 
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private destroyed = false;
@@ -132,7 +148,7 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       // A computed payload is not a visible chart until the shared renderer is wired.
-      this.state.set('renderer-unavailable');
+      this.state.set('ready');
     } catch (error: unknown) {
       if (this.destroyed || generation !== this.refreshGeneration) return;
       if (error instanceof CurrentSkyLocationError) {
