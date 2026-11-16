@@ -40,3 +40,12 @@ h2 { font-size: 16px; margin: 0 0 5px; font-weight: 650; }
 .nav-glyph { font-size: 24px; line-height: 1.1; }
 @media (min-width: 620px) { .app-shell { border-left: 1px solid #2d3853; border-right: 1px solid #2d3853; } }
 @media (prefers-reduced-motion: no-preference) { .primary, .bottom-nav button { transition: background-color .15s ease, color .15s ease; } }
+
+.request-card { border: 1px solid #39465d; border-radius: 22px; background: #ffffff09; padding: 20px; margin-top: 16px; }
+.request-card form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.request-card label { display: grid; gap: 7px; color: #e2dfd8; font-size: 13px; }
+.request-card label:first-child, .request-card label:nth-child(3) { grid-column: 1 / -1; }
+.request-card input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #65718b; border-radius: 10px; background: #202b42; color: #fff; padding: 12px 10px; font: inherit; color-scheme: dark; }
+.request-card input:focus-visible { outline: 2px solid #e5c895; outline-offset: 2px; }
+.request-card .primary { grid-column: 1 / -1; justify-content: center; margin-top: 3px; }
+.validation-result { margin-top: 14px; color: #e5c895; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }

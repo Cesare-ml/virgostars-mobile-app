@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
+import { validateChartRequestV1, type ChartRequestV1 } from './chart-request';
 
 type Tab = 'home' | 'chart' | 'archive' | 'settings';
 type Locale = 'it' | 'en';
@@ -16,6 +17,12 @@ const messages = {
     offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
     chartTitle: 'Tema astrologico',
     chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
+    inputTitle: 'Prepara una richiesta di carta',
+    inputHint: 'Dati temporanei: non vengono salvati o inviati. Indica il fuso UTC esplicitamente.',
+    dateLabel: 'Data locale', timeLabel: 'Ora locale', offsetLabel: 'Scostamento UTC (minuti)',
+    latitudeLabel: 'Latitudine', longitudeLabel: 'Longitudine', validateLabel: 'Verifica dati',
+    validLabel: 'Richiesta valida, pronta per una futura integrazione del motore. Nessun calcolo eseguito.',
+    invalidLabel: 'Correggi i campi indicati:',
     demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
     archiveTitle: 'Il mio archivio',
     archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
@@ -23,7 +30,7 @@ const messages = {
     language: 'Lingua',
     runtime: 'Ambiente',
     data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
+    dataBody: 'I dati inseriti nella schermata Carta restano temporaneamente in memoria; non vengono salvati né trasmessi.',
     about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
     home: 'Home',
     chart: 'Carta',
@@ -44,6 +51,12 @@ const messages = {
     offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
     chartTitle: 'Astrological chart',
     chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
+    inputTitle: 'Prepare a chart request',
+    inputHint: 'Temporary values: not saved or transmitted. Specify the UTC offset explicitly.',
+    dateLabel: 'Local date', timeLabel: 'Local time', offsetLabel: 'UTC offset (minutes)',
+    latitudeLabel: 'Latitude', longitudeLabel: 'Longitude', validateLabel: 'Validate inputs',
+    validLabel: 'Valid request, ready for a future engine integration. No calculation performed.',
+    invalidLabel: 'Correct these fields:',
     demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
     archiveTitle: 'My library',
     archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
@@ -51,7 +64,7 @@ const messages = {
     language: 'Language',
     runtime: 'Environment',
     data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
+    dataBody: 'Chart inputs remain temporarily in memory; they are not saved or transmitted.',
     about: 'Experimental project, not connected to VirgoStars services yet.',
     home: 'Home',
     chart: 'Chart',
@@ -74,10 +87,31 @@ export class AppComponent implements OnInit {
   readonly tab = signal<Tab>('home');
   readonly locale = signal<Locale>('it');
   readonly runtime = signal<string | null>(null);
+  readonly chartFields = signal({ localDate: '', localTime: '', utcOffsetMinutes: '', latitude: '', longitude: '' });
+  readonly chartValidation = signal<{ ok: boolean; errors: readonly string[] } | null>(null);
   readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
 
   t(key: keyof typeof messages.it): string {
     return messages[this.locale()][key];
+  }
+
+  updateChartField(field: 'localDate' | 'localTime' | 'utcOffsetMinutes' | 'latitude' | 'longitude', value: string): void {
+    this.chartFields.update(current => ({ ...current, [field]: value }));
+    this.chartValidation.set(null);
+  }
+
+  validateChart(): void {
+    const fields = this.chartFields();
+    const request: ChartRequestV1 = {
+      schemaVersion: 1,
+      localDate: fields.localDate,
+      localTime: fields.localTime.length === 5 ? fields.localTime + ':00' : fields.localTime,
+      utcOffsetMinutes: fields.utcOffsetMinutes.trim() === '' ? NaN : Number(fields.utcOffsetMinutes),
+      latitude: fields.latitude.trim() === '' ? NaN : Number(fields.latitude),
+      longitude: fields.longitude.trim() === '' ? NaN : Number(fields.longitude)
+    };
+    const result = validateChartRequestV1(request);
+    this.chartValidation.set(result.ok ? { ok: true, errors: [] } : { ok: false, errors: result.errors });
   }
 
   navigate(tab: Tab): void {
