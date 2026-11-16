@@ -21,6 +21,11 @@
         <span class="loader" aria-hidden="true"></span>
         <p>{{ t('loading') }}</p>
       </section>
+    } @else if (state() === 'browser-preview') {
+      <section class="status-card" role="status">
+        <span class="status-symbol" aria-hidden="true">⌖</span>
+        <p>{{ t('browser') }}</p>
+      </section>
     } @else if (state() === 'permission-denied') {
       <section class="status-card" role="alert">
         <span class="status-symbol" aria-hidden="true">⌖</span>
@@ -44,7 +49,7 @@
         <span class="status-symbol" aria-hidden="true">✧</span>
         <p>{{ t('renderer') }}</p>
       </section>
-    } @else if (state() === 'failed') {
+    } @else {
       <section class="status-card" role="alert">
         <span class="status-symbol" aria-hidden="true">!</span>
         <p>{{ t('failed') }}</p>
