@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { checkPermissions, getCurrentPosition, requestPermissions } from '@tauri-apps/plugin-geolocation';
 import { formatDegreeMinute } from './sky-chart-math.js';
 import { ObserverLocation, SkyChart, SkyChartService } from './sky-chart.service';
@@ -16,12 +16,11 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly latitudeInput = signal('');
   readonly longitudeInput = signal('');
+  private readonly sky = inject(SkyChartService);
   readonly signs = this.sky.signs;
 
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private location: ObserverLocation | null = null;
-
-  constructor(private readonly sky: SkyChartService) {}
 
   ngOnInit(): void {
     void this.requestDeviceLocation();
