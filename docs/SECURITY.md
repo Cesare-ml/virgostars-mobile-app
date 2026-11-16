@@ -1,6 +1,6 @@
 # Security and privacy
 
-**Current version has no user login, personal-data input, account cache, remote API calls or synchronization.** The runtime bridge returns only a public platform label and schema revision. No production service credentials are needed. The live chart is calculated locally through an explicitly temporary astronomy provider and is not yet scientifically validated. Device coordinates remain in memory and are neither persisted nor transmitted.
+**The MVP has no user login, birth-profile input, account cache, remote API calls or synchronization.** It requests device location to calculate the current chart; coordinates remain in process memory and are neither persisted nor transmitted. The runtime bridge returns only a public platform label and schema revision. No production service credentials are needed. The live chart uses an explicitly temporary astronomy provider and is not yet scientifically validated.
 
 Before implementing identity or local storage:
 1. Use system-browser OAuth 2 authorization code with PKCE, not an embedded login form.
