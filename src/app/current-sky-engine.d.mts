@@ -15,7 +15,7 @@ export interface CurrentSkySnapshot {
   readonly datetimeUtc: string;
   readonly coordinateCenter: 'EARTH';
   readonly coordinateFrame: 'ECLIPTIC_OF_DATE';
-  readonly positionType: 'APPARENT';
+  readonly positionType: 'GEOCENTRIC';
   readonly zodiac: 'TROPICAL';
   readonly engine: string;
   readonly refreshIntervalMs: number;
