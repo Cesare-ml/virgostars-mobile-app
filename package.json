@@ -14,7 +14,8 @@
     "android:dev": "tauri android dev",
     "android:build": "tauri android build",
     "ios:init": "npm run icons && tauri ios init",
-    "ios:dev": "tauri ios dev"
+    "ios:dev": "tauri ios dev",
+    "android:doctor": "node scripts/check-android-env.mjs"
   },
   "engines": {
     "node": "^22.12.0 || ^24.0.0"
