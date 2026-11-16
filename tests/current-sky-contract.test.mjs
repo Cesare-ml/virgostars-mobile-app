@@ -87,3 +87,13 @@ test('malformed native array elements and provider fields fail closed', () => {
   assert.match(service, /!!aspect && aspectBodies\.has/);
   assert.match(service, /typeof \(snapshot\.provider as unknown as Record<string, unknown>\)\[key\] === 'string'/);
 });
+
+test('verified planet position readout is gated behind the validated snapshot', () => {
+  const html = text('src/app/app.component.html');
+  const component = text('src/app/app.component.ts');
+  assert.ok(html.indexOf('@if (currentSky.state().snapshot; as snapshot)') < html.indexOf('@for (position of snapshot.positions; track position.body)'));
+  assert.match(html, /position\.longitudeDeg\.toFixed\(2\)/);
+  assert.match(html, /position\.retrograde === null/);
+  assert.match(component, /positions: 'Posizioni planetarie'/);
+  assert.match(component, /positions: 'Planetary positions'/);
+});
