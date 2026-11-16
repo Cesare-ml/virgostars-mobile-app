@@ -24,28 +24,28 @@ struct CurrentSkyInput {
 #[serde(rename_all = "lowercase")]
 enum SkyBody { Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CurrentSkyPosition { body: SkyBody, longitude_deg: f64, latitude_deg: f64, retrograde: Option<bool> }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CurrentSkyAngle { longitude_deg: f64, latitude_deg: f64 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CurrentSkyAspect {
     first_body: String, second_body: String, aspect: String,
     exact_angle_deg: f64, orb_deg: f64, applying: Option<bool>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CurrentSkyObserver {
     latitude_deg: f64, longitude_deg_east: f64, altitude_meters: Option<f64>, location_accuracy_meters: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CurrentSkyProviderInfo {
     id: String, version: String, ephemeris: String, time_scale: String,
@@ -54,7 +54,7 @@ struct CurrentSkyProviderInfo {
 }
 
 /// Must remain structurally aligned with src/app/current-sky/contracts.ts.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct CurrentSkySnapshot {
     schema_version: u8, calculated_at_utc: String, timezone_id: String, utc_offset_minutes: i16,
