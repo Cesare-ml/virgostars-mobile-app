@@ -2,38 +2,38 @@
 
 Milestones represent intended work, not completed functionality.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
-
-## M0 — Bootstrap (this repository state)
+## M0 — Android current-sky MVP foundation (in progress)
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Single-screen product shell: current sky as the initial experience
+- [x] Versioned TypeScript current-sky input/snapshot contracts
+- [x] Runtime permission flow and one-shot foreground GPS bridge
+- [x] GPS fix validation, timestamp/timezone/offset and observer metadata
+- [x] Foreground refresh policy: 15-second location polling, calculation at most once/minute, 250 m movement trigger, immediate refresh on resume
+- [x] Fail-closed native calculation command: no synthetic result when provider is absent
+- [x] Contract and refresh-policy tests
+- [ ] Integrate a legally distributable, offline-capable astronomical provider behind the native provider interface
+- [ ] Integrate tested astrological-functions semantics for zodiac, angles, house cusps and aspects
+- [ ] Integrate the shared astrological-charts renderer after permission/provenance review
+- [ ] Real vectors, build lockfile, npm run check and Android APK/device verification
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Verified chart calculation and rendering
+- [ ] Provider implementation for current UTC instant + WGS84 observer
+- [ ] Document and surface time scale, coordinate frame, zodiac/ayanamsa, house system, provider version and known approximations
+- [ ] Verify planet positions, retrograde state, Ascendant/MC, 12 cusps and aspects against controlled reference vectors
+- [ ] Validate renderer touch gestures, DPI, memory and WebView/WebGL restoration on Android
+- [ ] Test multiple times/locations and timezone/DST boundaries
+- [ ] Fail closed on unsupported dates, missing kernels, unsupported frames and invalid results
 
-## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
-- [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
-- [ ] Verified offline unlock policy and explicit revocation limitations
-- [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
+## M2 — Android build and device acceptance
+- [ ] Reproducible dependency lockfile and clean-checkout npm run check
+- [ ] Initialize Tauri Android project using documented SDK/JDK/NDK versions
+- [ ] Build/install/launch on emulator and physical Android device
+- [ ] Verify denied/revoked/approximate location, no-fix, timeout, foreground/resume and movement
+- [ ] Record actual build logs and device/toolchain versions; do not claim an APK until verified
 
-## M3 — Android beta and release gate
-- [ ] Security, accessibility, performance and Play Store/data-safety review
-- [ ] Signed Android build, recovery and staged distribution (maintainer-only decision)
-- [ ] Offline and network-failure QA on real low-end and high-end phones
+## Explicitly out of scope for this MVP
+- Login, accounts, server synchronization and profile storage
+- Birth-chart entry, archive/history, interpretations, AI, transits, notifications and widgets
+- iOS native setup or distribution
 
-## M4 — iOS adaptation
-- [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
-- [ ] Signed iOS beta/release after explicit owner approval
+The Android MVP is accepted only when the actual current-sky chart is computed locally and rendered by the shared renderer. A successful UI build, synthetic fixture or native probe alone is not acceptance.
