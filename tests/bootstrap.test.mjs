@@ -49,7 +49,7 @@ test('live chart uses the pinned temporary provider and native location flow', (
   assert.match(service, /const eastProjection/);
   assert.match(service, /if \(eastProjection < 0\) ascendantRadians \+= Math\.PI/);
   assert.match(app, /const degrees\s*=\s*Math\.floor\(value\)/);
-  assert.match(app, /Math\\.min\\(\\s*59\\.9,\\s*Math\\.round\\(\\(value\\s*-\\s*degrees\\)\\s*\\*\\s*600\\)\\s*\\/\\s*10\\s*\\)/);
+  assert.match(app, /Math\.min\(\s*59\.9,\s*Math\.round\(\(value\s*-\s*degrees\)\s*\*\s*600\)\s*\/\s*10\s*\)/);
   assert.match(app, /refreshChart\(\)/);
   assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
   assert.equal(pkg.dependencies['@tauri-apps/plugin-geolocation'], '2.5.0');
