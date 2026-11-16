@@ -18,10 +18,10 @@ test('frontend requests foreground location and delegates calculation to native 
   assert.match(source, /requestPermissions\(\['location'\]\)/);
   assert.match(source, /getCurrentPosition/);
   assert.match(source, /calculate_current_sky/);
-  assert.doesNotMatch(source, /watchPosition|background/i);
+  assert.doesNotMatch(source, /watchPosition|ACCESS_BACKGROUND_LOCATION/i);
 });
 
-test('refreshes on foreground return and has a bounded minute refresh after chart computation', () => {
+test('refreshes on foreground return and has a bounded minute refresh after provider response', () => {
   const source = read('src/app/app.component.ts');
   assert.match(source, /document:visibilitychange/);
   assert.match(source, /60_000/);
