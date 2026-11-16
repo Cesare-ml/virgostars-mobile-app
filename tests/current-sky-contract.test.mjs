@@ -103,3 +103,12 @@ test('clustered planet glyphs retain precise zodiac longitude ticks', () => {
   assert.match(wheel, /Math\.min\(delta, 360 - delta\) < 12/);
   assert.match(wheel, /const radius = nearby\.length > 1/);
 });
+
+test('native boundary never declares ready for incomplete or duplicated planetary data', () => {
+  const source = read('src-tauri/src/current_sky.rs');
+  assert.match(source, /fn valid_chart\(chart: &Value\) -> bool/);
+  assert.match(source, /bodies\.len\(\) != IDS\.len\(\)/);
+  assert.match(source, /seen\.insert\(id\)/);
+  assert.match(source, /Ok\(chart\) if valid_chart\(&chart\)/);
+  assert.match(source, /incomplete_or_invalid_planetary_payload_is_rejected/);
+});
