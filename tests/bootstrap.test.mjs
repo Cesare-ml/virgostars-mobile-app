@@ -7,32 +7,41 @@ const config = JSON.parse(text('src-tauri/tauri.conf.json'));
 const capabilities = JSON.parse(text('src-tauri/capabilities/default.json'));
 const pkg = JSON.parse(text('package.json'));
 
-test('Android-first app uses shared Tauri / Angular toolchain', () => {
+test('Android-first app uses the supported Tauri / Angular toolchain', () => {
   assert.equal(config.identifier, 'it.virgostars.mobile');
   assert.equal(config.bundle.android.minSdkVersion, 24);
   assert.equal(config.build.frontendDist, '../dist/virgostars-mobile/browser');
   assert.match(pkg.scripts['android:init'], /tauri android init/);
-  assert.match(pkg.scripts['ios:init'], /tauri ios init/);
+  assert.match(pkg.scripts['android:dev'], /tauri android dev/);
+  assert.match(pkg.scripts['android:build'], /tauri android build/);
 });
 
-test('minimum native permission surface', () => {
-  assert.deepEqual(capabilities.permissions, ['core:default']);
+test('native capabilities grant only foreground one-shot geolocation', () => {
   assert.deepEqual(capabilities.windows, ['main']);
+  assert.deepEqual(new Set(capabilities.permissions), new Set([
+    'core:default',
+    'geolocation:allow-check-permissions',
+    'geolocation:allow-request-permissions',
+    'geolocation:allow-get-current-position'
+  ]));
+  assert.equal(capabilities.permissions.some((permission) => permission.includes('watch')), false);
   assert.match(config.app.security.csp, /connect-src 'self'/);
   assert.doesNotMatch(config.app.security.csp, /unsafe-eval/);
 });
 
-test('native command only reports public runtime information', () => {
+test('native bridge exposes a typed live-sky command without network or storage', () => {
   const rust = text('src-tauri/src/lib.rs');
   assert.match(rust, /fn runtime_info\(\)/);
-  assert.match(rust, /schema_version: 1/);
+  assert.match(rust, /fn calculate_current_sky\(/);
+  assert.match(rust, /sky_engine_unavailable/);
   assert.doesNotMatch(rust, /reqwest|sqlx|http_client|password|secret|access_token/i);
 });
 
-test('no fake astrology results or private data bundled', () => {
+test('initial experience is the current sky and never a fake chart', () => {
   const ui = text('src/app/app.component.html');
-  assert.match(ui, /demoWarning/);
+  assert.match(ui, /Il cielo di adesso/);
   assert.match(ui, /Powered by VirgoStars/);
+  assert.doesNotMatch(ui, /chart-illustration|<svg/);
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
   assert.equal(pkg.private, true);
 });
