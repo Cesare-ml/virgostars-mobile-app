@@ -9,7 +9,7 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 On launch the app calculates and displays the current geocentric chart without login, network access or location permission:
 
 - Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto.
-- Apparent planetary positions in the true ecliptic of date, tropical zodiac, sign and degree.
+- Geocentric positions in the true ecliptic of date, tropical zodiac, sign and degree. Planet vectors include light-time and aberration corrections; the Moon uses the provider's dedicated lunar theory.
 - Local recalculation every 60 seconds and a clock refreshed every second.
 - Italian and English UI; calculation source and method are visible in the chart.
 
