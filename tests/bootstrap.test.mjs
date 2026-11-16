@@ -38,6 +38,8 @@ test('launch screen renders a live geocentric sky chart, not a placeholder', () 
   assert.doesNotMatch(ui, /demoWarning|Illustrazione geometrica/);
   assert.match(app, /setInterval\(\(\) => this\.refresh\(\), 30_000\)/);
   assert.match(app, /visibilitychange/);
+  assert.match(app, /index \* 30 - 90/);
+  assert.match(ui, /@for \(boundary of zodiacBoundaries/);
   assert.match(app, /stopRefreshTimer/);
   assert.match(service, /GeoVector\(item\.body, instant, true\)/);
   assert.match(service, /Rotation_EQJ_ECT\(instant\)/);
