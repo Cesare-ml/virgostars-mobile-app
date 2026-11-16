@@ -44,6 +44,8 @@
         <p>{{ t('engine') }}</p>
         <button class="secondary" type="button" (click)="refreshCurrentSky()">{{ t('retry') }}</button>
       </section>
+    } @else if (state() === 'ready' && chart(); as sky) {
+      <app-sky-wheel [chart]="sky" />
     } @else if (state() === 'renderer-unavailable') {
       <section class="status-card" role="status">
         <span class="status-symbol" aria-hidden="true">✧</span>
