@@ -59,3 +59,18 @@ test('backgrounded and destroyed screens discard pending asynchronous results', 
   assert.match(source, /this\.destroyed = true/);
   assert.match(source, /this\.refreshGeneration\+\+/);
 });
+
+test('current sky uses clock time rather than GPS acquisition timestamp', () => {
+  const source = read('src/app/app.component.ts');
+  assert.match(source, /const nowMs = Date\.now\(\)/);
+  assert.match(source, /instantUtc: new Date\(nowMs\)\.toISOString\(\)/);
+  assert.doesNotMatch(source, /instantUtc: new Date\(fix\.measuredAtMs\)/);
+});
+
+test('backgrounding clears potentially stale chart and location metadata', () => {
+  const source = read('src/app/app.component.ts');
+  const visibilityHandler = source.split("onVisibilityChange(): void")[1].split("ngOnDestroy(): void")[0];
+  assert.match(visibilityHandler, /this\.response\.set\(null\)/);
+  assert.match(visibilityHandler, /this\.request\.set\(null\)/);
+  assert.match(visibilityHandler, /this\.state\.set\('loading'\)/);
+});
