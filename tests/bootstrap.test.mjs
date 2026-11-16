@@ -29,10 +29,15 @@ test('native command only reports public runtime information', () => {
   assert.doesNotMatch(rust, /reqwest|sqlx|http_client|password|secret|access_token/i);
 });
 
-test('no fake astrology results or private data bundled', () => {
+test('live planetary chart replaces the old illustrative shell', () => {
   const ui = text('src/app/app.component.html');
-  assert.match(ui, /demoWarning/);
+  const engine = text('src/app/current-sky-engine.mjs');
+  assert.doesNotMatch(ui, /demoWarning|chart-illustration|demo-warning/);
   assert.match(ui, /Powered by VirgoStars/);
+  assert.match(engine, /GeoVector/);
+  assert.match(engine, /EclipticGeoMoon/);
+  assert.match(engine, /ECLIPTIC_OF_DATE/);
+  assert.match(pkg.dependencies['astronomy-engine'], /^2\.1\.19$/);
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
   assert.equal(pkg.private, true);
 });
