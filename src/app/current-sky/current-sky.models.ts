@@ -70,6 +70,7 @@ export interface CurrentSkyResponse {
 
 export type CurrentSkyScreenState =
   | 'loading'
+  | 'ready'
   | 'browser-preview'
   | 'permission-denied'
   | 'location-unavailable'
