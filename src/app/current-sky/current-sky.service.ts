@@ -11,6 +11,7 @@ export class CurrentSkyService {
   private inFlight = false;
   private lifecycleGeneration = 0;
   private pendingForegroundRefresh = false;
+  private pendingPermissionRequest = false;
   private calculationStarted = false;
   private started = false;
   private pollingStarted = false;
@@ -41,6 +42,7 @@ export class CurrentSkyService {
     this.started = false;
     this.lifecycleGeneration++;
     this.pendingForegroundRefresh = false;
+    this.pendingPermissionRequest = false;
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.stopPolling();
   }
@@ -69,6 +71,7 @@ export class CurrentSkyService {
     if (!this.started || document.visibilityState !== 'visible') return;
     if (this.inFlight) {
       if (force) this.pendingForegroundRefresh = true;
+      if (requestPermission) this.pendingPermissionRequest = true;
       return;
     }
     this.inFlight = true;
@@ -138,8 +141,10 @@ export class CurrentSkyService {
       this.inFlight = false;
       this.calculationStarted = false;
       if (this.pendingForegroundRefresh && this.started && document.visibilityState === 'visible') {
+        const askPermission = this.pendingPermissionRequest;
         this.pendingForegroundRefresh = false;
-        void this.refreshNow(true, false);
+        this.pendingPermissionRequest = false;
+        void this.refreshNow(true, askPermission);
       }
     }
   }
