@@ -2,11 +2,17 @@
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "default",
   "description": "Only one-shot foreground location for current-sky calculation",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "geolocation:allow-check-permissions",
     "geolocation:allow-request-permissions",
     "geolocation:allow-get-current-position"
+  ],
+  "platforms": [
+    "android",
+    "iOS"
   ]
 }
