@@ -49,7 +49,8 @@ function makePosition(definition, longitudeDeg, latitudeDeg) {
 /**
  * Calculates a current, geocentric chart snapshot from a real UTC instant.
  *
- * Positions are geocentric true-ecliptic-of-date coordinates. Planet vectors use\n * light-time and aberration corrections; the Moon uses its dedicated lunar theory.
+ * Positions are geocentric true-ecliptic-of-date coordinates. Planet vectors use
+ * light-time and aberration corrections; the Moon uses its dedicated lunar theory.
  * The app intentionally does not fabricate houses or angles: they require a
  * validated observer-angle pipeline and will be added after that contract lands.
  */
