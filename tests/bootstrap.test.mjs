@@ -37,9 +37,13 @@ test('launch screen renders a live geocentric sky chart, not a placeholder', () 
   assert.match(ui, /Powered by VirgoStars/);
   assert.doesNotMatch(ui, /demoWarning|Illustrazione geometrica/);
   assert.match(app, /setInterval\(\(\) => this\.refresh\(\), 30_000\)/);
+  assert.match(app, /visibilitychange/);
+  assert.match(app, /stopRefreshTimer/);
   assert.match(service, /GeoVector\(item\.body, instant, true\)/);
   assert.match(service, /Rotation_EQJ_ECT\(instant\)/);
   assert.match(service, /RotateVector\(frame, vector\)/);
+  assert.match(service, /every\(Number\.isFinite\)/);
+  assert.match(service, /remainder < 0/);
   assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
 });
