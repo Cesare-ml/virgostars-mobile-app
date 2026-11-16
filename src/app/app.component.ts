@@ -125,8 +125,6 @@ export class AppComponent implements OnInit, OnDestroy {
         this.state.set('failed');
         return;
       }
-      this.response.set(response);
-
       if (response.status === 'unavailable') {
         this.state.set(response.errorCode === 'ephemeris_provider_not_configured'
           ? 'engine-unavailable' : 'failed');
@@ -143,6 +141,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.state.set('failed');
         return;
       }
+      this.response.set(response);
       this.chart.set(parsedChart);
       this.state.set('ready');
     } catch (error: unknown) {
