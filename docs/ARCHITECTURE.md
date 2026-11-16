@@ -1,49 +1,54 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **current-sky MVP source implementation** (2026-11-16); build and Android-device validation pending. Android first, iOS later.
 
-## Decision
-
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
+## Current execution path
 
 ```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
-      |
-Tauri 2 IPC (versioned, explicit permissions)
-      |
-Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
-      |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
+Angular 20 mobile UI
+  |  current-sky-engine.mjs
+  |  astronomy-engine 2.1.19 (temporary MIT adapter)
+  |  geocentric true-ecliptic-of-date positions, tropical zodiac
+  |  UI update every 60 seconds
+  v
+Tauri 2 WebView on Android / browser preview
+
+Future validated path:
+VirgoStars-Ephemeris Rust core
+  |-- explicit UTC -> TT/TDB time-scale conversion
+  |-- validated apparent geocentric ecliptic-of-date positions
+  |-- numerical reference vectors and parity tests
+  v
+Typed mobile adapter -> same current-sky view model
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The UI does not contain astronomy formula implementations. All planet positions come from the replaceable provider adapter. The current MVP calculates Sun, Moon and the eight planets locally from the device clock and requires no location permission or network connection.
 
-## Reuse policy
+## Scope boundaries
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+- Coordinates are geocentric positions in the true ecliptic of date and tropical zodiac. Planet vectors use light-time and aberration corrections; the Moon uses the provider's dedicated lunar theory.
+- The Moon is calculated with the provider's dedicated geocentric ecliptic routine.
+- The first screen opens directly on the current sky chart; it refreshes positions every 60 seconds and the displayed clock every second.
+- No Ascendant or houses: observer location and a validated local-angle pipeline are not yet available. Do not infer or default location.
+- No accounts, birth records, profile archive, local persistent user data, remote service or synchronization.
+- The inline SVG renderer is a temporary mobile chart view. Integrating `astrological-charts` requires separate touch, DPI, GPU-memory and WebView context-loss validation.
 
-## Android and iOS
+## Canonical ephemeris migration gate
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
+The public `VirgoStars-Ephemeris` Rust crate is still an experimental kernel reader, not a complete shipping ephemeris. Its current API explicitly lacks UTC/TT/TDB conversion and validated apparent ecliptic-of-date output; it cannot meet the existing `astrological-functions` provider gate without additional implementation. Never label geometric J2000 vectors as apparent zodiac positions.
 
-## Local-first, not localStorage-first
+Swap the temporary provider only after:
+1. UTC/TT/TDB transformations and leap-second handling are explicit and tested.
+2. Earth-centered apparent ecliptic-of-date position contracts are met for all displayed bodies.
+3. Published numerical reference vectors and parity tests pass over dates including retrograde stations and sign boundaries.
+4. Engine version, method and data/kernel provenance are surfaced in the UI.
 
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
+## Licensing
 
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
+The mobile source remains CPAL-1.0. The temporary `astronomy-engine` npm dependency is MIT and is documented in [NOTICE](../NOTICE). Swiss Ephemeris is not bundled: its AGPL or commercial licensing route requires an explicit project licensing decision before integration into this CPAL-licensed app.
 
-## Platform / release boundary
+## Native boundary and release
 
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+Tauri exposes only the non-privileged `runtime_info` command. There is no new IPC, location permission, native plugin or network grant. Generated IDE trees remain under ignored `src-tauri/gen/`. No signing, publication, GitHub Actions or unattended deployment is performed.
+
+A configured contributor must run `npm run check`, initialize the Android target, compile an unsigned local build and test the app on an emulator and physical device before marking the MVP Locally tested.

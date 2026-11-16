@@ -2,38 +2,40 @@
 
 Milestones represent intended work, not completed functionality.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
-
-## M0 — Bootstrap (this repository state)
+## M0 — Bootstrap
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Mobile-first UI and Italian/English
+- [x] Read-only, non-sensitive native `runtime_info` contract
+- [x] CPAL attribution and minimal permission surface
+- [ ] Dependency lockfile and independently verified `npm run check`
+- [ ] Android toolchain initialized and emulator/device smoke test
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Current-sky MVP (source implemented; validation pending)
+- [x] Launch directly on the current-sky planetary chart
+- [x] Calculate Sun, Moon and eight planets locally from current UTC instant
+- [x] Show geocentric true-ecliptic-of-date tropical zodiac positions
+- [x] Refresh planetary positions every 60 seconds and clock every second
+- [x] Surface calculation method and omit unsupported houses/angles
+- [ ] Run all Node contract tests and Angular production compilation
+- [ ] Generate Android project and verify unsigned build
+- [ ] Physical Android smoke: cold launch, 60-second refresh, timezone/DST, background/resume
+- [ ] Independent numerical verification of the temporary provider against trusted reference vectors
+- [ ] Replace temporary provider with validated VirgoStars-Ephemeris adapter when UTC/time-scale and apparent-position contracts are ready
+- [ ] Add observer location and validated ASC/MC/house pipeline only after privacy UX and astrological-functions contracts are ready
+- [ ] Validate shared `astrological-charts` renderer on Android before adoption
 
-## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
-- [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
-- [ ] Verified offline unlock policy and explicit revocation limitations
-- [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
+## M2 — Local-first private archive (out of MVP scope)
+- [ ] Versioned encrypted SQLite schema, migration/rollback and OS-backed key storage
+- [ ] OAuth2 Authorization Code + PKCE via system browser
+- [ ] Profile-owned data, transactional outbox and conflict-safe sync
+- [ ] Explicit offline unlock, revocation, device-loss and deletion semantics
 
 ## M3 — Android beta and release gate
 - [ ] Security, accessibility, performance and Play Store/data-safety review
-- [ ] Signed Android build, recovery and staged distribution (maintainer-only decision)
-- [ ] Offline and network-failure QA on real low-end and high-end phones
+- [ ] Signed Android build and staged distribution after maintainer approval
+- [ ] Network-failure, low-memory, orientation, dark-mode and accessibility QA
 
 ## M4 — iOS adaptation
 - [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
-- [ ] Signed iOS beta/release after explicit owner approval
+- [ ] Validate WKWebView, secure keychain, background restrictions and persistence
+- [ ] Review iOS privacy entitlements and distribution signing
