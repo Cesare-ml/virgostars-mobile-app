@@ -1,11 +1,18 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "default",
-  "description": "Minimal framework permissions; no privileged plugins",
+  "description": "Only one-shot foreground location for current-sky calculation",
   "windows": [
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "geolocation:allow-check-permissions",
+    "geolocation:allow-request-permissions",
+    "geolocation:allow-get-current-position"
+  ],
+  "platforms": [
+    "android",
+    "iOS"
   ]
 }

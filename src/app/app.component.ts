@@ -1,101 +1,51 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
-
-type Tab = 'home' | 'chart' | 'archive' | 'settings';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { CurrentSkyService } from './current-sky/current-sky.service';
 type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
-
 const messages = {
   it: {
-    tagline: 'Il cielo, a portata di mano',
-    status: 'Prototipo Android',
-    welcome: 'Benvenuto in VirgoStars',
-    intro: 'Il tuo futuro spazio astrologico personale, progettato per funzionare anche offline.',
-    explore: 'Esplora il laboratorio',
-    offlineTitle: 'Pensato per l’offline',
-    offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
-    chartTitle: 'Tema astrologico',
-    chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
-    demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
-    archiveTitle: 'Il mio archivio',
-    archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
-    settingsTitle: 'Impostazioni',
-    language: 'Lingua',
-    runtime: 'Ambiente',
-    data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
-    about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
-    home: 'Home',
-    chart: 'Carta',
-    archive: 'Archivio',
-    settings: 'Opzioni',
-    native: 'Host nativo',
-    connected: 'Connesso al bridge locale',
-    browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo'
+    eyebrow: 'CIELO IN TEMPO REALE', title: 'Il cielo di adesso',
+    subtitle: 'Il tema astrologico del luogo e dell’istante in cui ti trovi.',
+    permission: 'Per calcolare il cielo serve la posizione del dispositivo. La useremo solo per il calcolo locale: le coordinate non vengono inviate a server né salvate.',
+    allowLocation: 'Consenti posizione',
+    location: 'La posizione attuale non è disponibile o il fix è troppo vecchio. Riprova quando il GPS è disponibile.',
+    calculating: 'Acquisizione della posizione e calcolo del cielo…',
+    unavailable: 'Motore astronomico non ancora collegato',
+    unavailableBody: 'Non mostreremo posizioni di esempio. Il provider astronomico e le librerie astrologiche devono essere integrati e validati prima di disegnare il tema.',
+    failure: 'Non è stato possibile verificare il risultato. Nessun grafico verrà mostrato.',
+    retry: 'Riprova', lastRequest: 'Istante richiesto', timezone: 'Fuso orario',
+    coordinates: 'Coordinate', accuracy: 'Precisione GPS', calculated: 'Calcolato',
+    positions: 'Posizioni planetarie',
+    rendererMissing: 'Calcolo ricevuto; integrazione del renderer condiviso ancora da completare.',
+    attribution: 'Powered by VirgoStars'
   },
   en: {
-    tagline: 'The sky, in your hands',
-    status: 'Android prototype',
-    welcome: 'Welcome to VirgoStars',
-    intro: 'Your future personal astrology workspace, designed to work offline.',
-    explore: 'Explore the prototype',
-    offlineTitle: 'Designed for offline',
-    offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
-    chartTitle: 'Astrological chart',
-    chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
-    demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
-    archiveTitle: 'My library',
-    archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
-    settingsTitle: 'Settings',
-    language: 'Language',
-    runtime: 'Environment',
-    data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
-    about: 'Experimental project, not connected to VirgoStars services yet.',
-    home: 'Home',
-    chart: 'Chart',
-    archive: 'Library',
-    settings: 'Settings',
-    native: 'Native host',
-    connected: 'Local bridge connected',
-    browser: 'Browser preview',
-    build: 'Development shell'
+    eyebrow: 'LIVE SKY', title: 'The sky right now',
+    subtitle: 'The astrological chart for your current place and instant.',
+    permission: 'Location is needed to calculate the sky for this place. It is used only for on-device calculation: coordinates are not sent to a server or saved.',
+    allowLocation: 'Allow location',
+    location: 'The current location is unavailable or the fix is stale. Try again when GPS is available.',
+    calculating: 'Acquiring location and calculating the sky…',
+    unavailable: 'Astronomical engine not connected yet',
+    unavailableBody: 'No sample positions will be shown. The astronomical provider and astrology libraries must be integrated and validated before rendering a chart.',
+    failure: 'The result could not be verified. No chart will be displayed.',
+    retry: 'Retry', lastRequest: 'Requested instant', timezone: 'Time zone',
+    coordinates: 'Coordinates', accuracy: 'GPS accuracy', calculated: 'Calculated',
+    positions: 'Planetary positions',
+    rendererMissing: 'Calculation received; shared chart renderer integration is still pending.',
+    attribution: 'Powered by VirgoStars'
   }
 } as const;
-
-@Component({
-  selector: 'app-root',
-  standalone: true,
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
-})
-export class AppComponent implements OnInit {
-  readonly tab = signal<Tab>('home');
+@Component({ selector: 'app-root', standalone: true, templateUrl: './app.component.html', styleUrl: './app.component.css' })
+export class AppComponent implements OnInit, OnDestroy {
   readonly locale = signal<Locale>('it');
-  readonly runtime = signal<string | null>(null);
-  readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
-
-  t(key: keyof typeof messages.it): string {
-    return messages[this.locale()][key];
+  constructor(readonly currentSky: CurrentSkyService) {}
+  t(key: keyof typeof messages.it): string { return messages[this.locale()][key]; }
+  switchLocale(): void { this.locale.update(value => value === 'it' ? 'en' : 'it'); document.documentElement.lang = this.locale(); }
+  retry(): void { void this.currentSky.retry(); }
+  formatInstant(value: string | null): string {
+    if (!value) return '—';
+    return new Intl.DateTimeFormat(this.locale() === 'it' ? 'it-IT' : 'en-GB', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value));
   }
-
-  navigate(tab: Tab): void {
-    this.tab.set(tab);
-  }
-
-  switchLocale(): void {
-    this.locale.update(value => value === 'it' ? 'en' : 'it');
-    document.documentElement.lang = this.locale();
-  }
-
-  ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1 && info.mode === 'prototype') {
-          this.runtime.set(info.platform);
-        }
-      })
-      .catch(() => this.runtime.set(null)); // Expected in the browser.
-  }
+  ngOnInit(): void { this.currentSky.start(); }
+  ngOnDestroy(): void { this.currentSky.stop(); }
 }
