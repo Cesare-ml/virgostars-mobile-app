@@ -50,9 +50,10 @@
           <circle cx="160" cy="160" r="104" class="wheel-ring wheel-inner"/>
           <circle cx="160" cy="160" r="74" class="wheel-center"/>
           <circle cx="160" cy="160" r="70" fill="url(#wheelGlow)"/>
-          <path d="M160 6V314 M6 160H314 M51 51L269 269 M269 51L51 269" class="wheel-axis"/>
-          <path d="M160 6V32 M160 288V314 M6 160H32 M288 160H314 M51 51L69 69 M251 251L269 269 M269 51L251 69 M69 251L51 269" class="wheel-tick-major"/>
-          <path d="M160 34V56 M223 43L214 64 M277 97L255 106 M286 160H264 M277 223L255 214 M223 277L214 255 M160 286V264 M97 277L106 255 M43 223L64 214 M34 160H56 M43 97L64 106 M97 43L106 64" class="wheel-tick"/>
+          @for (boundary of zodiacBoundaries; track $index) {
+            <line class="wheel-axis" [attr.x1]="boundary.x1" [attr.y1]="boundary.y1"
+              [attr.x2]="boundary.x2" [attr.y2]="boundary.y2"></line>
+          }
           @for (sign of zodiacLabels; track sign.glyph) {
             <text class="zodiac-glyph" [attr.x]="sign.x" [attr.y]="sign.y">{{ sign.glyph }}</text>
           }
