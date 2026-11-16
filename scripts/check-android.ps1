@@ -21,6 +21,14 @@ if (-not $env:ANDROID_HOME -and -not $env:ANDROID_SDK_ROOT) {
   throw 'Set ANDROID_HOME (or ANDROID_SDK_ROOT) to the installed Android SDK.'
 }
 
+if (-not $env:NDK_HOME) {
+  throw 'Set NDK_HOME to the installed Android NDK directory.'
+}
+
+if (-not (Test-Path $env:NDK_HOME)) {
+  throw 'NDK_HOME does not point to an existing directory.'
+}
+
 if (-not $env:JAVA_HOME) {
   throw 'Set JAVA_HOME to the JDK used by Android Studio.'
 }
@@ -48,15 +56,16 @@ if (-not (Test-Path 'src-tauri/gen/android')) {
   if ($LASTEXITCODE -ne 0) { throw 'Tauri Android initialization failed.' }
 }
 
-Write-Host 'Building Android APK locally (unsigned/debug only; no release publication)...'
+Write-Host 'Building Android APK locally (no release publication)...'
+$buildStart = Get-Date
 npm run android:build -- --apk
 if ($LASTEXITCODE -ne 0) { throw 'Android build failed.' }
 
-$apks = @(Get-ChildItem 'src-tauri/gen/android' -Filter '*.apk' -Recurse -File -ErrorAction SilentlyContinue)
+$apks = @(Get-ChildItem 'src-tauri/gen/android' -Filter '*.apk' -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $buildStart.AddSeconds(-2) })
 if ($apks.Count -eq 0) {
   throw 'Build returned success, but no APK was found in the generated Android project.'
 }
 
 Write-Host 'APK artifacts found:'
 $apks | ForEach-Object { Write-Host $_.FullName }
-Write-Host 'Build artifact exists. Installation and real-device smoke testing remain separate checks.'
+Write-Host 'Fresh build artifact exists. Installation and real-device smoke testing remain separate checks.'
