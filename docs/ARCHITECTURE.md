@@ -1,49 +1,41 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **live-sky MVP implementation in progress** (Android first; native build still unverified).
 
-## Decision
-
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
+## MVP flow
 
 ```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
+Angular live-sky screen
       |
-Tauri 2 IPC (versioned, explicit permissions)
+      | provider-neutral CurrentSky DTO
+      v
+src/app/current-sky.mjs
       |
-Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
-      |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
+      | temporary local provider
+      v
+Astronomy Engine 2.1.19 (MIT)
+      +-- SunPosition: apparent true ecliptic of date
+      +-- EclipticGeoMoon: geocentric Moon
+      +-- GeoVector + Ecliptic: geocentric planets
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The DTO and Angular screen are separate from the provider. When VirgoStars-Ephemeris supplies a validated Rust/mobile adapter and astrological-functions contracts pass numerical gates, replace only the provider boundary.
+
+## MVP calculation semantics
+
+- Current device instant, interpreted as an absolute instant and passed to the astronomy provider.
+- Geocentric tropical ecliptic longitudes of date.
+- Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto.
+- Planetary positions recalculated once per minute; clock shown in the device locale/timezone and refreshed every second.
+- No Ascendant/houses: no observer location or house system is inferred.
 
 ## Reuse policy
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+- **VirgoStars-Ephemeris:** canonical numerical astronomy when validated. Its current DE441/classic reader is experimental; no production package/bindings exist yet.
+- **astrological-functions:** shared zodiac/house/aspect methods via typed adapter; no duplicated house calculations in the app.
+- **astrological-charts:** preferred full chart renderer after mobile WebView/WebGL validation. MVP uses a lightweight local SVG wheel as temporary presentation.
+- **virgostars-desktop:** share verified DTOs and security principles; do not copy desktop UI wholesale.
 
-## Android and iOS
+## Privacy and release
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
-
-## Local-first, not localStorage-first
-
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
-
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
-
-## Platform / release boundary
-
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+The MVP makes no account, personal birth-data, location, network or local-persistence requests. It calculates the current geocentric sky locally. Generated Tauri Android/iOS IDE trees stay under src-tauri/gen and no signing secrets are committed. Never claim an Android APK or verified device behavior until a configured native toolchain has been executed.
