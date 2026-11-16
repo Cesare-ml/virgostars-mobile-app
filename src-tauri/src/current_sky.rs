@@ -32,6 +32,21 @@ pub struct EngineProvenance {
     pub position_mode: String,
 }
 
+impl EngineProvenance {
+    fn is_valid(&self) -> bool {
+        [
+            &self.provider,
+            &self.version,
+            &self.time_scale,
+            &self.coordinate_frame,
+            &self.center,
+            &self.position_mode,
+        ]
+        .iter()
+        .all(|field| !field.trim().is_empty())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChartBody {
@@ -130,12 +145,20 @@ pub fn calculate_with_provider(
         );
     };
 
+    let provenance = provider.provenance();
+    if !provenance.is_valid() {
+        return unavailable(
+            "ephemeris_provenance_invalid",
+            "Il motore astronomico non ha dichiarato una provenienza valida.",
+        );
+    }
+
     match provider.calculate(request) {
         Ok(chart) if chart.is_valid() => CurrentSkyResponse {
             schema_version: 1,
             status: "ready",
             calculated_at_utc: Some(request.instant_utc.clone()),
-            engine: Some(provider.provenance()),
+            engine: Some(provenance),
             chart: Some(chart),
             error_code: None,
             message: None,
@@ -200,6 +223,29 @@ mod tests {
         assert_eq!(result.status, "unavailable");
         assert_eq!(result.error_code, Some("ephemeris_calculation_failed"));
         assert!(result.chart.is_none());
+    }
+
+    struct MissingProvenanceProvider;
+
+    impl CurrentSkyProvider for MissingProvenanceProvider {
+        fn provenance(&self) -> EngineProvenance {
+            let mut provenance = TestProvider.provenance();
+            provenance.coordinate_frame = " ".into();
+            provenance
+        }
+
+        fn calculate(&self, _request: &CurrentSkyRequest) -> Result<ChartPayload, String> {
+            panic!("invalid provenance must be rejected before ephemeris calculation");
+        }
+    }
+
+    #[test]
+    fn missing_engine_provenance_fails_closed() {
+        let result = calculate_with_provider(&request(), Some(&MissingProvenanceProvider));
+        assert_eq!(result.status, "unavailable");
+        assert_eq!(result.error_code, Some("ephemeris_provenance_invalid"));
+        assert!(result.chart.is_none());
+        assert!(result.engine.is_none());
     }
 
     fn chart(bodies: &[(&str, f64)]) -> ChartPayload {
