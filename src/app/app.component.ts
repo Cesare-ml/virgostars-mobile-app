@@ -1,68 +1,12 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { CurrentSkyBody, CurrentSkyService, CurrentSkySnapshot } from './current-sky.service';
 
-type Tab = 'home' | 'chart' | 'archive' | 'settings';
-type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
-
-const messages = {
-  it: {
-    tagline: 'Il cielo, a portata di mano',
-    status: 'Prototipo Android',
-    welcome: 'Benvenuto in VirgoStars',
-    intro: 'Il tuo futuro spazio astrologico personale, progettato per funzionare anche offline.',
-    explore: 'Esplora il laboratorio',
-    offlineTitle: 'Pensato per l’offline',
-    offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
-    chartTitle: 'Tema astrologico',
-    chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
-    demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
-    archiveTitle: 'Il mio archivio',
-    archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
-    settingsTitle: 'Impostazioni',
-    language: 'Lingua',
-    runtime: 'Ambiente',
-    data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
-    about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
-    home: 'Home',
-    chart: 'Carta',
-    archive: 'Archivio',
-    settings: 'Opzioni',
-    native: 'Host nativo',
-    connected: 'Connesso al bridge locale',
-    browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo'
-  },
-  en: {
-    tagline: 'The sky, in your hands',
-    status: 'Android prototype',
-    welcome: 'Welcome to VirgoStars',
-    intro: 'Your future personal astrology workspace, designed to work offline.',
-    explore: 'Explore the prototype',
-    offlineTitle: 'Designed for offline',
-    offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
-    chartTitle: 'Astrological chart',
-    chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
-    demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
-    archiveTitle: 'My library',
-    archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
-    settingsTitle: 'Settings',
-    language: 'Language',
-    runtime: 'Environment',
-    data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
-    about: 'Experimental project, not connected to VirgoStars services yet.',
-    home: 'Home',
-    chart: 'Chart',
-    archive: 'Library',
-    settings: 'Settings',
-    native: 'Native host',
-    connected: 'Local bridge connected',
-    browser: 'Browser preview',
-    build: 'Development shell'
-  }
-} as const;
+interface ZodiacLabel {
+  readonly glyph: string;
+  readonly name: string;
+  readonly x: number;
+  readonly y: number;
+}
 
 @Component({
   selector: 'app-root',
@@ -70,32 +14,73 @@ const messages = {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  readonly tab = signal<Tab>('home');
-  readonly locale = signal<Locale>('it');
-  readonly runtime = signal<string | null>(null);
-  readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
+export class AppComponent implements OnInit, OnDestroy {
+  readonly snapshot = signal<CurrentSkySnapshot | null>(null);
+  readonly error = signal<string | null>(null);
+  readonly isRefreshing = signal(false);
+  readonly clock = signal(new Date());
+  readonly clockLabel = computed(() => this.clock().toLocaleString('it-IT', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }));
+  readonly zodiacLabels: readonly ZodiacLabel[];
+  readonly bodies = computed<readonly CurrentSkyBody[]>(() => this.snapshot()?.bodies ?? []);
+  readonly orderedBodies = computed(() => [...this.bodies()].sort((a, b) => a.longitude - b.longitude));
 
-  t(key: keyof typeof messages.it): string {
-    return messages[this.locale()][key];
-  }
+  private refreshHandle: ReturnType<typeof setInterval> | undefined;
 
-  navigate(tab: Tab): void {
-    this.tab.set(tab);
-  }
-
-  switchLocale(): void {
-    this.locale.update(value => value === 'it' ? 'en' : 'it');
-    document.documentElement.lang = this.locale();
+  constructor(private readonly sky: CurrentSkyService) {
+    this.zodiacLabels = sky.zodiac.map((sign, index) => {
+      const angle = (index * 30 + 15 - 90) * Math.PI / 180;
+      return {
+        glyph: sign.glyph,
+        name: sign.name,
+        x: 160 + Math.cos(angle) * 83,
+        y: 160 + Math.sin(angle) * 83
+      };
+    });
   }
 
   ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1 && info.mode === 'prototype') {
-          this.runtime.set(info.platform);
-        }
-      })
-      .catch(() => this.runtime.set(null)); // Expected in the browser.
+    this.refresh();
+    // Planetary motion is slow; refresh every 30 seconds to keep the timestamp
+    // live without wasting battery on per-frame recalculation.
+    this.refreshHandle = setInterval(() => this.refresh(), 30_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshHandle !== undefined) clearInterval(this.refreshHandle);
+  }
+
+  refresh(): void {
+    if (this.isRefreshing()) return;
+    this.isRefreshing.set(true);
+    try {
+      const instant = new Date();
+      this.snapshot.set(this.sky.calculate(instant));
+      this.clock.set(instant);
+      this.error.set(null);
+    } catch (cause) {
+      // Never leave stale or synthetic placements on screen after a failure.
+      this.snapshot.set(null);
+      this.error.set(cause instanceof Error ? cause.message : 'Calcolo astronomico non disponibile.');
+    } finally {
+      this.isRefreshing.set(false);
+    }
+  }
+
+  formatLongitude(body: CurrentSkyBody): string {
+    const degrees = Math.floor(body.degreeInSign);
+    const minutes = Math.floor((body.degreeInSign - degrees) * 60);
+    return `${String(degrees).padStart(2, '0')}° ${String(minutes).padStart(2, '0')}′ ${body.sign}`;
+  }
+
+  trackBody(_index: number, body: CurrentSkyBody): string {
+    return body.id;
   }
 }
