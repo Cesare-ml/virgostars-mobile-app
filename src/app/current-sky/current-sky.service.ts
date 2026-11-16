@@ -154,11 +154,15 @@ export class CurrentSkyService {
 
   private isValidSnapshot(snapshot: CurrentSkySnapshot | null | undefined, input: CurrentSkyInput): snapshot is CurrentSkySnapshot {
     if (!snapshot || snapshot.schemaVersion !== CURRENT_SKY_CONTRACT_VERSION || snapshot.timezoneId !== input.timezoneId || snapshot.utcOffsetMinutes !== input.utcOffsetMinutes) return false;
-    if (!snapshot.observer || Math.abs(snapshot.observer.latitudeDeg - input.latitudeDeg) > 1e-7 || Math.abs(snapshot.observer.longitudeDegEast - input.longitudeDegEast) > 1e-7) return false;
+    if (!snapshot.observer || !Number.isFinite(snapshot.observer.latitudeDeg) || !Number.isFinite(snapshot.observer.longitudeDegEast) ||
+      Math.abs(snapshot.observer.latitudeDeg - input.latitudeDeg) > 1e-7 || Math.abs(snapshot.observer.longitudeDegEast - input.longitudeDegEast) > 1e-7 ||
+      !Number.isFinite(snapshot.observer.locationAccuracyMeters) || snapshot.observer.locationAccuracyMeters < 0 ||
+      Math.abs(snapshot.observer.locationAccuracyMeters - input.locationAccuracyMeters) > 1e-7 ||
+      snapshot.observer.altitudeMeters !== input.altitudeMeters) return false;
     const calculatedAtMs = Date.parse(snapshot.calculatedAtUtc);
     const requestedAtMs = Date.parse(input.capturedAtUtc);
     if (!Number.isFinite(calculatedAtMs) || !Number.isFinite(requestedAtMs) || Math.abs(calculatedAtMs - requestedAtMs) > 2_000 || calculatedAtMs > Date.now() + 2_000) return false;
-    if (!snapshot.provider?.id || !snapshot.provider.version || !snapshot.provider.ephemeris || !snapshot.provider.timeScale || !snapshot.provider.coordinateFrame || !snapshot.provider.houseSystem || !Array.isArray(snapshot.provider.limitations)) return false;
+    if (!snapshot.provider?.id || !snapshot.provider.version || !snapshot.provider.ephemeris || !snapshot.provider.timeScale || !snapshot.provider.coordinateFrame || !snapshot.provider.houseSystem || !Array.isArray(snapshot.provider.limitations) || !snapshot.provider.limitations.every((limitation) => typeof limitation === 'string')) return false;
     if (snapshot.provider.zodiac !== 'tropical' && snapshot.provider.zodiac !== 'sidereal') return false;
     if (!Array.isArray(snapshot.positions) || !Array.isArray(snapshot.houseCusps) || snapshot.houseCusps.length !== 12 || !Array.isArray(snapshot.aspects)) return false;
     if (!snapshot.ascendant || !snapshot.midheaven || !isAngleValid(snapshot.ascendant) || !isAngleValid(snapshot.midheaven)) return false;
@@ -166,12 +170,12 @@ export class CurrentSkyService {
     const expected = new Set(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']);
     const seen = new Set<string>();
     for (const position of snapshot.positions) {
-      if (!expected.has(position.body) || seen.has(position.body) || !isLongitudeValid(position.longitudeDeg) || !Number.isFinite(position.latitudeDeg) || (position.retrograde !== null && typeof position.retrograde !== 'boolean')) return false;
+      if (!expected.has(position.body) || seen.has(position.body) || !isLongitudeValid(position.longitudeDeg) || (!Number.isFinite(position.latitudeDeg) || position.latitudeDeg < -90 || position.latitudeDeg > 90) || (position.retrograde !== null && typeof position.retrograde !== 'boolean')) return false;
       seen.add(position.body);
     }
     if (seen.size !== expected.size) return false;
     const aspectBodies = new Set([...expected, 'ascendant', 'midheaven']);
-    return snapshot.aspects.every((aspect) => aspectBodies.has(aspect.firstBody) && aspectBodies.has(aspect.secondBody) && !!aspect.aspect && Number.isFinite(aspect.exactAngleDeg) && aspect.exactAngleDeg >= 0 && aspect.exactAngleDeg <= 360 && Number.isFinite(aspect.orbDeg) && aspect.orbDeg >= 0 && (aspect.applying === null || typeof aspect.applying === 'boolean'));
+    return snapshot.aspects.every((aspect) => aspectBodies.has(aspect.firstBody) && aspectBodies.has(aspect.secondBody) && aspect.firstBody !== aspect.secondBody && typeof aspect.aspect === 'string' && aspect.aspect.length > 0 && Number.isFinite(aspect.exactAngleDeg) && aspect.exactAngleDeg >= 0 && aspect.exactAngleDeg <= 180 && Number.isFinite(aspect.orbDeg) && aspect.orbDeg >= 0 && aspect.orbDeg <= 180 && (aspect.applying === null || typeof aspect.applying === 'boolean'));
   }
 
   private errorCode(error: unknown): string {
