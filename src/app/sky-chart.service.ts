@@ -55,6 +55,24 @@ const BODIES = [
 const CENTER_X = 160;
 const CENTER_Y = 160;
 
+/** Spread neighboring planet glyphs across concentric lanes without changing longitude. */
+export function planetGlyphRadius(longitude: number, prior: ReadonlyArray<{ longitude: number; radius: number }>): number {
+  const lanes = [91, 105, 77, 116];
+  const separation = 15;
+  for (const radius of lanes) {
+    const clear = prior.every(point => {
+      const delta = Math.abs(((longitude - point.longitude + 540) % 360) - 180);
+      const a = longitude * Math.PI / 180;
+      const b = point.longitude * Math.PI / 180;
+      const distance = Math.sqrt(radius * radius + point.radius * point.radius - 2 * radius * point.radius * Math.cos(a - b));
+      return delta >= 30 || distance >= separation;
+    });
+    if (clear) return radius;
+  }
+  return lanes[prior.length % lanes.length];
+}
+
+
 /**
  * Temporary astronomy provider. Keep this adapter isolated so it can be
  * replaced by the validated VirgoStars Rust engine without changing the UI.
@@ -86,14 +104,16 @@ export class SkyChartService {
     ).longitudeDegrees;
     const ascendantSignIndex = Math.floor(ascendant / 30);
 
-    const bodies: SkyBody[] = BODIES.map((item, index) => {
+    const placed: Array<{ longitude: number; radius: number }> = [];
+    const bodies: SkyBody[] = BODIES.map(item => {
       const ecliptic = Astronomy.Ecliptic(
         Astronomy.GeoVector(item.body, timestamp, true)
       );
       const longitude = normalizeDegrees(ecliptic.elon);
       const signIndex = Math.floor(longitude / 30);
       const angle = (longitude - 90) * Math.PI / 180;
-      const radius = 91 + (index % 2 === 0 ? 0 : 13);
+      const radius = planetGlyphRadius(longitude, placed);
+      placed.push({ longitude, radius });
 
       return {
         id: item.id,
