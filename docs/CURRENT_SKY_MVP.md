@@ -94,3 +94,19 @@ The script fails fast if the lockfile, SDK environment, Android project,
 Node dependencies, tests or build prerequisites are missing. It prints
 the generated APK path only after the build command succeeds. This is
 a local, manually invoked check; it does **not** create GitHub Actions.
+
+
+### Dependency-free first validation
+
+Before downloading any npm dependencies, Node.js 22/24 can run the static
+Android packaging, first-launch, accessibility and chart-layout contracts:
+
+```powershell
+npm run test:offline
+```
+
+This deliberately excludes `tests/current-sky.test.mjs`, which imports
+`astronomy-engine` and therefore needs `npm ci`. A successful offline
+contract run is a **partial source-level check only**; it does not prove
+the ephemeris output, Angular compilation, Tauri packaging or device behavior.
+The complete check remains `npm run check` after installing dependencies.
