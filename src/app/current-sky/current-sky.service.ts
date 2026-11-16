@@ -18,10 +18,13 @@ export class CurrentSkyService {
   private readonly onVisibilityChange = (): void => {
     if (document.visibilityState !== 'visible') {
       this.lifecycleGeneration++;
-      this.pendingForegroundRefresh = true;
+      this.pendingForegroundRefresh = this.pollingStarted;
       return;
     }
-    if (this.pollingStarted) void this.refreshNow(true, false);
+    if (this.pollingStarted) {
+      this.pendingForegroundRefresh = true;
+      void this.refreshNow(true, false);
+    }
   };
 
   /** Show rationale first; Android permission is requested only after an explicit tap. */
@@ -113,7 +116,6 @@ export class CurrentSkyService {
         altitudeMeters: position.coords.altitude,
         locationAccuracyMeters: fix.accuracyMeters
       };
-      this.baseline = { lastRequestAtMs: nowMs, latitudeDeg: fix.latitudeDeg, longitudeDegEast: fix.longitudeDegEast };
       this.calculationStarted = true;
       const snapshot = await invoke<CurrentSkySnapshot>('calculate_current_sky', { input });
       if (!isActive()) return;
@@ -121,6 +123,7 @@ export class CurrentSkyService {
         this.state.set({ status: 'failed', requestedAtUtc, snapshot: null, message: 'engine-returned-invalid-snapshot' });
         return;
       }
+      this.baseline = { lastRequestAtMs: nowMs, latitudeDeg: fix.latitudeDeg, longitudeDegEast: fix.longitudeDegEast };
       this.state.set({ status: 'ready', requestedAtUtc, snapshot, message: null });
     } catch (error: unknown) {
       if (!isActive()) return;
