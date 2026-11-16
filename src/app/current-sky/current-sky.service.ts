@@ -36,12 +36,13 @@ export class CurrentSkyService {
     if (document.visibilityState === 'visible') void this.refreshNow(true);
   };
 
-  /** Begin one-shot location + calculation, then refresh only in foreground. */
+  /** Start a foreground-only GPS poll; expensive ephemeris calls are throttled. */
   start(): void {
     if (this.started) return;
     this.started = true;
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     if (document.visibilityState === 'visible') void this.refreshNow(true);
+    // Poll GPS every 15s to notice travel, but calculate at most once/minute.
     this.timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void this.refreshNow(false);
     }, 15_000);
@@ -55,8 +56,9 @@ export class CurrentSkyService {
     this.timer = null;
   }
 
-  /** User-triggered retry after permission denial, GPS failure or engine setup. */
+  /** Explicit retry after denial, no fix, or an unavailable calculation engine. */
   async retry(): Promise<void> {
+    this.baseline = null;
     await this.refreshNow(true);
   }
 
@@ -66,18 +68,12 @@ export class CurrentSkyService {
 
     const capturedAt = new Date();
     const capturedAtMs = capturedAt.getTime();
-    this.state.set({
-      status: 'starting',
-      requestedAtUtc: capturedAt.toISOString(),
-      snapshot: null,
-      message: null
-    });
-
+    const requestedAtUtc = capturedAt.toISOString();
     try {
       if (!isTauri()) {
         this.state.set({
           status: 'engine-unavailable',
-          requestedAtUtc: capturedAt.toISOString(),
+          requestedAtUtc,
           snapshot: null,
           message: 'native-runtime-required'
         });
@@ -88,7 +84,7 @@ export class CurrentSkyService {
       if (!permission) {
         this.state.set({
           status: 'permission-required',
-          requestedAtUtc: capturedAt.toISOString(),
+          requestedAtUtc,
           snapshot: null,
           message: 'location-permission-denied'
         });
@@ -106,29 +102,33 @@ export class CurrentSkyService {
         accuracyMeters: position.coords.accuracy,
         measuredAtMs: position.timestamp
       };
+      const nowMs = Date.now();
 
-      if (!isValidCurrentSkyFix(fix, Date.now(), CURRENT_SKY_MAX_FIX_AGE_MS)) {
+      if (
+        !isValidCurrentSkyFix(fix, nowMs, CURRENT_SKY_MAX_FIX_AGE_MS) ||
+        Math.abs(fix.measuredAtMs - capturedAtMs) > CURRENT_SKY_MAX_FIX_AGE_MS
+      ) {
         this.state.set({
           status: 'location-unavailable',
-          requestedAtUtc: capturedAt.toISOString(),
+          requestedAtUtc,
           snapshot: null,
-          message: 'location-fix-invalid-or-stale'
+          message: 'location-fix-invalid-or-not-synchronous-with-request'
         });
         return;
       }
 
-      if (!force && !shouldRefreshCurrentSky(this.baseline, Date.now(), fix)) return;
+      if (!force && !shouldRefreshCurrentSky(this.baseline, nowMs, fix)) return;
 
       this.state.set({
         status: 'calculating',
-        requestedAtUtc: capturedAt.toISOString(),
+        requestedAtUtc,
         snapshot: null,
         message: null
       });
 
       const input: CurrentSkyInput = {
         schemaVersion: CURRENT_SKY_CONTRACT_VERSION,
-        capturedAtUtc: capturedAt.toISOString(),
+        capturedAtUtc: requestedAtUtc,
         timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         utcOffsetMinutes: -capturedAt.getTimezoneOffset(),
         latitudeDeg: fix.latitudeDeg,
@@ -137,38 +137,41 @@ export class CurrentSkyService {
         locationAccuracyMeters: fix.accuracyMeters
       };
 
+      // Throttle repeated provider calls even when the provider currently fails.
+      // An explicit user retry and app foreground transition still force a new run.
+      this.baseline = {
+        lastRequestAtMs: nowMs,
+        latitudeDeg: fix.latitudeDeg,
+        longitudeDegEast: fix.longitudeDegEast
+      };
+
       const snapshot = await invoke<CurrentSkySnapshot>('calculate_current_sky', { input });
       if (!this.isValidSnapshot(snapshot, input)) {
         this.state.set({
           status: 'failed',
-          requestedAtUtc: capturedAt.toISOString(),
+          requestedAtUtc,
           snapshot: null,
           message: 'engine-returned-invalid-snapshot'
         });
         return;
       }
 
-      this.baseline = {
-        calculatedAtMs: Date.parse(snapshot.calculatedAtUtc),
-        latitudeDeg: fix.latitudeDeg,
-        longitudeDegEast: fix.longitudeDegEast
-      };
       this.state.set({
         status: 'ready',
-        requestedAtUtc: capturedAt.toISOString(),
+        requestedAtUtc,
         snapshot,
         message: null
       });
     } catch (error: unknown) {
       const code = this.errorCode(error);
-      const permissionDenied = code.includes('permission');
+      const permissionDenied = code.toLowerCase().includes('permission');
       const engineMissing = code.includes('sky_engine_unavailable')
         || code.includes('native-runtime-required');
       this.state.set({
         status: permissionDenied
           ? 'permission-required'
           : engineMissing ? 'engine-unavailable' : 'location-unavailable',
-        requestedAtUtc: capturedAt.toISOString(),
+        requestedAtUtc,
         snapshot: null,
         message: code
       });
@@ -190,6 +193,7 @@ export class CurrentSkyService {
       snapshot.schemaVersion !== CURRENT_SKY_CONTRACT_VERSION ||
       snapshot.timezoneId !== input.timezoneId ||
       snapshot.utcOffsetMinutes !== input.utcOffsetMinutes ||
+      !snapshot.observer ||
       Math.abs(snapshot.observer.latitudeDeg - input.latitudeDeg) > 1e-7 ||
       Math.abs(snapshot.observer.longitudeDegEast - input.longitudeDegEast) > 1e-7 ||
       !Number.isFinite(Date.parse(snapshot.calculatedAtUtc)) ||
