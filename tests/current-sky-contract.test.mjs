@@ -31,7 +31,7 @@ test('the single screen requests consent and contains no fabricated chart', () =
   const service = text('src/app/current-sky/current-sky.service.ts');
   assert.match(component, /title: 'Il cielo di adesso'/);
   assert.match(component, /allowLocation: 'Consenti posizione'/);
-  assert.match(html, /Powered by VirgoStars/);
+  assert.match(component, /attribution: 'Powered by VirgoStars'/);
   assert.doesNotMatch(html, /chart-illustration|bottom-nav|archive-list|<svg/);
   assert.doesNotMatch(service, /watchPosition|localStorage|sessionStorage|fetch\(/);
   assert.match(service, /requestPermissions\(\['location'\]\)/);
