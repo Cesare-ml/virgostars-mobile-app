@@ -93,6 +93,9 @@ p { color: #b2bbcd; font-size: 13px; line-height: 1.55; }
 .meta-card strong { margin: 5px 0 3px; font-size: 14px; font-weight: 600; }
 .meta-card small { color: #a9b4c9; font-size: 11px; }
 
+.meta-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.edit-location { padding: 10px 11px; border: 1px solid #58627b; border-radius: 10px; color: #ecd29f; background: #25304a; font: inherit; font-size: 11px; cursor: pointer; }
+
 .refresh {
   width: 39px;
   height: 39px;
