@@ -33,6 +33,14 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly orderedBodies = computed(() => [...this.bodies()].sort((a, b) => a.longitude - b.longitude));
 
   private refreshHandle: ReturnType<typeof setInterval> | undefined;
+  private readonly onVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') {
+      this.refresh();
+      this.startRefreshTimer();
+    } else {
+      this.stopRefreshTimer();
+    }
+  };
 
   constructor(private readonly sky: CurrentSkyService) {
     this.zodiacLabels = sky.zodiac.map((sign, index) => {
@@ -50,11 +58,27 @@ export class AppComponent implements OnInit, OnDestroy {
     this.refresh();
     // Planetary motion is slow; refresh every 30 seconds to keep the timestamp
     // live without wasting battery on per-frame recalculation.
-    this.refreshHandle = setInterval(() => this.refresh(), 30_000);
+    this.startRefreshTimer();
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   ngOnDestroy(): void {
-    if (this.refreshHandle !== undefined) clearInterval(this.refreshHandle);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.stopRefreshTimer();
+  }
+
+  private startRefreshTimer(): void {
+    this.stopRefreshTimer();
+    if (document.visibilityState === 'visible') {
+      this.refreshHandle = setInterval(() => this.refresh(), 30_000);
+    }
+  }
+
+  private stopRefreshTimer(): void {
+    if (this.refreshHandle !== undefined) {
+      clearInterval(this.refreshHandle);
+      this.refreshHandle = undefined;
+    }
   }
 
   refresh(): void {
