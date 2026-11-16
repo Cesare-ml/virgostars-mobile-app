@@ -1,4 +1,4 @@
-//! Minimal read-only Tauri runtime bridge. No accounts, birth data or network operations.
+//! Minimal Tauri host. Geolocation permissions are granted only through the scoped plugin API.
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -26,6 +26,7 @@ fn runtime_info() -> RuntimeInfo {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_geolocation::init())
         .invoke_handler(tauri::generate_handler![runtime_info])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
