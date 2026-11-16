@@ -40,16 +40,21 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly calculatedAt = signal<Date | null>(null);
   readonly error = signal<string | null>(null);
   readonly refreshing = signal(false);
-  private refreshTimer?: number;
-  private clockTimer?: number;
+  private refreshTimer?: ReturnType<typeof setInterval>;
+  private clockTimer?: ReturnType<typeof setInterval>;
 
   readonly zodiac = ZODIAC_GLYPHS.map((glyph, index) => {
-    const angle = (index * 30 + 15 - 90) * Math.PI / 180;
+    const boundaryAngle = (index * 30 - 90) * Math.PI / 180;
+    const labelAngle = (index * 30 + 15 - 90) * Math.PI / 180;
     return Object.freeze({
       glyph,
       name: ZODIAC_SIGNS_IT[index],
-      x: 180 + Math.cos(angle) * 147,
-      y: 180 + Math.sin(angle) * 147
+      x: 180 + Math.cos(labelAngle) * 147,
+      y: 180 + Math.sin(labelAngle) * 147,
+      x1: 180 + Math.cos(boundaryAngle) * 132,
+      y1: 180 + Math.sin(boundaryAngle) * 132,
+      x2: 180 + Math.cos(boundaryAngle) * 166,
+      y2: 180 + Math.sin(boundaryAngle) * 166
     });
   });
 
@@ -90,8 +95,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.refreshSky();
-    this.clockTimer = setInterval(() => this.now.set(new Date()), 1_000) as unknown as number;
-    this.refreshTimer = setInterval(() => this.refreshSky(), CURRENT_SKY_REFRESH_MS) as unknown as number;
+    this.clockTimer = setInterval(() => this.now.set(new Date()), 1_000);
+    this.refreshTimer = setInterval(() => this.refreshSky(), CURRENT_SKY_REFRESH_MS);
   }
 
   ngOnDestroy(): void {
@@ -122,11 +127,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   formatDegree(value: number): string {
-    return value.toFixed(1).replace('.', '°') + '′';
-  }
-
-  signFor(index: number): string {
-    return (this.locale() === 'it' ? ZODIAC_SIGNS_IT : ZODIAC_SIGNS_EN)[index];
+    return `${value.toFixed(1)}°`;
   }
 
   get title(): string {
