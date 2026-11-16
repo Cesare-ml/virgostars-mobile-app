@@ -2,38 +2,31 @@
 
 Milestones represent intended work, not completed functionality.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
+## M0 — Bootstrap
 
-## M0 — Bootstrap (this repository state)
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Mobile-first responsive shell, Italian/English, attribution notice
+- [x] Minimal native runtime probe and security configuration
+- [x] Current-sky MVP screen and typed Tauri IPC command
+- [x] Temporary local astronomy provider for Sun, Moon and seven planets
+- [x] UI displays calculation time, source and model limitations
+- [ ] Verify npm run check and cargo test on a configured machine
+- [ ] Initialize Android target and run emulator/physical-device smoke test
+- [ ] Confirm astronomy vectors and retrograde flags independently
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Canonical astronomy and Android demo
 
-## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
-- [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
-- [ ] Verified offline unlock policy and explicit revocation limitations
-- [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
+- [ ] Integrate a validated VirgoStars-Ephemeris Rust adapter when its public app-facing API is stable
+- [ ] Compare all nine body positions against approved reference vectors and Swiss Ephemeris/Horizons where licensing and methodology permit
+- [ ] Document time scales, frame, center, corrections, accuracy and supported date range
+- [ ] Optimize chart touch layout, DPI, memory and WebView restoration
+- [ ] Test dark mode, portrait/landscape, low-memory devices and timezone correctness
 
-## M3 — Android beta and release gate
-- [ ] Security, accessibility, performance and Play Store/data-safety review
-- [ ] Signed Android build, recovery and staged distribution (maintainer-only decision)
-- [ ] Offline and network-failure QA on real low-end and high-end phones
+## Explicitly deferred
 
-## M4 — iOS adaptation
-- [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
-- [ ] Signed iOS beta/release after explicit owner approval
+- Personal birth charts, Ascendant, houses and topocentric horizon (requires observer coordinates and a reviewed permission UX)
+- Offline profiles, encrypted SQLite, OS key storage and profile deletion
+- OAuth2 Authorization Code + PKCE, account ownership and server synchronization
+- Android signing/Play Store release and all iOS native work
+
+The MVP intentionally performs no network requests, requires no location permission and stores no personal data. No release or deployment is triggered by repository changes.
