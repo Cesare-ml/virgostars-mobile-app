@@ -2,7 +2,7 @@
 
 **Android-first, iOS-ready mobile companion to [VirgoStars Desktop](https://github.com/Cesare-ml/virgostars-desktop).**
 
-Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. This repository is a **bootstrap prototype**, not a released or production-ready astrology app.
+Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. This repository is an **experimental, unverified implementation prototype**, not a released or production-ready astrology app.
 
 - **Android:** first supported development target.
 - **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
