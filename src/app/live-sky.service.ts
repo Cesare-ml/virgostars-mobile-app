@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as Astronomy from 'astronomy-engine';
+import { tropicalPosition } from './sky-math';
 
 export interface ZodiacSign { id: string; glyph: string; }
 export const ZODIAC_SIGNS: readonly ZodiacSign[] = [
@@ -51,8 +52,7 @@ export class LiveSkyService {
       if (!Number.isFinite(ecliptic.elon) || !Number.isFinite(ecliptic.elat)) {
         throw new RangeError(`Non-finite ephemeris coordinates for ${id}.`);
       }
-      const longitude = normalizeDegrees(ecliptic.elon);
-      return { id, glyph, longitude, signIndex: Math.floor(longitude / 30), signDegree: longitude % 30, retrograde: null };
+      return { id, glyph, ...tropicalPosition(ecliptic.elon), retrograde: null };
     }).sort((a, b) => a.longitude - b.longitude);
     return {
       instant: new Date(instant.getTime()),
@@ -63,8 +63,4 @@ export class LiveSkyService {
       bodies
     };
   }
-}
-function normalizeDegrees(value: number): number {
-  const normalized = value % 360;
-  return normalized < 0 ? normalized + 360 : normalized;
 }
