@@ -47,7 +47,7 @@ export function calculateCurrentSky(instant = new Date()) {
     const displaySignIndex = (signIndex + (roundedIntoNextSign ? 1 : 0)) % 12;
     const degree = roundedIntoNextSign ? 0 : Math.floor(withinSignMinutes / 60);
     const minute = roundedIntoNextSign ? 0 : withinSignMinutes % 60;
-    const angle = (longitude + 180) * Math.PI / 180;
+    const angle = (180 - longitude) * Math.PI / 180;
     const radius = 91 + (index % 3) * 16;
     const sign = ZODIAC[displaySignIndex];
 
