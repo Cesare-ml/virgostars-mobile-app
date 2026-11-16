@@ -42,10 +42,13 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly failed = signal(false);
   readonly zodiac = ZODIAC_SIGNS;
   private refreshTimer: number | undefined;
+  private destroyed = false;
   private readonly onVisibilityChange = (): void => {
     if (document.visibilityState === 'visible') this.refresh();
   };
-  private readonly onFocus = (): void => this.refresh();
+  private readonly onFocus = (): void => {
+    if (document.visibilityState === 'visible') this.refresh();
+  };
 
   readonly chartPoints = computed(() => {
     const bodies = this.sky()?.bodies ?? [];
@@ -93,6 +96,7 @@ export class AppComponent implements OnInit, OnDestroy {
     document.documentElement.lang = this.locale();
   }
   ngOnInit(): void {
+    this.destroyed = false;
     this.refresh();
     this.refreshTimer = window.setInterval(() => {
       if (document.visibilityState === 'visible') this.refresh();
@@ -100,10 +104,11 @@ export class AppComponent implements OnInit, OnDestroy {
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     window.addEventListener('focus', this.onFocus);
     invoke<RuntimeInfo>('runtime_info')
-      .then(info => { if (info.schema_version === 1) this.runtime.set(info.platform); })
-      .catch(() => this.runtime.set(null));
+      .then(info => { if (!this.destroyed && info.schema_version === 1) this.runtime.set(info.platform); })
+      .catch(() => { if (!this.destroyed) this.runtime.set(null); });
   }
   ngOnDestroy(): void {
+    this.destroyed = true;
     if (this.refreshTimer !== undefined) window.clearInterval(this.refreshTimer);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     window.removeEventListener('focus', this.onFocus);
