@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   calculateAscendant,
   formatDegreeMinute,
-  normalizeDegrees
+  normalizeDegrees,
+  planetGlyphRadius
 } from '../src/app/sky-chart-math.js';
 
 const obliquity = 23.4392911 * Math.PI / 180;
@@ -83,4 +84,12 @@ test('Ascendant lies on the local horizon after inverse coordinate rotation', ()
       assert.ok(result.eastProjection >= -1e-12);
     }
   }
+});
+
+test('planet glyph placement separates exact and neighboring conjunctions', () => {
+  const prior = [{ longitude: 25, radius: 91 }];
+  assert.equal(planetGlyphRadius(25, prior), 116);
+  assert.equal(planetGlyphRadius(26, prior), 116);
+  assert.equal(planetGlyphRadius(150, prior), 91);
+  assert.equal(planetGlyphRadius(25, []), 91);
 });
