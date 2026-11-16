@@ -65,6 +65,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (permissions.location !== 'granted') {
         this.locating.set(false);
         this.loading.set(false);
+        if (hasExistingChart) this.editingLocation.set(true);
         this.error.set(
           'Permesso di posizione negato. Puoi autorizzarlo oppure inserire le coordinate manualmente.'
         );
@@ -87,9 +88,11 @@ export class AppComponent implements OnInit, OnDestroy {
       this.latitudeInput.set(position.coords.latitude.toFixed(5));
       this.longitudeInput.set(position.coords.longitude.toFixed(5));
       this.locating.set(false);
+      this.editingLocation.set(false);
       this.recalculate();
     } catch {
       if (requestId !== this.locationRequestId) return;
+      if (hasExistingChart) this.editingLocation.set(true);
       this.locating.set(false);
       this.loading.set(false);
       this.error.set(
