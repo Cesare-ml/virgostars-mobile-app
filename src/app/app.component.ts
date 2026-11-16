@@ -75,7 +75,9 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.refreshSky();
     this.clockTimer = setInterval(() => this.now.set(new Date()), 1_000);
-    this.refreshTimer = setInterval(() => this.refreshSky(), CURRENT_SKY_REFRESH_MS);
+    this.refreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') this.refreshSky();
+    }, CURRENT_SKY_REFRESH_MS);
   }
 
   ngOnDestroy(): void {
@@ -106,6 +108,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   refreshSky(): void {
+    this.now.set(new Date());
     this.refreshing.set(true);
     try {
       const instant = new Date();
