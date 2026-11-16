@@ -6,7 +6,7 @@ export interface DeviceLocationFix {
 }
 
 export interface CurrentSkyRequest {
-  /** ISO-8601 UTC instant captured immediately after the location fix. */
+  /** UTC instant corresponding to the observed device location fix. */
   instantUtc: string;
   timezoneId: string;
   latitude: number;
@@ -30,7 +30,7 @@ export interface CurrentSkyResponse {
   status: CurrentSkyStatus;
   calculatedAtUtc: string | null;
   engine: EngineProvenance | null;
-  /** Payload is owned by the canonical astrological-functions contract. */
+  /** Payload belongs to the canonical astrological-functions chart contract. */
   chart: unknown | null;
   errorCode: string | null;
   message: string | null;
@@ -38,8 +38,9 @@ export interface CurrentSkyResponse {
 
 export type CurrentSkyScreenState =
   | 'loading'
-  | 'ready'
+  | 'browser-preview'
   | 'permission-denied'
   | 'location-unavailable'
   | 'engine-unavailable'
+  | 'renderer-unavailable'
   | 'failed';
