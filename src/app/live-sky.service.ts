@@ -48,6 +48,9 @@ export class LiveSkyService {
     const bodies = BODIES.map(({ id, glyph, body }) => {
       const equatorial = Astronomy.GeoVector(body, instant, true);
       const ecliptic = Astronomy.Ecliptic(equatorial);
+      if (!Number.isFinite(ecliptic.elon) || !Number.isFinite(ecliptic.elat)) {
+        throw new RangeError(`Non-finite ephemeris coordinates for ${id}.`);
+      }
       const longitude = normalizeDegrees(ecliptic.elon);
       return { id, glyph, longitude, signIndex: Math.floor(longitude / 30), signDegree: longitude % 30, retrograde: null };
     }).sort((a, b) => a.longitude - b.longitude);
