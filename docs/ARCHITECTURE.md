@@ -1,49 +1,38 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **live-sky MVP implementation in source; build/device verification pending** (2026-11-16). Android first, iOS later.
 
-## Decision
-
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
-
+## Current vertical slice
 ```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
-      |
-Tauri 2 IPC (versioned, explicit permissions)
-      |
+Angular mobile UI
+  └── LiveSkyService (single replaceable provider boundary)
+        └── Astronomy Engine 2.1.19 (temporary MIT provider)
+Tauri 2 IPC
+  └── read-only runtime_info probe
 Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
-      |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
+Future: VirgoStars-Ephemeris stable Rust/mobile adapter
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The app opens directly on a real-time geocentric tropical zodiac chart. A snapshot contains apparent geocentric true-ecliptic-of-date longitude for Sun, Moon and planets. It refreshes every 30 seconds. All calculation is local and sends no data.
 
-## Reuse policy
+## Astronomy provider boundary
+src/app/live-sky.service.ts owns the temporary provider integration and a small app DTO. The view must not import Astronomy Engine or perform astronomy itself. The current source uses GeoVector followed by Ecliptic; it does not use heliocentric longitude for the Sun. The provider and coordinate frame are identified in the DTO so migration can be audited.
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+Astronomy Engine is a temporary compromise because VirgoStars-Ephemeris does not yet expose a validated mobile binding. It is MIT licensed and declares an accuracy goal of 1 arcminute against NOVAS. This is not a claim of parity with Swiss Ephemeris or the final VirgoStars engine.
 
-## Android and iOS
+Do not add Swiss Ephemeris C/Rust bindings casually: its dual AGPL/professional licensing requires a deliberate project-wide license decision before distribution. Do not introduce a dependency without rights and compatibility review.
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
+## Current chart limitations
+- Geocentric tropical longitudes only; no Ascendant, MC, houses or topocentric Moon.
+- No retrograde indicators or astrological aspects.
+- No personal natal data, profiles, storage, authentication or sync.
+- No network calls, location permission or sensitive Android permissions.
+- The chart is a live sky view, not a saved personal birth chart.
 
-## Local-first, not localStorage-first
-
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
-
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
-
-## Platform / release boundary
-
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+## Boundaries and future work
+- VirgoStars-Ephemeris is the canonical future numerical astronomy source; do not duplicate astronomy in Angular.
+- astrological-functions supplies astrology-specific methods only after its API and source licensing are cleared.
+- astrological-charts may be considered later only after its source/assets licensing is resolved.
+- Keep native IPC minimal, typed, explicitly permissioned and platform neutral.
+- Never commit real birth records, keys, kernels, proprietary assets or service credentials.
+- Android remains the first device QA target. iOS requires separate macOS/Xcode review.
