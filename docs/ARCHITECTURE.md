@@ -26,7 +26,13 @@ VirgoStars server: independent authenticated/versioned API, not a direct DB link
 
 The host exposes `runtime_info` and the official Tauri geolocation plugin. The current UI calculates a tropical geocentric sky chart through a temporary MIT provider adapter, with Whole Sign houses. The provider is not the VirgoStars engine and has not yet passed scientific parity tests. No OAuth, storage or sync integration exists.
 
-## Current MVP implementation\n\n`SkyChartService` isolates Astronomy Engine 2.1.19 (MIT) behind a replaceable provider boundary. `@tauri-apps/plugin-geolocation` requests location only after explicit user consent; permissions are limited to check/request/current-position, not continuous tracking. Coordinates are held in process memory only. The user may also enter coordinates manually. Chart data refreshes every 30 seconds.\n\nThis is an implementation target, not yet an Android build/device validation. The canonical VirgoStars ephemeris must replace the temporary provider only after stable Rust/mobile bindings and scientific fixtures have passed.\n\n## Reuse policy
+## Current MVP implementation
+
+`SkyChartService` isolates Astronomy Engine 2.1.19 (MIT) behind a replaceable provider boundary. `@tauri-apps/plugin-geolocation` requests location only after explicit user consent; permissions are limited to check/request/current-position, not continuous tracking. Coordinates are held in process memory only. The user may also enter coordinates manually. Chart data refreshes every 30 seconds.
+
+This is an implementation target, not yet an Android build/device validation. The canonical VirgoStars ephemeris must replace the temporary provider only after stable Rust/mobile bindings and scientific fixtures have passed.
+
+## Reuse policy
 
 - **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
 - **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
