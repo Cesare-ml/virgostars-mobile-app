@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { needsSkyRefresh, layoutPlanetMarkers } from '../src/app/current-sky-view.mjs';
+import { needsSkyRefresh, layoutPlanetMarkers, formatZodiacDegree } from '../src/app/current-sky-view.mjs';
 
 const date = value => new Date(value);
 
@@ -38,4 +38,14 @@ test('conjunction labels use separate lanes without changing planet coordinates'
 
 test('wheel layout rejects invalid longitudes', () => {
   assert.throws(() => layoutPlanetMarkers([{ id: 'sun', longitudeDeg: NaN }]), /Invalid longitude/);
+});
+
+test('zodiac degrees use arcminutes without rounding into the next sign', () => {
+  assert.equal(formatZodiacDegree(0), '0° 00′');
+  assert.equal(formatZodiacDegree(12.5), '12° 30′');
+  assert.equal(formatZodiacDegree(29 + 59 / 60), '29° 59′');
+  assert.equal(formatZodiacDegree(29.999999), '29° 59′');
+  assert.throws(() => formatZodiacDegree(30), /within sign/);
+  assert.throws(() => formatZodiacDegree(-0.1), /within sign/);
+  assert.throws(() => formatZodiacDegree(NaN), /within sign/);
 });
