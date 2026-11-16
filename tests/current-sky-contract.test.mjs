@@ -62,3 +62,13 @@ test('refresh throttling advances only after a verified calculation', () => {
   assert.ok(baselineAssignment > verification, 'failed calculations must remain retryable');
   assert.match(service, /this\.pendingForegroundRefresh = this\.inFlight/);
 });
+
+test('native snapshot verification rejects NaN observer coordinates and impossible aspects', () => {
+  const service = text('src/app/current-sky/current-sky.service.ts');
+  assert.match(service, /Number\.isFinite\(snapshot\.observer\.latitudeDeg\)/);
+  assert.match(service, /Number\.isFinite\(snapshot\.observer\.longitudeDegEast\)/);
+  assert.match(service, /snapshot\.observer\.altitudeMeters !== input\.altitudeMeters/);
+  assert.match(service, /aspect\.firstBody !== aspect\.secondBody/);
+  assert.match(service, /aspect\.exactAngleDeg <= 180/);
+  assert.match(service, /aspect\.orbDeg <= 180/);
+});
