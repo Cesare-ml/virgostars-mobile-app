@@ -84,3 +84,11 @@ test('snapshot contract requires ten distinct bodies and valid ecliptic latitude
   assert.match(service, /bodies\.length !== 10/);
   assert.match(service, /new Set\(bodies\.map\(body => body\.id\)\)\.size !== 10/);
 });
+
+test('native bridge completion cannot mutate a destroyed component', () => {
+  const component = text('src/app/app.component.ts');
+  assert.match(component, /private destroyed = false/);
+  assert.match(component, /this\.destroyed = true/);
+  assert.match(component, /!this\.destroyed && info\.schema_version === 1/);
+  assert.match(component, /if \(!this\.destroyed\) this\.runtime\.set\(null\)/);
+});
