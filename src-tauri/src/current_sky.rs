@@ -61,6 +61,30 @@ fn valid_iana_timezone(value: &str) -> bool {
     value.parse::<Tz>().is_ok()
 }
 
+fn valid_chart(chart: &Value) -> bool {
+    let Some(object) = chart.as_object() else { return false };
+    if object.get("zodiac").and_then(Value::as_str) != Some("tropical") {
+        return false;
+    }
+    let Some(bodies) = object.get("bodies").and_then(Value::as_array) else {
+        return false;
+    };
+    const IDS: [&str; 10] = [
+        "sun", "moon", "mercury", "venus", "mars", "jupiter",
+        "saturn", "uranus", "neptune", "pluto",
+    ];
+    if bodies.len() != IDS.len() { return false; }
+    let mut seen = std::collections::HashSet::new();
+    bodies.iter().all(|body| {
+        let Some(id) = body.get("id").and_then(Value::as_str) else { return false };
+        let Some(longitude) = body.get("longitude").and_then(Value::as_f64) else { return false };
+        IDS.contains(&id)
+            && seen.insert(id)
+            && longitude.is_finite()
+            && (0.0..360.0).contains(&longitude)
+    })
+}
+
 fn unavailable(code: &'static str, message: &'static str) -> CurrentSkyResponse {
     CurrentSkyResponse {
         schema_version: 1,
@@ -99,7 +123,7 @@ pub fn calculate_with_provider(
     };
 
     match provider.calculate(request) {
-        Ok(chart) => CurrentSkyResponse {
+        Ok(chart) if valid_chart(&chart) => CurrentSkyResponse {
             schema_version: 1,
             status: "ready",
             calculated_at_utc: Some(request.instant_utc.clone()),
@@ -108,7 +132,7 @@ pub fn calculate_with_provider(
             error_code: None,
             message: None,
         },
-        Err(_) => unavailable(
+        Ok(_) | Err(_) => unavailable(
             "ephemeris_calculation_failed",
             "Il calcolo del cielo non è riuscito. Nessun grafico è stato mostrato.",
         ),
@@ -140,7 +164,21 @@ mod tests {
         }
 
         fn calculate(&self, _request: &CurrentSkyRequest) -> Result<Value, String> {
-            Ok(serde_json::json!({"fixture": true}))
+            Ok(serde_json::json!({
+                "zodiac": "tropical",
+                "bodies": [
+                    {"id":"sun","longitude":0.0},
+                    {"id":"moon","longitude":1.0},
+                    {"id":"mercury","longitude":2.0},
+                    {"id":"venus","longitude":3.0},
+                    {"id":"mars","longitude":4.0},
+                    {"id":"jupiter","longitude":5.0},
+                    {"id":"saturn","longitude":6.0},
+                    {"id":"uranus","longitude":7.0},
+                    {"id":"neptune","longitude":8.0},
+                    {"id":"pluto","longitude":9.0}
+                ]
+            }))
         }
     }
 
@@ -191,10 +229,25 @@ mod tests {
     }
 
     #[test]
+    fn incomplete_or_invalid_planetary_payload_is_rejected() {
+        for chart in [
+            serde_json::json!({"fixture": true}),
+            serde_json::json!({"zodiac": "tropical", "bodies": []}),
+            serde_json::json!({"zodiac": "sidereal", "bodies": []}),
+        ] {
+            assert!(!valid_chart(&chart));
+        }
+        let mut valid = TestProvider.calculate(&request()).unwrap();
+        assert!(valid_chart(&valid));
+        valid["bodies"][1]["id"] = serde_json::json!("sun");
+        assert!(!valid_chart(&valid));
+    }
+
+    #[test]
     fn provider_response_preserves_provenance_and_chart_payload() {
         let result = calculate_with_provider(&request(), Some(&TestProvider));
         assert_eq!(result.status, "ready");
         assert_eq!(result.engine.unwrap().provider, "test-fixture");
-        assert_eq!(result.chart.unwrap()["fixture"], true);
+        assert_eq!(result.chart.unwrap()["bodies"][0]["id"], "sun");
     }
 }
