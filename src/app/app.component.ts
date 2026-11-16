@@ -38,7 +38,7 @@ export class AppComponent implements OnInit,OnDestroy {
  }
  onLatitudeChange(value:string):void{this.latitudeInput.set(value);} onLongitudeChange(value:string):void{this.longitudeInput.set(value);}
  private recalculate():void{if(!this.location)return;const initial=!this.chart();if(initial)this.loading.set(true);try{this.chart.set(this.sky.calculate(new Date(),this.location));this.error.set(null);}catch{this.chart.set(null);this.error.set('Il calcolo del cielo non è riuscito. Riprova tra qualche istante.');}finally{this.loading.set(false);}}
- formatLongitude(value:number):string{return value.toFixed(2).replace('.', '° ')+'′';}
+ formatLongitude(value:number):string{const degrees=Math.floor(value);const minutes=(value-degrees)*60;return degrees+'° '+minutes.toFixed(1)+'′';}
  formatClock(value:Date):string{return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'medium'}).format(value);}
  formatCoordinates(location:ObserverLocation):string{return Math.abs(location.latitude).toFixed(3)+'° '+(location.latitude>=0?'N':'S')+' · '+Math.abs(location.longitude).toFixed(3)+'° '+(location.longitude>=0?'E':'W');}
 }
