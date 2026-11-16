@@ -90,7 +90,7 @@ export function formatDegreeMinute(value) {
 }
 
 /** Spread neighboring planet glyphs across concentric lanes without changing longitude. */
-export function planetGlyphRadius(longitude, prior): number {
+export function planetGlyphRadius(longitude, prior) {
   const lanes = [91, 105, 77, 116];
   const separation = 15;
   for (const radius of lanes) {
