@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import {
   calculateCurrentSky,
   CURRENT_SKY_REFRESH_MS,
@@ -102,6 +102,20 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.clockTimer !== undefined) clearInterval(this.clockTimer);
     if (this.refreshTimer !== undefined) clearInterval(this.refreshTimer);
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.visibilityState === 'visible') {
+      this.now.set(new Date());
+      this.refreshSky();
+    }
+  }
+
+  @HostListener('window:pageshow')
+  onPageShow(): void {
+    this.now.set(new Date());
+    this.refreshSky();
   }
 
   switchLocale(): void {
