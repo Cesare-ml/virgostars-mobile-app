@@ -49,7 +49,7 @@ function makePosition(definition, longitudeDeg, latitudeDeg) {
 /**
  * Calculates a current, geocentric chart snapshot from a real UTC instant.
  *
- * Planetary positions are apparent geocentric ecliptic-of-date coordinates.
+ * Positions are geocentric true-ecliptic-of-date coordinates. Planet vectors use\n * light-time and aberration corrections; the Moon uses its dedicated lunar theory.
  * The app intentionally does not fabricate houses or angles: they require a
  * validated observer-angle pipeline and will be added after that contract lands.
  */
@@ -75,7 +75,7 @@ export function calculateCurrentSky(instant = new Date()) {
     datetimeUtc: instant.toISOString(),
     coordinateCenter: 'EARTH',
     coordinateFrame: 'ECLIPTIC_OF_DATE',
-    positionType: 'APPARENT',
+    positionType: 'GEOCENTRIC',
     zodiac: 'TROPICAL',
     engine: CURRENT_SKY_ENGINE,
     refreshIntervalMs: CURRENT_SKY_REFRESH_MS,
