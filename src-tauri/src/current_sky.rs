@@ -6,6 +6,8 @@
 //! Until a legally distributable, validated ephemeris adapter is registered,
 //! the command returns an explicit unavailable state instead of fake data.
 
+use chrono::{DateTime, FixedOffset};
+use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -47,6 +49,18 @@ pub trait CurrentSkyProvider: Send + Sync {
     fn calculate(&self, request: &CurrentSkyRequest) -> Result<Value, String>;
 }
 
+fn valid_utc_instant(value: &str) -> bool {
+    // Reject local/offset timestamps; the mobile contract requires a UTC instant.
+    if !value.ends_with('Z') {
+        return false;
+    }
+    DateTime::<FixedOffset>::parse_from_rfc3339(value).is_ok()
+}
+
+fn valid_iana_timezone(value: &str) -> bool {
+    value.parse::<Tz>().is_ok()
+}
+
 fn unavailable(code: &'static str, message: &'static str) -> CurrentSkyResponse {
     CurrentSkyResponse {
         schema_version: 1,
@@ -71,8 +85,8 @@ pub fn calculate_with_provider(
         || !(-180.0..=180.0).contains(&request.longitude)
         || !request.location_accuracy_meters.is_finite()
         || request.location_accuracy_meters < 0.0
-        || request.instant_utc.trim().is_empty()
-        || request.timezone_id.trim().is_empty()
+        || !valid_utc_instant(&request.instant_utc)
+        || !valid_iana_timezone(&request.timezone_id)
     {
         return unavailable("invalid_input", "La posizione o l'istante non sono validi.");
     }
@@ -156,6 +170,24 @@ mod tests {
         let result = calculate_with_provider(&input, Some(&TestProvider));
         assert_eq!(result.error_code, Some("invalid_input"));
         assert!(result.chart.is_none());
+    }
+
+    #[test]
+    fn malformed_and_offset_instants_are_rejected() {
+        for instant in ["", "yesterday", "2026-11-16T12:00:00+01:00", "2026-13-16T11:00:00Z"] {
+            let mut input = request();
+            input.instant_utc = instant.into();
+            let result = calculate_with_provider(&input, Some(&TestProvider));
+            assert_eq!(result.error_code, Some("invalid_input"), "{instant}");
+        }
+    }
+
+    #[test]
+    fn invalid_timezone_is_rejected() {
+        let mut input = request();
+        input.timezone_id = "Europe/Imaginary".into();
+        let result = calculate_with_provider(&input, Some(&TestProvider));
+        assert_eq!(result.error_code, Some("invalid_input"));
     }
 
     #[test]
