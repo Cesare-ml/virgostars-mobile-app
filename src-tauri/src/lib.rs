@@ -1,5 +1,7 @@
-//! Minimal read-only Tauri runtime bridge. No accounts, birth data or network operations.
+//! VirgoStars Mobile native host: minimal runtime and current-sky IPC.
 use serde::Serialize;
+
+mod current_sky;
 
 #[derive(Serialize)]
 struct RuntimeInfo {
@@ -26,7 +28,17 @@ fn runtime_info() -> RuntimeInfo {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![runtime_info])
+        .setup(|app| {
+            #[cfg(mobile)]
+            app.handle().plugin(tauri_plugin_geolocation::init())?;
+            #[cfg(not(mobile))]
+            let _ = app;
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            runtime_info,
+            current_sky::calculate_current_sky
+        ])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
 }

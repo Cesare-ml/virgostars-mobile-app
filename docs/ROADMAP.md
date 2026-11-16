@@ -1,39 +1,37 @@
 # VirgoStars Mobile — roadmap
 
-Milestones represent intended work, not completed functionality.
+The target MVP is a single Android screen showing the real current-sky chart for the device location and current instant.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
+## M0 — Current-sky app shell
 
-## M0 — Bootstrap (this repository state)
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Single-purpose current-sky screen at app launch; remove demo chart and unrelated navigation
+- [x] Foreground-only location request with explicit permission and failure states
+- [x] Versioned typed Rust IPC request/response and provider interface
+- [x] UTC instant, IANA timezone, coordinates and GPS accuracy carried through the request
+- [x] Fail-closed behavior when the ephemeris provider is missing
+- [x] Foreground-resume refresh and bounded refresh path for a renderable chart
+- [ ] Genuine package lockfile, clean npm ci, contract tests and Angular production build
+- [ ] Android initialization, emulator build and physical-device smoke test
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Real current-sky chart (MVP acceptance)
 
-## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
-- [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
-- [ ] Verified offline unlock policy and explicit revocation limitations
-- [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
+- [ ] Clear temporary Swiss Ephemeris distribution/licensing, or wait for a legally distributable VirgoStars provider
+- [ ] Implement and register the Rust CurrentSkyProvider; no Swiss code/binary before rights approval
+- [ ] Define typed DTOs from astrological-functions for positions, houses, axes and aspects; add contract vectors
+- [ ] Clear redistribution rights for astrological-charts and its third-party assets
+- [ ] Render the real computed chart full-screen with touch-friendly glyphs, houses, axes and supported aspects
+- [ ] Verify reference vectors across multiple instants/locations, UTC/DST boundaries and coordinate modes
+- [ ] Verify foreground refresh and immediate resume refresh without stale chart display
+- [ ] Test denied/revoked permission, unavailable GPS, stale fixes and engine/renderer failures
+- [ ] Run on Android emulator and physical device; record SDK/JDK/NDK/device versions and evidence
 
-## M3 — Android beta and release gate
-- [ ] Security, accessibility, performance and Play Store/data-safety review
-- [ ] Signed Android build, recovery and staged distribution (maintainer-only decision)
-- [ ] Offline and network-failure QA on real low-end and high-end phones
+## M2 — Release gate (outside this MVP)
 
-## M4 — iOS adaptation
-- [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
-- [ ] Signed iOS beta/release after explicit owner approval
+- [ ] Privacy, accessibility, low-memory and offline QA
+- [ ] Decide whether Swiss fallback remains development-only or is removed from release
+- [ ] Reproducible signed Android release and Google Play review, only with separate maintainer approval
+
+## Explicitly out of scope
+
+Login, server sync, personal profiles, archive/history, personal birth charts, interpretations, transits, notifications, widgets, calendar, AI, social, payments and iOS until Android MVP is validated.
