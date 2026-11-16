@@ -7,7 +7,7 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 - **Android:** first supported development target.
 - **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
 - **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
-- **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
+- **MVP work in progress:** a single live-sky entry screen with foreground-only location capture and explicit status handling. A real chart remains blocked on a validated, legally distributable ephemeris provider and the shared chart renderer. No login, personal-data persistence or sync.
 
 ## Idee e sviluppo delle funzioni native
 
@@ -28,7 +28,7 @@ npm run android:dev
 
 `npm run android:init` generates icons from the repository's original SVG and initializes the Android project (generated native project is ignored). Set `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME` as required by your toolchain. Launch an Android emulator or connect a device with USB debugging. To attempt an unsigned/local build later, use `npm run android:build`; Google Play publication requires separate signing and release work. No publication is automated.
 
-For Angular-only browser development, run `npm run dev`. The native probe displays a browser-safe fallback when Tauri is unavailable.
+For Angular-only browser development, run `npm run dev`. The live-sky screen reports that native geolocation is unavailable in browser preview.
 
 ## iOS later
 
