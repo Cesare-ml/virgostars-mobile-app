@@ -19,7 +19,7 @@
       <p>{{ subtitle }}</p>
       <div class="time-line">
         <span class="time-dot" aria-hidden="true"></span>
-        <time>{{ formattedNow() }}</time>
+        <time [attr.datetime]="now().toISOString()">{{ formattedNow() }}</time>
       </div>
     </section>
 
@@ -29,7 +29,7 @@
         <button type="button" class="refresh-button" (click)="refreshSky()">{{ locale() === 'it' ? 'Riprova' : 'Try again' }}</button>
       </section>
     } @else if (snapshot(); as sky) {
-      <section class="chart-panel" aria-label="Carta zodiacale del cielo attuale">
+      <section class="chart-panel" [attr.aria-label]="locale() === 'it' ? 'Carta zodiacale del cielo attuale' : 'Current sky zodiac chart'">
         <div class="chart-panel-head">
           <div>
             <span class="eyebrow">{{ locale() === 'it' ? 'CARTA DEL CIELO' : 'SKY CHART' }}</span>
