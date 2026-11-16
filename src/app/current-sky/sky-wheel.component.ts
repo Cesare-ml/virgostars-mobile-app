@@ -65,11 +65,25 @@ export class SkyWheelComponent {
   }
 
   markers(): PlanetMarker[] {
-    return this.chart().bodies.map(body => ({
-      ...this.point(body.longitude, 122),
-      id: body.id,
-      glyph: GLYPHS[body.id],
-      longitude: body.longitude
-    }));
+    const bodies = [...this.chart().bodies].sort((a, b) => a.longitude - b.longitude);
+    const markers: PlanetMarker[] = [];
+    for (let index = 0; index < bodies.length; index++) {
+      const body = bodies[index];
+      // Offset only the glyph, not the true longitude tick on the zodiac ring.
+      // Closely grouped planets get alternating radial lanes for legibility.
+      const nearby = bodies.filter(other => {
+        const delta = Math.abs(other.longitude - body.longitude);
+        return Math.min(delta, 360 - delta) < 12;
+      });
+      const lane = nearby.findIndex(other => other.id === body.id);
+      const radius = nearby.length > 1 ? 118 - (lane % 3) * 20 : 122;
+      markers.push({
+        ...this.point(body.longitude, radius),
+        id: body.id,
+        glyph: GLYPHS[body.id],
+        longitude: body.longitude
+      });
+    }
+    return markers;
   }
 }
