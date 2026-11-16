@@ -59,9 +59,9 @@ export class SkyWheelComponent {
   readonly signs = SIGNS;
 
   point(longitude: number, radius: number): WheelPoint {
-    // Aries 0° at 12 o'clock; increasing longitude runs counterclockwise.
-    const radians = (longitude - 90) * Math.PI / 180;
-    return { x: 200 - radius * Math.cos(radians + Math.PI / 2), y: 200 - radius * Math.sin(radians + Math.PI / 2) };
+    // Aries 0° at 12 o'clock; increasing longitude runs clockwise.
+    const radians = longitude * Math.PI / 180;
+    return { x: 200 + radius * Math.sin(radians), y: 200 - radius * Math.cos(radians) };
   }
 
   markers(): PlanetMarker[] {
