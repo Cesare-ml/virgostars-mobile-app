@@ -3,7 +3,7 @@
 //! legally distributable and independently validated implementation is linked.
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeInfo { platform: &'static str, mode: &'static str, schema_version: u8 }
 
@@ -20,7 +20,7 @@ struct CurrentSkyInput {
     location_accuracy_meters: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "lowercase")]
 enum SkyBody { Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto }
 
