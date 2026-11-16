@@ -87,3 +87,13 @@ test('native provider boundary rejects invalid chart payloads and frontend uses 
   assert.match(models, /interface ChartPayload/);
   assert.match(models, /chart: ChartPayload \| null/);
 });
+
+test('live wheel renders provider-computed positions without a fallback fixture', () => {
+  const html = read('src/app/app.component.html');
+  const component = read('src/app/app.component.ts');
+  assert.match(html, /state\(\) === 'ready'/);
+  assert.match(html, /chart\.bodies/);
+  assert.match(html, /wheelX\(body\.longitudeDeg\)/);
+  assert.match(component, /this\.state\.set\('ready'\)/);
+  assert.doesNotMatch(html, /fixture|mock-chart|placeholder-chart/i);
+});

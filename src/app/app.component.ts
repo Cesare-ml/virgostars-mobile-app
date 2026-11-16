@@ -5,6 +5,7 @@ import {
   getCurrentSkyLocation
 } from './current-sky/native-current-sky';
 import type {
+  ChartBody,
   CurrentSkyRequest,
   CurrentSkyResponse,
   CurrentSkyScreenState
@@ -23,6 +24,7 @@ const messages = {
     location: 'Posizione non disponibile. Verifica che la localizzazione sia attiva e riprova.',
     engine: 'Il motore effemeridico non è ancora collegato a questa build. Nessun grafico dimostrativo verrà mostrato.',
     renderer: 'Il calcolo è disponibile, ma il renderer astrologico condiviso non è ancora collegato.',
+    wheel: 'Longitudini eclittiche calcolate',
     failed: 'Non è stato possibile calcolare il cielo corrente. Nessun dato precedente o simulato viene mostrato.',
     retry: 'Riprova',
     updated: 'Istante del calcolo',
@@ -43,6 +45,7 @@ const messages = {
     location: 'Location is unavailable. Check that device location is enabled and retry.',
     engine: 'The ephemeris engine is not connected to this build yet. No illustrative chart will be shown.',
     renderer: 'Calculation is available, but the shared astrology chart renderer is not connected yet.',
+    wheel: 'Calculated ecliptic longitudes',
     failed: 'The current sky could not be calculated. No stale or simulated data is displayed.',
     retry: 'Retry',
     updated: 'Calculation instant',
@@ -131,8 +134,8 @@ export class AppComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // A computed payload is not a visible chart until the shared renderer is wired.
-      this.state.set('renderer-unavailable');
+      // Render only validated, provider-computed coordinates; never a fixture.
+      this.state.set('ready');
     } catch (error: unknown) {
       if (this.destroyed || generation !== this.refreshGeneration) return;
       if (error instanceof CurrentSkyLocationError) {
@@ -148,6 +151,30 @@ export class AppComponent implements OnInit, OnDestroy {
       // Refresh foreground location and sky even while the provider is unavailable.
       if (document.visibilityState === 'visible') this.startRefreshTimer();
     }
+  }
+
+  signX(index: number): number {
+    return 160 + 134 * Math.cos((index * 30 - 75) * Math.PI / 180);
+  }
+
+  signY(index: number): number {
+    return 160 + 134 * Math.sin((index * 30 - 75) * Math.PI / 180);
+  }
+
+  wheelX(longitudeDeg: number): number {
+    return 160 + 114 * Math.cos((longitudeDeg - 90) * Math.PI / 180);
+  }
+
+  wheelY(longitudeDeg: number): number {
+    return 160 + 114 * Math.sin((longitudeDeg - 90) * Math.PI / 180);
+  }
+
+  bodySymbol(body: ChartBody): string {
+    const symbols: Record<string, string> = {
+      sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
+      jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇'
+    };
+    return symbols[body.id] ?? body.id.slice(0, 2).toUpperCase();
   }
 
   localDateTime(isoUtc: string): string {

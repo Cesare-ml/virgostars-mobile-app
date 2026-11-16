@@ -68,3 +68,20 @@ p { color: #afb7c9; line-height: 1.62; font-size: 15px; }
   .app-shell { border-left: 1px solid #2d3853; border-right: 1px solid #2d3853; }
 }
 @media (prefers-reduced-motion: reduce) { .loader { animation: none; } }
+
+.wheel-card {
+  border: 1px solid #39465d; border-radius: 22px;
+  background: #ffffff09; padding: 18px; text-align: center;
+}
+.wheel-card h2 { font-size: 15px; color: #e5c895; margin: 0 0 12px; }
+.sky-wheel { width: 100%; max-width: 360px; height: auto; overflow: visible; }
+.wheel-outer, .wheel-inner { fill: none; stroke: #a68e68; stroke-width: 1.5; }
+.wheel-inner { stroke: #57617b; }
+.sign-glyph { fill: #d8bb8d; font-size: 17px; }
+.body-spoke { stroke: #57617b; stroke-width: 1; opacity: .65; }
+.body-marker { fill: #253049; stroke: #e5c895; stroke-width: 1.2; }
+.body-glyph { fill: #fff; font-size: 15px; }
+.body-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 15px; text-align: left; }
+.body-list > div { display: flex; justify-content: space-between; gap: 5px; font-size: 12px; }
+.body-list span { color: #c9cddd; }
+.body-list strong { color: #e5c895; font-variant-numeric: tabular-nums; }
