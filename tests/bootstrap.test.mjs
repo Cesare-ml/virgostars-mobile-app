@@ -101,3 +101,16 @@ test('Windows Android build gate requires NDK and a freshly built APK', () => {
   assert.match(script, /npm run check/);
   assert.match(script, /npm run android:build -- --apk/);
 });
+
+test('Windows Android gate validates prerequisites and checks fresh nonempty APK', () => {
+  const script = text('scripts/check-android.ps1');
+  assert.match(script, /Test-Path \$sdkRoot/);
+  assert.match(script, /Test-Path \$env:NDK_HOME/);
+  assert.match(script, /Test-Path \$env:JAVA_HOME/);
+  assert.match(script, /rustup target list --installed/);
+  assert.match(script, /npm run check/);
+  assert.match(script, /npm run android:build -- --apk/);
+  assert.match(script, /LastWriteTime -ge \$buildStart/);
+  assert.match(script, /\$_.Length -gt 0/);
+  assert.doesNotMatch(script, /git push|gh release|gradle publish/i);
+});
