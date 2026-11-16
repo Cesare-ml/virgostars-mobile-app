@@ -2,16 +2,21 @@
 
 **Android-first, iOS-ready mobile companion to [VirgoStars Desktop](https://github.com/Cesare-ml/virgostars-desktop).**
 
-Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. This repository is a **bootstrap prototype**, not a released or production-ready astrology app.
+Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. The immediate product goal is deliberately narrow: open the app and see the actual astrological chart for the current instant and device location, refreshed while foregrounded.
 
-- **Android:** first supported development target.
-- **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
-- **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
-- **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
+## Current MVP implementation status
 
-## Idee e sviluppo delle funzioni native
+This branch contains the **current-sky UI shell and native acquisition boundary**:
 
-- [Native Astrologer Toolkit — funzionalità, priorità e vincoli Android/iOS](docs/NATIVE_ASTROLOGER_TOOLKIT.md). Include cattura del momento, notifiche per transiti, widget lunari, calendario, biometria, diario vocale, sensori, condivisione, smartwatch, QR/NFC e feedback aptico. Le idee sono **pianificate**, non già implementate.
+- A single initial screen titled “Il cielo di adesso”.
+- One-shot foreground GPS permission and current-position acquisition. Location is processed on-device and is not uploaded or persisted.
+- UTC trigger timestamp, IANA timezone, observed UTC offset, observer coordinates, altitude and GPS accuracy in a versioned native input contract.
+- Fresh-fix validation and refresh policy (GPS checked every 15 seconds, astronomical calculation throttled to one minute, recalculated after meaningful movement or app resume).
+- A typed Tauri calculate_current_sky command that currently returns sky_engine_unavailable.
+
+**Important: no real chart is calculated or rendered yet.** The native command intentionally fails closed. The DE441 reader/provider in VirgoStars-Ephemeris is experimental and not independently validated as a complete astrology provider; astrological-functions has no granted outbound reuse license/API stability; and astrological-charts source/assets are pending rights clearance. The MVP must not show fabricated planetary positions or a geometric placeholder as a live chart.
+
+The next integration gates are: a lawful offline astronomical provider (VirgoStars-Ephemeris when the required capability and data are ready, or an approved Swiss Ephemeris integration after license review), the astrological-functions contract, and the cleared shared renderer. Swiss Ephemeris is **not bundled or linked** by this branch.
 
 ## Get started (Android)
 
@@ -26,36 +31,28 @@ npm run android:init
 npm run android:dev
 ```
 
-`npm run android:init` generates icons from the repository's original SVG and initializes the Android project (generated native project is ignored). Set `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME` as required by your toolchain. Launch an Android emulator or connect a device with USB debugging. To attempt an unsigned/local build later, use `npm run android:build`; Google Play publication requires separate signing and release work. No publication is automated.
+npm run android:init generates icons from the repository's original SVG and initializes the local ignored Android project. Set ANDROID_HOME, NDK_HOME and JAVA_HOME for the installed toolchain. npm run android:build attempts a local Android build; a successful APK and a physical-device smoke test have **not yet been recorded** for this MVP.
 
-For Angular-only browser development, run `npm run dev`. The native probe displays a browser-safe fallback when Tauri is unavailable.
-
-## iOS later
-
-The shared Angular and Rust source remains platform-neutral. **On a Mac with Xcode**, run `npm run ios:init` and `npm run ios:dev`, *after* the Android prototype is validated. No iOS project, signed IPA or App Store delivery exists yet.
+For Angular-only browser development, run npm run dev. Browser preview deliberately reports that the native runtime/engine is unavailable.
 
 ## Architecture
 
 ```text
-src/                       Angular mobile UI and state (offline-friendly shell)
-src-tauri/                 Tauri 2 Rust mobile host / read-only IPC
-contracts/                 Planned versioned adapters and DTOs
-tests/                     Static bootstrap and safety checks
-docs/                      Architecture, roadmap, privacy, Android setup
-Upstream shared code:      VirgoStars-Ephemeris (Rust astronomy)
-                           astrological-functions (astrological methods)
-                           astrological-charts (chart rendering)
-                           virgostars-desktop (compatible local-first contracts)
-Future:                    owned-profile SQLite storage, secure key storage,
-                           OAuth2/PKCE, versioned server sync and offline outbox
+Angular single-screen UI
+  └─ CurrentSkyService (permissions, fresh GPS, foreground refresh)
+       └─ typed Tauri IPC: calculate_current_sky
+            └─ provider adapter (NOT YET LINKED)
+                 ├─ VirgoStars-Ephemeris (target Rust provider)
+                 └─ Swiss Ephemeris (only after license/approval)
+            └─ astrological-functions (not yet integrated)
+            └─ astrological-charts (not yet integrated)
 ```
 
-Do not copy production VirgoStars web/server code, private birth records, private assets or ephemeris kernels into this repository. The illustrative UI is not a horoscope or natal chart. Native application and online service require separate ownership and security boundaries.
+No login, accounts, archive, persistent GPS, server sync, notifications, widgets or personal birth data are part of this MVP.
 
 ## Project policy
 
 - [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Security and privacy](docs/SECURITY.md) · [Android setup](docs/ANDROID.md).
 - [Agent/contributor rules](AGENTS.md) · [License](LICENSE) · [Attribution](NOTICE).
-- The original source is offered under **CPAL-1.0** with the **Powered by VirgoStars** GUI attribution requirement. Third-party dependencies/assets retain their own licenses.
-- **No GitHub Actions**, deployments, store publication, signing material or privileged backend secrets.
-- `npm run check` is a static contract check + Angular compilation; an actual Android build needs a configured Android toolchain and has **not been verified by this bootstrap**.
+- Preserve CPAL-1.0 attribution and visible **Powered by VirgoStars**. Third-party dependencies/assets retain their own licenses.
+- No GitHub Actions, automatic deployments, store publication, signing material or privileged backend secrets.
