@@ -1,68 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
-
-type Tab = 'home' | 'chart' | 'archive' | 'settings';
-type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
-
-const messages = {
-  it: {
-    tagline: 'Il cielo, a portata di mano',
-    status: 'Prototipo Android',
-    welcome: 'Benvenuto in VirgoStars',
-    intro: 'Il tuo futuro spazio astrologico personale, progettato per funzionare anche offline.',
-    explore: 'Esplora il laboratorio',
-    offlineTitle: 'Pensato per l’offline',
-    offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
-    chartTitle: 'Tema astrologico',
-    chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
-    demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
-    archiveTitle: 'Il mio archivio',
-    archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
-    settingsTitle: 'Impostazioni',
-    language: 'Lingua',
-    runtime: 'Ambiente',
-    data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
-    about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
-    home: 'Home',
-    chart: 'Carta',
-    archive: 'Archivio',
-    settings: 'Opzioni',
-    native: 'Host nativo',
-    connected: 'Connesso al bridge locale',
-    browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo'
-  },
-  en: {
-    tagline: 'The sky, in your hands',
-    status: 'Android prototype',
-    welcome: 'Welcome to VirgoStars',
-    intro: 'Your future personal astrology workspace, designed to work offline.',
-    explore: 'Explore the prototype',
-    offlineTitle: 'Designed for offline',
-    offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
-    chartTitle: 'Astrological chart',
-    chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
-    demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
-    archiveTitle: 'My library',
-    archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
-    settingsTitle: 'Settings',
-    language: 'Language',
-    runtime: 'Environment',
-    data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
-    about: 'Experimental project, not connected to VirgoStars services yet.',
-    home: 'Home',
-    chart: 'Chart',
-    archive: 'Library',
-    settings: 'Settings',
-    native: 'Native host',
-    connected: 'Local bridge connected',
-    browser: 'Browser preview',
-    build: 'Development shell'
-  }
-} as const;
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { checkPermissions, getCurrentPosition, requestPermissions } from '@tauri-apps/plugin-geolocation';
+import { formatDegreeMinute } from './sky-chart-math.js';
+import { ObserverLocation, SkyChart, SkyChartService } from './sky-chart.service';
 
 @Component({
   selector: 'app-root',
@@ -70,32 +9,171 @@ const messages = {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  readonly tab = signal<Tab>('home');
-  readonly locale = signal<Locale>('it');
-  readonly runtime = signal<string | null>(null);
-  readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
+export class AppComponent implements OnInit, OnDestroy {
+  readonly chart = signal<SkyChart | null>(null);
+  readonly loading = signal(true);
+  readonly locating = signal(true);
+  readonly error = signal<string | null>(null);
+  readonly latitudeInput = signal('');
+  readonly longitudeInput = signal('');
+  readonly editingLocation = signal(false);
+  private readonly sky = inject(SkyChartService);
+  readonly signs = this.sky.signs;
 
-  t(key: keyof typeof messages.it): string {
-    return messages[this.locale()][key];
-  }
-
-  navigate(tab: Tab): void {
-    this.tab.set(tab);
-  }
-
-  switchLocale(): void {
-    this.locale.update(value => value === 'it' ? 'en' : 'it');
-    document.documentElement.lang = this.locale();
-  }
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private location: ObserverLocation | null = null;
+  private locationRequestId = 0;
 
   ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1 && info.mode === 'prototype') {
-          this.runtime.set(info.platform);
-        }
-      })
-      .catch(() => this.runtime.set(null)); // Expected in the browser.
+    void this.requestDeviceLocation();
+    this.refreshTimer = setInterval(() => {
+      if (this.location) this.recalculate();
+    }, 30_000);
+  }
+
+  ngOnDestroy(): void {
+    this.locationRequestId++;
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+  }
+
+  refreshChart(): void {
+    if (this.location?.source === 'device') {
+      void this.requestDeviceLocation();
+    } else {
+      this.recalculate();
+    }
+  }
+
+  async requestDeviceLocation(): Promise<void> {
+    const requestId = ++this.locationRequestId;
+    const hasExistingChart = this.chart() !== null;
+    this.error.set(null);
+    this.locating.set(!hasExistingChart);
+    this.loading.set(!hasExistingChart);
+
+    try {
+      let permissions = await checkPermissions();
+      if (
+        permissions.location === 'prompt' ||
+        permissions.location === 'prompt-with-rationale'
+      ) {
+        permissions = await requestPermissions(['location']);
+      }
+
+      if (requestId !== this.locationRequestId) return;
+
+      if (permissions.location !== 'granted') {
+        this.locating.set(false);
+        this.loading.set(false);
+        if (hasExistingChart) this.editingLocation.set(true);
+        this.error.set(
+          'Permesso di posizione negato. Puoi autorizzarlo oppure inserire le coordinate manualmente.'
+        );
+        return;
+      }
+
+      const position = await getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15_000,
+        maximumAge: 60_000
+      });
+
+      if (requestId !== this.locationRequestId) return;
+
+      this.location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        source: 'device'
+      };
+      this.latitudeInput.set(position.coords.latitude.toFixed(5));
+      this.longitudeInput.set(position.coords.longitude.toFixed(5));
+      this.locating.set(false);
+      this.editingLocation.set(false);
+      this.recalculate();
+    } catch {
+      if (requestId !== this.locationRequestId) return;
+      if (hasExistingChart) this.editingLocation.set(true);
+      this.locating.set(false);
+      this.loading.set(false);
+      this.error.set(
+        'Non riesco a ottenere la posizione. Verifica i permessi GPS oppure inserisci le coordinate.'
+      );
+    }
+  }
+
+  toggleLocationEditor(): void {
+    this.editingLocation.update(value => !value);
+  }
+
+  useManualLocation(): void {
+    const latitude = Number(this.latitudeInput());
+    const longitude = Number(this.longitudeInput());
+
+    if (
+      !this.latitudeInput().trim() ||
+      !this.longitudeInput().trim() ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 ||
+      Math.abs(longitude) > 180
+    ) {
+      this.error.set(
+        'Inserisci una latitudine tra −90 e 90 e una longitudine tra −180 e 180.'
+      );
+      return;
+    }
+
+    this.locationRequestId++;
+    this.location = { latitude, longitude, source: 'manual' };
+    this.error.set(null);
+    this.editingLocation.set(false);
+    this.recalculate();
+  }
+
+  onLatitudeChange(value: string): void {
+    this.latitudeInput.set(value);
+  }
+
+  onLongitudeChange(value: string): void {
+    this.longitudeInput.set(value);
+  }
+
+  private recalculate(): void {
+    if (!this.location) return;
+
+    const initialCalculation = this.chart() === null;
+    if (initialCalculation) this.loading.set(true);
+
+    try {
+      this.chart.set(this.sky.calculate(new Date(), this.location));
+      this.error.set(null);
+    } catch {
+      this.chart.set(null);
+      this.error.set('Il calcolo del cielo non è riuscito. Riprova tra qualche istante.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  formatLongitude(value: number): string {
+    return formatDegreeMinute(value);
+  }
+
+  formatClock(value: Date): string {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'medium'
+    }).format(value);
+  }
+
+  formatCoordinates(location: ObserverLocation): string {
+    const latitude =
+      Math.abs(location.latitude).toFixed(3) + '° ' +
+      (location.latitude >= 0 ? 'N' : 'S');
+    const longitude =
+      Math.abs(location.longitude).toFixed(3) + '° ' +
+      (location.longitude >= 0 ? 'E' : 'W');
+
+    return latitude + ' · ' + longitude;
   }
 }
