@@ -15,7 +15,7 @@ test('current sky returns ten real geocentric planetary positions', () => {
   assert.equal(snapshot.datetimeUtc, instant.toISOString());
   assert.equal(snapshot.coordinateCenter, 'EARTH');
   assert.equal(snapshot.coordinateFrame, 'ECLIPTIC_OF_DATE');
-  assert.equal(snapshot.positionType, 'APPARENT');
+  assert.equal(snapshot.positionType, 'GEOCENTRIC');
   assert.equal(snapshot.zodiac, 'TROPICAL');
   assert.equal(snapshot.engine, CURRENT_SKY_ENGINE);
   assert.equal(snapshot.refreshIntervalMs, CURRENT_SKY_REFRESH_MS);
