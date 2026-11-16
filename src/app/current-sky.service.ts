@@ -68,7 +68,8 @@ export class CurrentSkyService {
       const longitude = normalize(Math.atan2(ecliptic.y, ecliptic.x) * 180 / Math.PI);
       const signIndex = Math.floor(longitude / 30);
       const degreeInSign = longitude - signIndex * 30;
-      const radius = index < 2 ? 115 : index % 2 === 0 ? 137 : 151;
+      // Keep every 10px marker inside the 320px SVG viewport (outer radius 154).
+      const radius = index < 2 ? 112 : index % 2 === 0 ? 128 : 142;
       const angle = (longitude - 90) * Math.PI / 180;
 
       return {
