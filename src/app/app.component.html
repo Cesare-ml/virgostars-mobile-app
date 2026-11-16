@@ -52,8 +52,8 @@
           <circle cx="160" cy="160" r="94" class="wheel-inner"/>
           @for (sign of ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']; track $index) {
             <text class="sign-glyph"
-              [attr.x]="160 + 134 * Math.cos(($index * 30 - 75) * Math.PI / 180)"
-              [attr.y]="160 + 134 * Math.sin(($index * 30 - 75) * Math.PI / 180)"
+              [attr.x]="signX($index)"
+              [attr.y]="signY($index)"
               text-anchor="middle" dominant-baseline="middle">{{ sign }}</text>
           }
           @for (body of chart.bodies; track body.id) {
