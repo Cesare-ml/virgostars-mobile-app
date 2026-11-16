@@ -24,6 +24,24 @@
       </section>
     } @else if (tab() === 'chart') {
       <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
+      <section class="request-card" aria-labelledby="request-title">
+        <h2 id="request-title">{{ t('inputTitle') }}</h2>
+        <p>{{ t('inputHint') }}</p>
+        <form (submit)="$event.preventDefault(); validateChart()" novalidate>
+          <label>{{ t('dateLabel') }}<input type="date" [value]="chartFields().localDate" (input)="updateChartField('localDate', $any($event.target).value)" required /></label>
+          <label>{{ t('timeLabel') }}<input type="time" step="1" [value]="chartFields().localTime" (input)="updateChartField('localTime', $any($event.target).value)" required /></label>
+          <label>{{ t('offsetLabel') }}<input type="number" step="1" min="-720" max="840" inputmode="numeric" [value]="chartFields().utcOffsetMinutes" (input)="updateChartField('utcOffsetMinutes', $any($event.target).value)" required /></label>
+          <label>{{ t('latitudeLabel') }}<input type="number" step="any" min="-90" max="90" inputmode="decimal" [value]="chartFields().latitude" (input)="updateChartField('latitude', $any($event.target).value)" required /></label>
+          <label>{{ t('longitudeLabel') }}<input type="number" step="any" min="-180" max="180" inputmode="decimal" [value]="chartFields().longitude" (input)="updateChartField('longitude', $any($event.target).value)" required /></label>
+          <button class="primary" type="submit">{{ t('validateLabel') }}</button>
+        </form>
+        @if (chartValidation(); as result) {
+          <div role="status" aria-live="polite" class="validation-result">
+            @if (result.ok) { {{ t('validLabel') }} }
+            @else { {{ t('invalidLabel') }} {{ result.errors.join(', ') }} }
+          </div>
+        }
+      </section>
       <section class="chart-card" [attr.aria-label]="t('demoWarning')">
         <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
           <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
