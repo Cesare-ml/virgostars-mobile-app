@@ -54,3 +54,11 @@ test('astronomy failures are not misreported as GPS failures', () => {
   assert.match(service, /this\.calculationStarted \? 'failed' : 'location-unavailable'/);
   assert.match(service, /this\.calculationStarted = false;/);
 });
+
+test('refresh throttling advances only after a verified calculation', () => {
+  const service = text('src/app/current-sky/current-sky.service.ts');
+  const baselineAssignment = service.indexOf('this.baseline = { lastRequestAtMs: nowMs');
+  const verification = service.indexOf('if (!this.isValidSnapshot(snapshot, input))');
+  assert.ok(baselineAssignment > verification, 'failed calculations must remain retryable');
+  assert.match(service, /this\.pendingForegroundRefresh = this\.inFlight/);
+});
