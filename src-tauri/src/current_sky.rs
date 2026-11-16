@@ -85,6 +85,19 @@ fn valid_chart(chart: &Value) -> bool {
     })
 }
 
+fn valid_provenance(provenance: &EngineProvenance) -> bool {
+    [
+        &provenance.provider,
+        &provenance.version,
+        &provenance.time_scale,
+        &provenance.coordinate_frame,
+        &provenance.center,
+        &provenance.position_mode,
+    ]
+    .iter()
+    .all(|value| !value.trim().is_empty())
+}
+
 fn unavailable(code: &'static str, message: &'static str) -> CurrentSkyResponse {
     CurrentSkyResponse {
         schema_version: 1,
@@ -123,15 +136,24 @@ pub fn calculate_with_provider(
     };
 
     match provider.calculate(request) {
-        Ok(chart) if valid_chart(&chart) => CurrentSkyResponse {
-            schema_version: 1,
-            status: "ready",
-            calculated_at_utc: Some(request.instant_utc.clone()),
-            engine: Some(provider.provenance()),
-            chart: Some(chart),
-            error_code: None,
-            message: None,
-        },
+        Ok(chart) if valid_chart(&chart) => {
+            let provenance = provider.provenance();
+            if !valid_provenance(&provenance) {
+                return unavailable(
+                    "ephemeris_provenance_invalid",
+                    "Il motore non ha dichiarato la provenienza astronomica completa.",
+                );
+            }
+            CurrentSkyResponse {
+                schema_version: 1,
+                status: "ready",
+                calculated_at_utc: Some(request.instant_utc.clone()),
+                engine: Some(provenance),
+                chart: Some(chart),
+                error_code: None,
+                message: None,
+            }
+        }
         Ok(_) | Err(_) => unavailable(
             "ephemeris_calculation_failed",
             "Il calcolo del cielo non è riuscito. Nessun grafico è stato mostrato.",
@@ -241,6 +263,14 @@ mod tests {
         assert!(valid_chart(&valid));
         valid["bodies"][1]["id"] = serde_json::json!("sun");
         assert!(!valid_chart(&valid));
+    }
+
+    #[test]
+    fn provenance_requires_all_six_descriptors() {
+        let mut provenance = TestProvider.provenance();
+        assert!(valid_provenance(&provenance));
+        provenance.coordinate_frame = " ".into();
+        assert!(!valid_provenance(&provenance));
     }
 
     #[test]
