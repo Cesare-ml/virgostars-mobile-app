@@ -40,3 +40,13 @@ test('offline release build does not require Android location permissions', () =
   assert.equal(capabilities.identifier, 'default');
   assert.doesNotMatch(JSON.stringify(capabilities), /geolocation|location|http:default/);
 });
+
+test('foreground and clock changes keep the current sky synchronized', () => {
+  const component = read('src/app/app.component.ts');
+  assert.match(component, /@HostListener\('document:visibilitychange'\)/);
+  assert.match(component, /@HostListener\('window:pageshow'\)/);
+  assert.match(component, /current\.getTime\(\) < previous\.getTime\(\)/);
+  assert.match(component, /needsSkyRefresh\(this\.calculatedAt\(\), new Date\(\), CURRENT_SKY_REFRESH_MS\)/);
+  assert.match(component, /if \(this\.clockTimer !== undefined\) clearInterval\(this\.clockTimer\)/);
+  assert.match(component, /if \(this\.refreshTimer !== undefined\) clearInterval\(this\.refreshTimer\)/);
+});
