@@ -1,6 +1,13 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CurrentSkyBody, CurrentSkyService, CurrentSkySnapshot } from './current-sky.service';
 
+interface ZodiacBoundary {
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+}
+
 interface ZodiacLabel {
   readonly glyph: string;
   readonly name: string;
@@ -29,6 +36,7 @@ export class AppComponent implements OnInit, OnDestroy {
     second: '2-digit'
   }));
   readonly zodiacLabels: readonly ZodiacLabel[];
+  readonly zodiacBoundaries: readonly ZodiacBoundary[];
   readonly bodies = computed<readonly CurrentSkyBody[]>(() => this.snapshot()?.bodies ?? []);
   readonly orderedBodies = computed(() => [...this.bodies()].sort((a, b) => a.longitude - b.longitude));
 
@@ -43,6 +51,15 @@ export class AppComponent implements OnInit, OnDestroy {
   };
 
   constructor(private readonly sky: CurrentSkyService) {
+    this.zodiacBoundaries = sky.zodiac.map((_, index) => {
+      const angle = (index * 30 - 90) * Math.PI / 180;
+      return {
+        x1: 160 + Math.cos(angle) * 74,
+        y1: 160 + Math.sin(angle) * 74,
+        x2: 160 + Math.cos(angle) * 154,
+        y2: 160 + Math.sin(angle) * 154
+      };
+    });
     this.zodiacLabels = sky.zodiac.map((sign, index) => {
       const angle = (index * 30 + 15 - 90) * Math.PI / 180;
       return {
