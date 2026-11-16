@@ -32,9 +32,9 @@ test('native commands expose runtime info and the official geolocation plugin on
   assert.match(rust, /fn runtime_info\(\)/);
   assert.match(rust, /schema_version: 1/);
   assert.match(rust, /tauri_plugin_geolocation::init\(\)/);
-  assert.match(rust, /#\\[cfg\\(mobile\\)\\]/);
-  assert.match(cargo, /target_os = \\"android\\"/);
-  assert.match(cargo, /target_os = \\"ios\\"/);
+  assert.match(rust, /#\[cfg\(mobile\)\]/);
+  assert.match(cargo, /target_os = "android"/);
+  assert.match(cargo, /target_os = "ios"/);
   assert.doesNotMatch(rust, /reqwest|sqlx|http_client|password|secret|access_token/i);
 });
 
