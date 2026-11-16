@@ -1,49 +1,46 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: current-sky MVP integration prototype (2026-11-16). Android first; iOS later.
 
 ## Decision
 
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
+The app opens directly on a single current-sky screen. Angular requests a one-shot foreground location fix and sends a versioned request to Tauri Rust. Astronomy stays behind a native provider boundary; the UI does not calculate celestial positions.
 
 ```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
-      |
-Tauri 2 IPC (versioned, explicit permissions)
-      |
-Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
-      |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
+Angular current-sky screen
+  -> foreground geolocation plugin
+  -> versioned CurrentSkyRequest / CurrentSkyResponse
+  -> Tauri 2 IPC
+  -> Rust CurrentSkyProvider
+       -> temporary Swiss provider (not yet licensed/integrated)
+       -> future VirgoStars-Ephemeris provider
+  -> astrological-functions DTO adapter (not integrated)
+  -> astrological-charts renderer (rights/mobile validation pending)
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+## Native contract
 
-## Reuse policy
+- CurrentSkyRequest carries UTC instant, IANA timezone, latitude, longitude and GPS accuracy.
+- CurrentSkyResponse reports schema version, status, provider provenance and an optional chart payload.
+- CurrentSkyProvider must report provider/version, time scale, coordinate frame, center and geometric/apparent position mode.
+- Invalid coordinates or accuracy are rejected.
+- With no configured provider, IPC returns ephemeris_provider_not_configured and no chart payload. This fail-closed behavior is deliberate.
+- A successful calculation is not a visible chart until the shared renderer is integrated and validated.
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+## Shared project boundaries
 
-## Android and iOS
+VirgoStars-Ephemeris is the future canonical Rust astronomical core, but its current experimental state and missing validated mobile adapter mean it is not a ready drop-in provider. astrological-functions owns zodiac, houses, aspects and chart DTO semantics. astrological-charts is the intended shared renderer, but its source and asset redistribution rights are not yet cleared; do not vendor it before approval.
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
+Issue #14 permits temporary Swiss Ephemeris use only after checking exact AGPL/commercial licensing terms, obtaining required authorization, verifying Android packaging and offline behavior, and running provider contract/reference-vector tests. No Swiss source or binary is currently included.
 
-## Local-first, not localStorage-first
+## Location, time and refresh
 
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
+- Location is requested only while the app is foregrounded. There is no background permission, continuous location watch, location history or network transmission.
+- UTC instant comes from the location fix timestamp so time and coordinates describe the same observation. Fixes older than 45 seconds are rejected.
+- IANA timezone accompanies the request for display and downstream local-time semantics.
+- Returning to foreground triggers a fresh request. A bounded 60-second refresh loop is enabled only after the provider returns a chart payload and rendering becomes available.
+- If permission is denied, GPS is unavailable, calculation fails or rendering is missing, no old or synthetic chart is shown.
 
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
+## Security and release
 
-## Platform / release boundary
-
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+No login, profile archive, backend sync, signing keys, private birth records, private assets or ephemeris kernel files are included. Android SDK compilation and emulator/physical-device smoke tests remain mandatory before claiming a working Android MVP.
