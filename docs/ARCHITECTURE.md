@@ -1,49 +1,44 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **current-sky MVP implementation in progress** (2026-11-16). Android first, iOS later.
 
-## Decision
+## MVP boundary
 
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
+The only product function in the first MVP is a real-time chart of the current sky. Angular renders a typed response from the native Rust command current_sky_chart. The command calculates the Sun, Moon and seven planets locally and returns their geocentric ecliptic coordinates, zodiac placement, approximate retrograde state, calculation timestamp and provider provenance. The UI refreshes at launch, on demand and every 60 seconds.
 
-```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
-      |
-Tauri 2 IPC (versioned, explicit permissions)
-      |
-Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
-      |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
-```
+    Angular current-sky screen (TypeScript; touch-first UI)
+          | typed SkyChart DTO
+          | Tauri IPC: current_sky_chart
+    Rust mobile host
+          | temporary provider adapter
+          +-- astro 2.0.0 (MIT; VSOP87 planetary / ELP-2000/82 lunar)
+          |
+          +-- planned canonical VirgoStars-Ephemeris Rust adapter
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The astronomy crate is pinned and isolated behind one native command so it can be replaced without changing the screen contract. Its outputs have not yet been validated against VirgoStars reference vectors. It is not Swiss Ephemeris and is not the VirgoStars-Ephemeris engine. UTC-to-TT currently assumes TAI−UTC = 37 seconds (TT−UTC = 69.184 seconds); revalidate after any IERS leap-second announcement.
 
-## Reuse policy
+## Explicit non-goals
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+- No Ascendant, houses, observer/horizon, or topocentric chart: the app does not request device location.
+- No personal natal chart, birth data, account, OAuth, encrypted profile, archive or server sync.
+- No network calls or ephemeris downloads at runtime.
+- No custom astronomy algorithm in TypeScript. Angular only formats and renders native results.
+- No claims of numerical parity with Swiss Ephemeris or NASA/JPL.
+
+## Replacement gate for VirgoStars-Ephemeris
+
+The current VirgoStars-Ephemeris Rust branch contains experimental astronomy modules and no stable app-facing integration contract yet. Replace the temporary provider only after all of these gates pass:
+
+1. A supported mobile-compatible library interface exists (workspace dependency or a small, reviewed FFI/adapter).
+2. The supported input epoch/time scale, body IDs, reference frame, center/observer and corrections are documented.
+3. Contract vectors cover every MVP body and representative dates, including retrograde direction and wrap-around near 0°.
+4. Results are compared to independent reference data with tolerances approved by the astronomy maintainers.
+5. License, notices, attribution and device performance are reviewed.
 
 ## Android and iOS
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
-
-## Local-first, not localStorage-first
-
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
-
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
+Generated Tauri Android/iOS IDE trees are local artifacts under src-tauri/gen/; no signing secrets are committed. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
 
 ## Platform / release boundary
 
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+This code does not publish builds. Play and App Store distribution require review, reproducible dependencies, signing, screenshots/permissions and store disclosure. No automatic deployment is used.
