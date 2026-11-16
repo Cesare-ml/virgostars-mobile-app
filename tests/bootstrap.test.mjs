@@ -92,3 +92,12 @@ test('native bridge completion cannot mutate a destroyed component', () => {
   assert.match(component, /!this\.destroyed && info\.schema_version === 1/);
   assert.match(component, /if \(!this\.destroyed\) this\.runtime\.set\(null\)/);
 });
+
+test('Windows Android build gate requires NDK and a freshly built APK', () => {
+  const script = text('scripts/check-android.ps1');
+  assert.match(script, /NDK_HOME/);
+  assert.match(script, /\$buildStart = Get-Date/);
+  assert.match(script, /LastWriteTime -ge \$buildStart/);
+  assert.match(script, /npm run check/);
+  assert.match(script, /npm run android:build -- --apk/);
+});
