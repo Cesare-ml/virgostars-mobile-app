@@ -1,11 +1,12 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "default",
-  "description": "Minimal framework permissions; no privileged plugins",
-  "windows": [
-    "main"
-  ],
+  "description": "Minimal permissions plus explicit user-authorized device location",
+  "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "geolocation:allow-check-permissions",
+    "geolocation:allow-request-permissions",
+    "geolocation:allow-get-current-position"
   ]
 }
