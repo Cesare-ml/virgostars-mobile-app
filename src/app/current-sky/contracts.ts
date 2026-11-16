@@ -20,7 +20,8 @@ export interface CurrentSkyPosition {
   body: SkyBody;
   longitudeDeg: number;
   latitudeDeg: number;
-  retrograde: boolean;
+  /** null when the provider cannot supply validated angular velocity. */
+  retrograde: boolean | null;
 }
 
 export interface CurrentSkyAngle {
