@@ -17,6 +17,7 @@ test('Android-first app uses shared Tauri / Angular toolchain', () => {
 
 test('native permission surface is narrow and location requires user consent', () => {
   assert.deepEqual(capabilities.windows, ['main']);
+  assert.deepEqual(capabilities.platforms, ['iOS', 'android']);
   assert.ok(capabilities.permissions.includes('core:default'));
   assert.ok(capabilities.permissions.includes('geolocation:allow-check-permissions'));
   assert.ok(capabilities.permissions.includes('geolocation:allow-request-permissions'));
