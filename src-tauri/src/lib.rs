@@ -23,14 +23,6 @@ struct CurrentSkyInput {
     location_accuracy_meters: f64,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct CurrentSkyUnavailable {
-    schema_version: u8,
-    status: &'static str,
-    provider: Option<&'static str>,
-}
-
 #[tauri::command]
 fn runtime_info() -> RuntimeInfo {
     RuntimeInfo {
@@ -46,11 +38,10 @@ fn runtime_info() -> RuntimeInfo {
     }
 }
 
-/// Typed native boundary for the engine. It deliberately returns a stable
-/// unavailable error until a licensed, validated ephemeris + astrology adapter
-/// is linked into the Android build.
+/// Input/permission boundary. Replace the unavailable result only when a
+/// legally redistributable, independently validated engine is linked.
 #[tauri::command]
-fn calculate_current_sky(input: CurrentSkyInput) -> Result<CurrentSkyUnavailable, String> {
+fn calculate_current_sky(input: CurrentSkyInput) -> Result<(), String> {
     if input.schema_version != 1 {
         return Err("current_sky_unsupported_contract_version".into());
     }
@@ -71,18 +62,17 @@ fn calculate_current_sky(input: CurrentSkyInput) -> Result<CurrentSkyUnavailable
         return Err("current_sky_invalid_input".into());
     }
 
-    let _unavailable = CurrentSkyUnavailable {
-        schema_version: 1,
-        status: "engine-not-integrated",
-        provider: None,
-    };
     Err("sky_engine_unavailable".into())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_geolocation::init())
+    let builder = tauri::Builder::default();
+
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_geolocation::init());
+
+    builder
         .invoke_handler(tauri::generate_handler![runtime_info, calculate_current_sky])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
@@ -91,6 +81,19 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn valid_input() -> CurrentSkyInput {
+        CurrentSkyInput {
+            schema_version: 1,
+            captured_at_utc: "2026-11-16T11:00:00.000Z".into(),
+            timezone_id: "Europe/Rome".into(),
+            utc_offset_minutes: 60,
+            latitude_deg: 44.5,
+            longitude_deg_east: 11.3,
+            altitude_meters: None,
+            location_accuracy_meters: 12.0,
+        }
+    }
 
     #[test]
     fn runtime_contract_is_non_privileged() {
@@ -101,16 +104,8 @@ mod tests {
 
     #[test]
     fn current_sky_rejects_untrusted_inputs_before_provider_dispatch() {
-        let input = CurrentSkyInput {
-            schema_version: 1,
-            captured_at_utc: "2026-11-16T11:00:00.000Z".into(),
-            timezone_id: "Europe/Rome".into(),
-            utc_offset_minutes: 60,
-            latitude_deg: 91.0,
-            longitude_deg_east: 11.0,
-            altitude_meters: None,
-            location_accuracy_meters: 20.0,
-        };
+        let mut input = valid_input();
+        input.latitude_deg = 91.0;
         assert_eq!(
             calculate_current_sky(input).unwrap_err(),
             "current_sky_invalid_input"
@@ -119,18 +114,8 @@ mod tests {
 
     #[test]
     fn current_sky_never_claims_a_chart_when_no_provider_is_linked() {
-        let input = CurrentSkyInput {
-            schema_version: 1,
-            captured_at_utc: "2026-11-16T11:00:00.000Z".into(),
-            timezone_id: "Europe/Rome".into(),
-            utc_offset_minutes: 60,
-            latitude_deg: 44.5,
-            longitude_deg_east: 11.3,
-            altitude_meters: None,
-            location_accuracy_meters: 12.0,
-        };
         assert_eq!(
-            calculate_current_sky(input).unwrap_err(),
+            calculate_current_sky(valid_input()).unwrap_err(),
             "sky_engine_unavailable"
         );
     }
