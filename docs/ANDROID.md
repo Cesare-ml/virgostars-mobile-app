@@ -15,6 +15,17 @@ The `npm run icons` script uses the original SVG placeholder; replace this with 
 
 **iOS:** avoid Android assumptions in shared packages. Later on macOS with Xcode and iOS Rust targets, use `npm run ios:init`, `npm run ios:dev`. This is deliberately out of scope for the first Android smoke.
 
+
+### One-command Windows build gate
+
+From the repository root in Windows PowerShell, after setting `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-android.ps1
+```
+
+This script validates the SDK/JDK/NDK directories, Rust ARM64 target and local dependencies, runs `npm run check`, initializes the Android project if needed, and requests an APK build. It reports only APK files that are nonempty and have a modification time consistent with the current build. **An APK passing this gate is not equivalent to successful installation or device smoke testing.** The script must be executed locally; adding it to GitHub does not run it.
+
 ## Windows 11: first APK verification checklist
 
 From PowerShell in the repository root (with Android Studio SDK/NDK installed and environment variables configured):
