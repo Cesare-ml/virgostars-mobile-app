@@ -4,20 +4,23 @@ Milestones represent intended work, not completed functionality.
 
 Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
 
-## M0 — Bootstrap (this repository state)
+## M0 — Bootstrap
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Mobile-first navigation, accessibility and visible attribution
+- [x] Minimal native runtime contract and source checks
+- [x] Explicitly documented astronomy-provider boundary
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
+## M1 — Android live-sky MVP (implementation in progress)
+- [x] Single live-sky screen with current-time chart and planet-position list
+- [x] Temporary MIT astronomy provider isolated behind `SkyChartService`
+- [x] Official Tauri geolocation plugin with explicit Android runtime permission request
+- [x] Manual coordinate fallback; no account, storage, telemetry or network calls
+- [ ] Run `npm run check` and resolve compile/test issues on a configured toolchain
+- [ ] Generate Android project and verify build with SDK/NDK/JDK
+- [ ] Android emulator and physical-device permission/GPS smoke test
+- [ ] Validate positions, Ascendant and Whole Sign houses against independent reference fixtures
+- [ ] Replace temporary provider with validated VirgoStars Rust bindings once available
+- [ ] Integrate the shared renderer only after source licensing and mobile runtime review
 - [ ] Low-memory, dark-mode, portrait/landscape device tests
 
 ## M2 — Local-first private archive
