@@ -1,49 +1,52 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Status: **current-sky MVP foundation in progress** (2026-11-16). Android first, iOS later.
 
 ## Decision
 
-Keep the same platform-neutral boundaries as VirgoStars Desktop:
-
 ```text
-Angular mobile UI (TypeScript; accessibility, touch, safe areas)
-      | typed app services and view models
-      |              [future]
-      +-- astrological-functions (methods, no duplicated astronomy)
-      +-- astrological-charts (responsive Three.js chart renderer)
+Angular current-sky screen
+      | CurrentSkyService (permission, timestamp, fresh foreground GPS, refresh)
+      | typed versioned CurrentSkyInput / CurrentSkySnapshot DTO
       |
-Tauri 2 IPC (versioned, explicit permissions)
+Tauri 2 IPC: calculate_current_sky
       |
 Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
-      +-- future transactional outbox + owner-scoped HTTPS sync
+      +-- provider adapter (NOT YET LINKED)
+      |     +-- future VirgoStars-Ephemeris canonical Rust adapter
+      |     +-- temporary Swiss Ephemeris only after license/approval
+      +-- astrological-functions contract (not integrated)
+      +-- astrological-charts renderer (not integrated)
       |
-VirgoStars server: independent authenticated/versioned API, not a direct DB link
+local device only; no account, network, persistence or backend dependency
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The UI and native bridge have a typed contract for observer, timestamp, timezone, provider provenance, planet positions, Ascendant/MC, 12 house cusps and aspects. The native command currently returns an unavailable-engine error; it does not synthesize an astrologic result.
 
-## Reuse policy
+## Refresh policy
 
-- **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.
-- **VirgoStars-Ephemeris:** canonical numerical astronomy in Rust, no new astronomy algorithms in UI.
-- **astrological-functions:** shared astrological calculation semantics via typed adapter; no duplicated business logic.
-- **astrological-charts:** shared renderer when mobile WebView/WebGL performance and licensing are validated.
-- **astrological-assets:** private or licensed assets must not enter this public repository without explicit rights clearance.
+- On launch/resume, request a fresh foreground-only GPS fix.
+- While foregrounded, check position every 15 seconds; request a new calculation at most once per minute, or after at least 250 metres of movement.
+- Reject out-of-range coordinates, invalid accuracy, stale fixes and fixes too far from the captured instant.
+- Device time is the requested instant; timezone ID and observed offset are carried explicitly.
+- No background location watcher, local persistence, logging of coordinates or server call.
+
+## Reuse policy and current blockers
+
+- **VirgoStars-Ephemeris:** canonical Rust astronomy target. Its current first-sky API and DE441 reader are experimental, have documented approximations, and need lawful local kernel/data packaging plus independently validated reference vectors before being used as the mobile production provider.
+- **Swiss Ephemeris:** allowed only as a temporary adapter after license terms for the actual distribution have been reviewed and approval obtained. No Swiss dependency/binary is included in this branch.
+- **astrological-functions:** intended source for zodiac, house and aspect semantics; current repo states there is no granted outbound license and no stable API commitment. Do not copy source into this app.
+- **astrological-charts:** intended shared renderer. Its source/assets are pending rights clearance; do not vendor or redistribute them until cleared.
+- Do not implement duplicate astronomy or a second chart renderer in the mobile repo.
 
 ## Android and iOS
 
-Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; there are no committed Google/Apple signing secrets. Keep Rust and TypeScript packages multiplatform. Android (SDK 24+) is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
+Generated Tauri Android/iOS IDE trees are local artifacts under `src-tauri/gen/`; no signing keys are committed. Android is the first device test target. iOS requires a Mac, Xcode, app entitlements and separate validation; it is not currently supported or released.
 
-## Local-first, not localStorage-first
+## Future local-first profile architecture
 
-Initial online authentication must use verified system-browser PKCE and a server device-registration contract. Never collect user passwords in embedded WebViews. Secure credentials are OS-keychain backed; encrypted SQLite stores only data owned by the signed-in profile, and pending local edits are written atomically with outbox entries. Server owns authorization on every API operation. Reconnection must be idempotent and conflict aware. See the Desktop repo's `docs/OFFLINE_AUTH_AND_SYNC.md`; it is **a proposal**, not a working API.
-
-Critical tests before first beta: Android offline restart, device lock and eviction, WebView context-loss/recovery, low-memory performance, timezone/DST correctness, repeatable astronomy reference vectors, account isolation, local encryption, server conflict detection, revocation behavior, migration rollback and accessibility.
+Authentication, encrypted SQLite, OS secure-key storage, owner-scoped sync and offline outbox are out of scope for this single-feature MVP. If later required, use system-browser PKCE, per-profile encryption, transactional outbox and server-owned authorization. Never treat localStorage as encrypted storage.
 
 ## Platform / release boundary
 
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. No GitHub Actions are used.
+Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, privacy disclosures and verified platform builds. No GitHub Actions are used.
