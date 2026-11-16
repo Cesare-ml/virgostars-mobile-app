@@ -69,3 +69,10 @@ test('zodiac dividers remain in the outer annulus and conjunctions wrap at 360 d
   assert.match(component, /body\.longitude \+ 360 - bodies\[bodies\.length - 1\]\.longitude/);
   assert.match(component, /Math\.min\(gapFromPrevious, wrapGap\) < 11/);
 });
+
+test('ephemeris output must reject non-finite values before entering the chart', () => {
+  const service = text('src/app/live-sky.service.ts');
+  assert.match(service, /Number\.isFinite\(ecliptic\.elon\)/);
+  assert.match(service, /Number\.isFinite\(ecliptic\.elat\)/);
+  assert.match(service, /throw new RangeError/);
+});
