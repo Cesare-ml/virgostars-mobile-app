@@ -1,66 +1,31 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { invoke } from '@tauri-apps/api/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { calculateCurrentSky, ZODIAC_SIGNS } from './current-sky.mjs';
+import type { CurrentSky, ZodiacSign } from './current-sky.mjs';
 
-type Tab = 'home' | 'chart' | 'archive' | 'settings';
 type Locale = 'it' | 'en';
-type RuntimeInfo = { platform: string; mode: string; schema_version: number };
 
 const messages = {
   it: {
-    tagline: 'Il cielo, a portata di mano',
-    status: 'Prototipo Android',
-    welcome: 'Benvenuto in VirgoStars',
-    intro: 'Il tuo futuro spazio astrologico personale, progettato per funzionare anche offline.',
-    explore: 'Esplora il laboratorio',
-    offlineTitle: 'Pensato per l’offline',
-    offlineBody: 'Archivio crittografato, calcoli e sincronizzazione sicura sono in sviluppo.',
-    chartTitle: 'Tema astrologico',
-    chartIntro: 'Spazio riservato al motore grafico condiviso con VirgoStars Desktop.',
-    demoWarning: 'Illustrazione geometrica: non rappresenta posizioni astrali calcolate.',
-    archiveTitle: 'Il mio archivio',
-    archiveBody: 'I profili e le carte salvate arriveranno dopo la definizione di autenticazione e cifratura.',
-    settingsTitle: 'Impostazioni',
-    language: 'Lingua',
-    runtime: 'Ambiente',
-    data: 'Dati personali',
-    dataBody: 'Nessun dato di nascita viene richiesto, memorizzato o trasmesso in questa versione.',
-    about: 'Progetto sperimentale, non ancora connesso ai servizi VirgoStars.',
-    home: 'Home',
-    chart: 'Carta',
-    archive: 'Archivio',
-    settings: 'Opzioni',
-    native: 'Host nativo',
-    connected: 'Connesso al bridge locale',
-    browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo'
+    eyebrow: 'CIELO IN TEMPO REALE', title: 'Il cielo di adesso',
+    subtitle: 'La carta astrologica del momento, aggiornata automaticamente.',
+    live: 'LIVE', calculating: 'Calcolo delle posizioni celesti…',
+    errorTitle: 'Carta non disponibile',
+    errorBody: 'Non è stato possibile calcolare le posizioni celesti. Riprova tra poco.',
+    retry: 'Ricalcola', planets: 'Posizioni planetarie', frame: 'Coordinate geocentriche · zodiaco tropicale',
+    updated: 'Aggiornamento', source: 'Motore astronomico provvisorio',
+    limitation: 'Questa prima versione mostra le longitudini geocentriche. Ascendente e case, che richiedono la posizione dell’osservatore, saranno aggiunti dopo l’integrazione sicura della localizzazione.',
+    footer: 'Powered by VirgoStars'
   },
   en: {
-    tagline: 'The sky, in your hands',
-    status: 'Android prototype',
-    welcome: 'Welcome to VirgoStars',
-    intro: 'Your future personal astrology workspace, designed to work offline.',
-    explore: 'Explore the prototype',
-    offlineTitle: 'Designed for offline',
-    offlineBody: 'Encrypted library, calculations and safe synchronization are under development.',
-    chartTitle: 'Astrological chart',
-    chartIntro: 'Reserved for the chart renderer shared with VirgoStars Desktop.',
-    demoWarning: 'Geometric illustration: no calculated planetary positions are shown.',
-    archiveTitle: 'My library',
-    archiveBody: 'Profiles and saved charts will follow reviewed authentication and encryption.',
-    settingsTitle: 'Settings',
-    language: 'Language',
-    runtime: 'Environment',
-    data: 'Personal data',
-    dataBody: 'No birth records are requested, stored or transmitted in this version.',
-    about: 'Experimental project, not connected to VirgoStars services yet.',
-    home: 'Home',
-    chart: 'Chart',
-    archive: 'Library',
-    settings: 'Settings',
-    native: 'Native host',
-    connected: 'Local bridge connected',
-    browser: 'Browser preview',
-    build: 'Development shell'
+    eyebrow: 'LIVE SKY', title: 'The sky right now',
+    subtitle: 'The astrological chart of this moment, refreshed automatically.',
+    live: 'LIVE', calculating: 'Calculating celestial positions…',
+    errorTitle: 'Chart unavailable',
+    errorBody: 'Celestial positions could not be calculated. Please try again shortly.',
+    retry: 'Recalculate', planets: 'Planetary positions', frame: 'Geocentric coordinates · tropical zodiac',
+    updated: 'Updated', source: 'Temporary astronomy engine',
+    limitation: 'This first version displays geocentric longitudes. The Ascendant and houses, which require the observer location, will follow after secure location integration.',
+    footer: 'Powered by VirgoStars'
   }
 } as const;
 
@@ -70,18 +35,24 @@ const messages = {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  readonly tab = signal<Tab>('home');
+export class AppComponent implements OnInit, OnDestroy {
   readonly locale = signal<Locale>('it');
-  readonly runtime = signal<string | null>(null);
-  readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
+  readonly now = signal(new Date());
+  readonly sky = signal<CurrentSky | null>(null);
+  readonly error = signal(false);
+  readonly planets = computed(() => this.sky()?.planets ?? []);
+  readonly zodiacMarks = this.createZodiacMarks();
+  private ticker?: ReturnType<typeof setInterval>;
+  private lastCalculation = 0;
 
   t(key: keyof typeof messages.it): string {
     return messages[this.locale()][key];
   }
 
-  navigate(tab: Tab): void {
-    this.tab.set(tab);
+  name(value: { nameIt: string; nameEn: string } | ZodiacSign): string {
+    return this.locale() === 'it'
+      ? ('nameIt' in value ? value.nameIt : value.it)
+      : ('nameEn' in value ? value.nameEn : value.en);
   }
 
   switchLocale(): void {
@@ -89,13 +60,54 @@ export class AppComponent implements OnInit {
     document.documentElement.lang = this.locale();
   }
 
+  recalculate(): void {
+    this.refresh(new Date());
+  }
+
+  timeLabel(): string {
+    return new Intl.DateTimeFormat(this.locale() === 'it' ? 'it-IT' : 'en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).format(this.now());
+  }
+
   ngOnInit(): void {
-    invoke<RuntimeInfo>('runtime_info')
-      .then(info => {
-        if (info.schema_version === 1 && info.mode === 'prototype') {
-          this.runtime.set(info.platform);
-        }
-      })
-      .catch(() => this.runtime.set(null)); // Expected in the browser.
+    this.refresh(new Date());
+    this.ticker = setInterval(() => {
+      const instant = new Date();
+      this.now.set(instant);
+      if (instant.getTime() - this.lastCalculation >= 60_000) this.refresh(instant);
+    }, 1000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.ticker) clearInterval(this.ticker);
+  }
+
+  private refresh(instant: Date): void {
+    this.now.set(instant);
+    try {
+      this.sky.set(calculateCurrentSky(instant));
+      this.lastCalculation = instant.getTime();
+      this.error.set(false);
+    } catch {
+      this.sky.set(null);
+      this.error.set(true);
+    }
+  }
+
+  private createZodiacMarks(): Array<ZodiacSign & {
+    x: number; y: number; x1: number; y1: number; x2: number; y2: number;
+  }> {
+    return ZODIAC_SIGNS.map((sign, index) => {
+      const middle = (index * 30 + 15 + 180) * Math.PI / 180;
+      const boundary = (index * 30 + 180) * Math.PI / 180;
+      return {
+        ...sign,
+        x: 160 + 127 * Math.cos(middle), y: 160 + 127 * Math.sin(middle),
+        x1: 160 + 87 * Math.cos(boundary), y1: 160 + 87 * Math.sin(boundary),
+        x2: 160 + 148 * Math.cos(boundary), y2: 160 + 148 * Math.sin(boundary)
+      };
+    });
   }
 }
