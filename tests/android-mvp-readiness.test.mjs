@@ -50,3 +50,11 @@ test('foreground and clock changes keep the current sky synchronized', () => {
   assert.match(component, /if \(this\.clockTimer !== undefined\) clearInterval\(this\.clockTimer\)/);
   assert.match(component, /if \(this\.refreshTimer !== undefined\) clearInterval\(this\.refreshTimer\)/);
 });
+
+test('live chart exposes localized accessibility labels and semantic UTC time', () => {
+  const html = read('src/app/app.component.html');
+  assert.match(html, /\[attr\.aria-label\]="locale\(\) === 'it' \? 'Carta zodiacale del cielo attuale' : 'Current sky zodiac chart'"/);
+  assert.match(html, /<time \[attr\.datetime\]="now\(\)\.toISOString\(\)"/);
+  assert.match(html, /role="img"/);
+  assert.match(html, /role="alert"/);
+});
