@@ -1,69 +1,105 @@
 <div class="app-shell">
-  <header class="masthead">
-    <div class="brand" aria-label="VirgoStars Mobile">
-      <div class="brand-mark" aria-hidden="true">✦</div>
-      <div class="brand-text">Virgo<span>Stars</span><small>MOBILE</small></div>
-    </div>
-    <button class="lang" type="button" (click)="switchLocale()" [attr.aria-label]="'Switch language / Cambia lingua'">
-      {{ locale() === 'it' ? 'EN' : 'IT' }}
-    </button>
+  <header class="topbar">
+    <a class="brand" href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener" aria-label="VirgoStars">
+      <span class="brand-star" aria-hidden="true">✦</span>
+      <span>Virgo<span class="brand-light">Stars</span></span>
+    </a>
+    <span class="powered">Powered by VirgoStars</span>
   </header>
 
-  <main id="main-content">
-    @if (tab() === 'home') {
-      <section class="hero">
-        <span class="eyebrow">{{ t('status') }}</span>
-        <div class="hero-star" aria-hidden="true">✧</div>
-        <h1>{{ t('welcome') }}</h1>
-        <p>{{ t('intro') }}</p>
-        <button class="primary" type="button" (click)="navigate('chart')">{{ t('explore') }} <span aria-hidden="true">→</span></button>
-      </section>
-      <section class="info-card" aria-labelledby="offline-title">
-        <div class="info-symbol" aria-hidden="true">◷</div>
-        <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
-      </section>
-    } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
-      <section class="chart-card" [attr.aria-label]="t('demoWarning')">
-        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
-          <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
-          <circle cx="160" cy="160" r="107" fill="none" stroke="#9b92b9" stroke-width="1.5"/>
-          <circle cx="160" cy="160" r="55" fill="none" stroke="#cdb17f" stroke-width="1" opacity=".8"/>
-          <path d="M160 15V305M15 160H305M57.5 57.5L262.5 262.5M262.5 57.5L57.5 262.5" stroke="#8c829f" stroke-width="1" opacity=".5"/>
-          <path d="M160 53L174 145L267 160L174 175L160 267L146 175L53 160L146 145Z" fill="none" stroke="#e6cb91" stroke-width="2"/>
-          <circle cx="160" cy="160" r="8" fill="#edcc89"/>
-        </svg>
-      </section>
-      <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
-    } @else if (tab() === 'archive') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
-    } @else {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
-      <div class="settings-card">
-        <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
-        <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
-        <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">IL CIELO, ADESSO</p>
+        <h1 id="page-title">Tema del cielo attuale</h1>
+        <p class="subtitle">Le posizioni del Sole, della Luna e dei pianeti in questo istante.</p>
       </div>
-      <p class="disclaimer">{{ t('about') }}</p>
+      <div class="live-pill"><span class="live-dot"></span> LIVE</div>
+    </section>
+
+    <section class="time-card" aria-live="polite">
+      <div>
+        <span class="time-label">ISTANTE DI CALCOLO</span>
+        <strong>{{ clockLabel() }}</strong>
+      </div>
+      <button type="button" class="refresh-button" (click)="refresh()" [disabled]="isRefreshing()" aria-label="Aggiorna il cielo">
+        <span [class.spinning]="isRefreshing()" aria-hidden="true">↻</span>
+      </button>
+    </section>
+
+    @if (error()) {
+      <section class="error-card" role="alert">
+        <span class="error-icon" aria-hidden="true">!</span>
+        <div><strong>Calcolo non disponibile</strong><p>{{ error() }}</p></div>
+      </section>
+    } @else if (snapshot(); as chart) {
+      <section class="chart-panel" aria-label="Carta zodiacale geocentrica">
+        <div class="chart-heading">
+          <span>CARTA ECLITTICA</span>
+          <span>360° · 12 SEGNI</span>
+        </div>
+        <svg class="zodiac-wheel" viewBox="0 0 320 320" role="img" aria-label="Ruota zodiacale con le posizioni planetarie calcolate">
+          <defs>
+            <radialGradient id="wheelGlow">
+              <stop offset="0%" stop-color="#34405d" stop-opacity=".12"/>
+              <stop offset="100%" stop-color="#111a2b" stop-opacity=".08"/>
+            </radialGradient>
+          </defs>
+          <circle cx="160" cy="160" r="154" class="wheel-outer"/>
+          <circle cx="160" cy="160" r="126" class="wheel-ring"/>
+          <circle cx="160" cy="160" r="104" class="wheel-ring wheel-inner"/>
+          <circle cx="160" cy="160" r="74" class="wheel-center"/>
+          <circle cx="160" cy="160" r="70" fill="url(#wheelGlow)"/>
+          <path d="M160 6V314 M6 160H314 M51 51L269 269 M269 51L51 269" class="wheel-axis"/>
+          <path d="M160 6V32 M160 288V314 M6 160H32 M288 160H314 M51 51L69 69 M251 251L269 269 M269 51L251 69 M69 251L51 269" class="wheel-tick-major"/>
+          <path d="M160 34V56 M223 43L214 64 M277 97L255 106 M286 160H264 M277 223L255 214 M223 277L214 255 M160 286V264 M97 277L106 255 M43 223L64 214 M34 160H56 M43 97L64 106 M97 43L106 64" class="wheel-tick"/>
+          @for (sign of zodiacLabels; track sign.glyph) {
+            <text class="zodiac-glyph" [attr.x]="sign.x" [attr.y]="sign.y">{{ sign.glyph }}</text>
+          }
+          @for (body of bodies(); track body.id) {
+            <circle class="planet-orbit-dot" [attr.cx]="body.x" [attr.cy]="body.y" r="10"></circle>
+            <text class="planet-glyph" [attr.x]="body.x" [attr.y]="body.y + 5">{{ body.glyph }}</text>
+          }
+          <text x="160" y="153" class="center-overline">VIRGOSTARS</text>
+          <text x="160" y="171" class="center-label">SKY NOW</text>
+        </svg>
+        <div class="chart-caption">
+          <span class="caption-dot"></span>
+          <span>Longitudini geocentriche tropicali · eclittica vera della data</span>
+        </div>
+      </section>
+
+      <section class="positions-panel" aria-labelledby="positions-title">
+        <div class="panel-heading">
+          <h2 id="positions-title">Posizioni planetarie</h2>
+          <span>{{ bodies().length }} corpi</span>
+        </div>
+        <div class="position-list">
+          @for (body of orderedBodies(); track body.id; let i = $index) {
+            <article class="position-row">
+              <span class="body-glyph" [class]="'body-glyph body-' + body.id">{{ body.glyph }}</span>
+              <div class="body-name"><strong>{{ body.name }}</strong><small>{{ body.sign }}</small></div>
+              <span class="body-position">{{ formatLongitude(body) }}</span>
+            </article>
+          }
+        </div>
+      </section>
+
+      <p class="method-note">
+        Calcolo locale con {{ chart.engine }}. Carta geocentrica; questa MVP non mostra Ascendente né case astrologiche.
+        L’ora viene aggiornata ogni 30 secondi. Le posizioni non vengono inviate a un server.
+      </p>
+    } @else {
+      <section class="loading-card" aria-live="polite">
+        <div class="loading-star" aria-hidden="true">✦</div>
+        <p>Calcolo del cielo in corso…</p>
+      </section>
     }
   </main>
 
-  <footer class="attribution"><span>Powered by VirgoStars</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
-
-  <nav class="bottom-nav" aria-label="Navigation">
-    @for (item of navTabs; track item) {
-      <button type="button" (click)="navigate(item)" [class.active]="tab() === item" [attr.aria-current]="tab() === item ? 'page' : null">
-        <span class="nav-glyph" aria-hidden="true">
-          @switch (item) {
-            @case ('home') { ⌂ }
-            @case ('chart') { ✧ }
-            @case ('archive') { ▤ }
-            @case ('settings') { ⚙ }
-          }
-        </span>
-        <span>{{ t(item) }}</span>
-      </button>
-    }
-  </nav>
+  <footer class="footer">
+    <span>Powered by VirgoStars</span>
+    <span> · </span>
+    <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a>
+  </footer>
 </div>
