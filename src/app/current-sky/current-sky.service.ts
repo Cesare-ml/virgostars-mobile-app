@@ -133,7 +133,7 @@ export class CurrentSkyService {
     const expected = new Set(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']);
     const seen = new Set<string>();
     for (const position of snapshot.positions) {
-      if (!expected.has(position.body) || seen.has(position.body) || !isLongitudeValid(position.longitudeDeg) || !Number.isFinite(position.latitudeDeg) || typeof position.retrograde !== 'boolean') return false;
+      if (!expected.has(position.body) || seen.has(position.body) || !isLongitudeValid(position.longitudeDeg) || !Number.isFinite(position.latitudeDeg) || (position.retrograde !== null && typeof position.retrograde !== 'boolean')) return false;
       seen.add(position.body);
     }
     if (seen.size !== expected.size) return false;
