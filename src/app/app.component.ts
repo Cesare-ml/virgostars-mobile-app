@@ -4,6 +4,7 @@ import {
   CurrentSkyLocationError,
   getCurrentSkyLocation
 } from './current-sky/native-current-sky';
+import { parseSkyChart } from './current-sky/current-sky.models';
 import type {
   CurrentSkyRequest,
   CurrentSkyResponse,
@@ -131,7 +132,12 @@ export class AppComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // A computed payload is not a visible chart until the shared renderer is wired.
+      // Reject incomplete, non-finite or fabricated-looking chart contracts.
+      if (parseSkyChart(response.chart) === null) {
+        this.state.set('failed');
+        return;
+      }
+      // A validated payload is not a visible chart until the renderer is wired.
       this.state.set('renderer-unavailable');
     } catch (error: unknown) {
       if (this.destroyed || generation !== this.refreshGeneration) return;
