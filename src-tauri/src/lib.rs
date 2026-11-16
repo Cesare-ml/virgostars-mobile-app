@@ -45,7 +45,7 @@ struct CurrentSkyPosition {
     body: SkyBody,
     longitude_deg: f64,
     latitude_deg: f64,
-    retrograde: bool,
+    retrograde: Option<bool>,
 }
 
 #[derive(Serialize)]
