@@ -10,60 +10,73 @@
   </header>
 
   <main id="main-content">
-    @if (tab() === 'home') {
-      <section class="hero">
-        <span class="eyebrow">{{ t('status') }}</span>
-        <div class="hero-star" aria-hidden="true">✧</div>
-        <h1>{{ t('welcome') }}</h1>
-        <p>{{ t('intro') }}</p>
-        <button class="primary" type="button" (click)="navigate('chart')">{{ t('explore') }} <span aria-hidden="true">→</span></button>
+    <section class="section-head">
+      <span class="eyebrow">{{ t('eyebrow') }}</span>
+      <div class="heading-row">
+        <div><h1>{{ t('title') }}</h1><p>{{ t('subtitle') }}</p></div>
+        <button class="refresh-button" type="button" (click)="refreshSky()" [disabled]="refreshing()" [attr.aria-label]="t('refresh')">
+          <span [class.spinning]="refreshing()" aria-hidden="true">↻</span>
+        </button>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <section class="state-card" role="status"><span class="loader" aria-hidden="true"></span><p>{{ t('loading') }}</p></section>
+    } @else if (error()) {
+      <section class="state-card error-card" role="alert">
+        <span class="state-symbol" aria-hidden="true">⚠</span>
+        <p>{{ error() }}</p>
+        <button class="primary" type="button" (click)="refreshSky()">{{ t('retry') }}</button>
       </section>
-      <section class="info-card" aria-labelledby="offline-title">
-        <div class="info-symbol" aria-hidden="true">◷</div>
-        <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
+    } @else if (chart(); as sky) {
+      <section class="chart-meta">
+        <span class="live-dot"></span><span>{{ t('updated') }} {{ formattedDate() }}</span>
       </section>
-    } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
-      <section class="chart-card" [attr.aria-label]="t('demoWarning')">
-        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
-          <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
-          <circle cx="160" cy="160" r="107" fill="none" stroke="#9b92b9" stroke-width="1.5"/>
-          <circle cx="160" cy="160" r="55" fill="none" stroke="#cdb17f" stroke-width="1" opacity=".8"/>
-          <path d="M160 15V305M15 160H305M57.5 57.5L262.5 262.5M262.5 57.5L57.5 262.5" stroke="#8c829f" stroke-width="1" opacity=".5"/>
-          <path d="M160 53L174 145L267 160L174 175L160 267L146 175L53 160L146 145Z" fill="none" stroke="#e6cb91" stroke-width="2"/>
-          <circle cx="160" cy="160" r="8" fill="#edcc89"/>
+      <section class="chart-card" [attr.aria-label]="t('zodiac')">
+        <svg class="chart-wheel" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('zodiac')">
+          <circle cx="160" cy="160" r="145" class="wheel-outer"/>
+          <circle cx="160" cy="160" r="122" class="wheel-mid"/>
+          <circle cx="160" cy="160" r="91" class="wheel-inner"/>
+          @for (sign of zodiacSigns; track sign; let i = $index) {
+            <line x1="160" y1="15" x2="160" y2="38" class="zodiac-divider" [attr.transform]="'rotate(' + (i * 30) + ' 160 160)'"/>
+            <text [attr.x]="signX(i)" [attr.y]="signY(i)" class="zodiac-glyph">{{ sign }}</text>
+          }
+          @for (position of sky.positions; track position.body) {
+            <g>
+              <circle [attr.cx]="planetX(position)" [attr.cy]="planetY(position)" r="8" class="planet-dot"/>
+              <text [attr.x]="planetX(position)" [attr.y]="planetY(position) + 3.5" class="planet-glyph">{{ position.symbol }}</text>
+            </g>
+          }
+          <circle cx="160" cy="160" r="4" class="wheel-center"/>
+          <text x="160" y="153" class="center-word">VIRGO</text>
+          <text x="160" y="171" class="center-subword">STARS</text>
         </svg>
       </section>
-      <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
-    } @else if (tab() === 'archive') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
-    } @else {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
-      <div class="settings-card">
-        <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
-        <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
-        <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
-      </div>
-      <p class="disclaimer">{{ t('about') }}</p>
+
+      <section class="positions-section" aria-labelledby="positions-title">
+        <div class="positions-heading"><h2 id="positions-title">{{ t('skyPositions') }}</h2><span>{{ t('zodiac') }}</span></div>
+        <div class="positions-grid">
+          @for (position of sky.positions; track position.body) {
+            <article class="position-card">
+              <span class="body-symbol" aria-hidden="true">{{ position.symbol }}</span>
+              <div class="position-copy">
+                <strong>{{ bodyName(position.body) }}</strong>
+                <span>{{ degreeLabel(position.signDegree) }} {{ signName(position.signIndex) }}</span>
+              </div>
+              @if (position.retrograde) { <span class="retrograde" [attr.aria-label]="t('retrograde')">℞</span> }
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="provenance-card">
+        <span class="eyebrow">{{ t('disclaimer') }}</span>
+        <p><strong>{{ t('source') }}:</strong> {{ sky.source }}</p>
+        <p>{{ sky.method }}</p>
+        <p>{{ t('limitations') }}</p>
+        <small>{{ t('notPersonal') }}</small>
+      </section>
     }
   </main>
-
-  <footer class="attribution"><span>Powered by VirgoStars</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
-
-  <nav class="bottom-nav" aria-label="Navigation">
-    @for (item of navTabs; track item) {
-      <button type="button" (click)="navigate(item)" [class.active]="tab() === item" [attr.aria-current]="tab() === item ? 'page' : null">
-        <span class="nav-glyph" aria-hidden="true">
-          @switch (item) {
-            @case ('home') { ⌂ }
-            @case ('chart') { ✧ }
-            @case ('archive') { ▤ }
-            @case ('settings') { ⚙ }
-          }
-        </span>
-        <span>{{ t(item) }}</span>
-      </button>
-    }
-  </nav>
+  <footer class="attribution"><span>{{ t('footer') }}</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
 </div>
