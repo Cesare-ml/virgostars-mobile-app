@@ -2,30 +2,29 @@
 
 Milestones represent intended work, not completed functionality.
 
-Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
-
-## M0 — Bootstrap (this repository state)
+## M0 — Android live-sky MVP
 - [x] Android-first Tauri 2 + Angular 20 + Rust source layout
-- [x] Mobile-first responsive navigation, Italian/English, attribution notice
-- [x] Non-sensitive read-only native `runtime_info` contract
-- [x] Explicit synthetic/illustrative state (no fake natal calculations)
-- [x] Minimal security configuration and source contract tests
-- [ ] Dependency lockfile and independently verified `npm run check` build
-- [ ] Android toolchain initialized, physical/emulator smoke test
+- [x] Direct launch into a single live current-sky chart
+- [x] Real local geocentric tropical longitudes for Sun, Moon and eight planets using temporary MIT Astronomy Engine provider
+- [x] Responsive zodiac wheel, positions list, IT/EN UI and automatic refresh
+- [x] Provider-neutral DTO so the temporary engine can be replaced
+- [x] No fake positions, account collection, user birth data or network calls
+- [ ] Genuine dependency lockfile and independently verified npm ci + npm run check
+- [ ] Android SDK build and physical/emulator smoke test
+- [ ] Compare reference vectors against approved ephemeris output
 
-## M1 — Android demo with legitimate computed charts
-- [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
-- [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
-- [ ] Use only permitted synthetic/sample assets and accurately report method limits
-- [ ] Low-memory, dark-mode, portrait/landscape device tests
+## M1 — Canonical VirgoStars calculation integration
+- [ ] Replace temporary Astronomy Engine with validated VirgoStars-Ephemeris Rust adapter when stable interfaces and numerical tests are ready
+- [ ] Integrate astrological-functions and astrological-charts using versioned shared DTOs
+- [ ] Add a just-in-time foreground location flow for Ascendant, Midheaven and house cusps
+- [ ] Validate house system, geographic precision and timezone behavior
+- [ ] Low-memory, dark-mode, portrait/landscape and WebView context restoration tests
 
 ## M2 — Local-first private archive
 - [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
 - [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
 - [ ] Verified offline unlock policy and explicit revocation limitations
 - [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization
-- [ ] Tests for account isolation, crash recovery, DST and exact time/location preservation
 
 ## M3 — Android beta and release gate
 - [ ] Security, accessibility, performance and Play Store/data-safety review
@@ -34,6 +33,5 @@ Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astro
 
 ## M4 — iOS adaptation
 - [ ] Generate iOS native target on macOS with Xcode
-- [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
-- [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
-- [ ] Signed iOS beta/release after explicit owner approval
+- [ ] Validate WKWebView rendering, gestures, secure keychain and background restrictions
+- [ ] Review iOS-specific privacy entitlements and distribution signing
