@@ -52,7 +52,13 @@ export class AppComponent implements OnInit, OnDestroy {
     return bodies.map((body, index) => {
       const angle = (body.longitude - 90) * Math.PI / 180;
       const previous = bodies[index - 1];
-      const nearPrevious = previous !== undefined && body.longitude - previous.longitude < 11;
+      const gapFromPrevious = previous === undefined
+        ? Number.POSITIVE_INFINITY
+        : body.longitude - previous.longitude;
+      const wrapGap = index === 0 && bodies.length > 1
+        ? body.longitude + 360 - bodies[bodies.length - 1].longitude
+        : Number.POSITIVE_INFINITY;
+      const nearPrevious = Math.min(gapFromPrevious, wrapGap) < 11;
       const radius = nearPrevious ? (index % 2 === 0 ? 84 : 110) : 97;
       return { ...body, x: 160 + Math.cos(angle) * radius, y: 160 + Math.sin(angle) * radius };
     });
