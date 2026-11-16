@@ -1,0 +1,10 @@
+# Offline place catalog
+
+The local search uses a modified extract of [GeoNames cities5000](https://download.geonames.org/export/dump/), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Attribution appears next to the search in the app. The source is the gazetteer, not the separate postal-code dataset. Source snapshot downloaded 2026-11-16; archive SHA-256 `8d6db49b852f8432aaa76c2ab8381085f67ef098a943a856827fd9daf9e63fb9`; generated JSON SHA-256 `cc1ed9715545a6cfc462ed7fafbea12c3d728010f9340da10cefb89753004aea`.
+
+The derivative contains 70,042 entries, filters out rows without an IANA time zone, keeps only selected fields and up to 150 alternative names of at most 50 characters, and orders entries by population. Region is the GeoNames admin1 code, not a translated region name. A city name search is performed entirely locally; no birth data or search query is sent to a service. `cities5000` does not include all settlements and results are not an authority on historical time zones or political boundaries. The selected coordinates and IANA time zone are editable and should be verified for the event date. Manual entry remains available.
+
+For reproducibility, obtain the exact archive with the hash above and run `python scripts/build-geonames.py input.zip output.json`. The script refuses a different source hash and refuses to overwrite an existing file. The upstream data changes over time, so updating it requires a new source hash, review and attribution update.
+## Local emulator verification — 2026-11-16
+
+On the dedicated Android 36.1 x86_64 emulator, with Wi-Fi and mobile data disabled, searching `Roma` selected GeoNames Rome (IT), filled `41.89193`, `12.51133` and `Europe/Rome`, and calculated the fictional 2000-01-01 12:00 civil input as 11:00 UTC. The Swiss/Moshier result and synthetic chart wheel appeared. This verifies one offline end-to-end case, not full catalog accuracy or a physical device.

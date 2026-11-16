@@ -7,7 +7,11 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 - **Android:** first supported development target.
 - **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
 - **Offline-first goal:** native encrypted local profiles, charts and conflict-safe synchronization are *planned*, not yet implemented.
-- **Present functionality:** responsive Italian/English mobile shell, accessible navigation, explicitly illustrative chart placeholder and a read-only native runtime probe. **No real ephemeris, login, personal-data persistence or sync yet.**
+- **Present functionality:** responsive Italian/English shell and experimental native calculation behind an optional local-use Swiss Ephemeris feature. The default build has no provider. The calculated chart is displayed with the shared renderer and open-font glyphs; remaining graphics use locally generated synthetic placeholders; login, persistence and sync are not integrated.
+
+[Experimental local Swiss provider and limitations](docs/SWISS_LOCAL_PROTOTYPE.md). [Offline place catalog and attribution](docs/GEONAMES_CATALOG.md). [Chart symbols and font licenses](docs/CHART_SYMBOLS.md).
+
+On the chart, use the zoom controls to enlarge the wheel up to 200%, then scroll in either direction to explore it. Fit returns to the full wheel; planet selection remains available while zoomed.
 
 ## Idee e sviluppo delle funzioni native
 
@@ -29,6 +33,8 @@ npm run android:dev
 `npm run android:init` generates icons from the repository's original SVG and initializes the Android project (generated native project is ignored). Set `ANDROID_HOME`, `NDK_HOME` and `JAVA_HOME` as required by your toolchain. Launch an Android emulator or connect a device with USB debugging. To attempt an unsigned/local build later, use `npm run android:build`; Google Play publication requires separate signing and release work. No publication is automated.
 
 For Angular-only browser development, run `npm run dev`. The native probe displays a browser-safe fallback when Tauri is unavailable.
+
+For Android Studio Run on Windows ARM64, use the [Tauri-backed launch instructions](docs/ANDROID.md#android-studio-run--windows-arm64-local-swiss-prototype); opening the generated project alone does not start the required Tauri process.
 
 ## iOS later
 
@@ -58,4 +64,4 @@ Do not copy production VirgoStars web/server code, private birth records, privat
 - [Agent/contributor rules](AGENTS.md) · [License](LICENSE) · [Attribution](NOTICE).
 - The original source is offered under **CPAL-1.0** with the **Powered by VirgoStars** GUI attribution requirement. Third-party dependencies/assets retain their own licenses.
 - **No GitHub Actions**, deployments, store publication, signing material or privileged backend secrets.
-- `npm run check` is a static contract check + Angular compilation; an actual Android build needs a configured Android toolchain and has **not been verified by this bootstrap**.
+- `npm run check` runs contract tests, Angular compilation and chart-symbol verification. Android builds require a configured Android toolchain; the local Swiss-enabled x86_64 debug build has been exercised on an emulator, not validated for release or on a physical device.

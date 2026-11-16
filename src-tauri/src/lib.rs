@@ -1,5 +1,8 @@
 //! Minimal read-only Tauri runtime bridge. No accounts, birth data or network operations.
 use serde::Serialize;
+mod chart_calculation;
+#[cfg(feature = "swiss-ephemeris")]
+mod swiss_provider;
 
 #[derive(Serialize)]
 struct RuntimeInfo {
@@ -26,7 +29,7 @@ fn runtime_info() -> RuntimeInfo {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![runtime_info])
+        .invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
 }

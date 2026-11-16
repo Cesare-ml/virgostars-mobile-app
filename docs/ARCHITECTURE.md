@@ -24,7 +24,7 @@ Rust mobile host
 VirgoStars server: independent authenticated/versioned API, not a direct DB link
 ```
 
-The bootstrap exposes only `runtime_info` with `schema_version: 1`. The static geometric illustration is **not** a real astrological chart. There is no renderer, ephemeris, OAuth, storage or sync integration.
+The host exposes `runtime_info` and `calculate_chart`. The default build returns provider unavailable; an optional local-use Swiss provider calculates apparent geocentric positions and houses. The UI passes calculated positions through the Desktop-derived adapter using astrological-functions into astrological-charts. Manifest-verified synthetic assets are staged beneath open-font glyph textures for zodiac signs, houses and calculated bodies; proprietary artwork is not bundled. OAuth, storage and sync remain unintegrated.
 
 ## Reuse policy
 

@@ -24,3 +24,10 @@ src-tauri/.local/
 .DS_Store
 .idea/
 .vscode/
+
+# Machine-specific Android linker configuration
+src-tauri/.cargo/config.toml
+.cargo/config.toml
+
+# Locally generated synthetic chart assets
+.local/

@@ -23,18 +23,41 @@
         <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
       </section>
     } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ t('chartIntro') }}</p></section>
-      <section class="chart-card" [attr.aria-label]="t('demoWarning')">
-        <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('demoWarning')">
-          <circle cx="160" cy="160" r="145" fill="none" stroke="#cdb17f" stroke-width="2"/>
-          <circle cx="160" cy="160" r="107" fill="none" stroke="#9b92b9" stroke-width="1.5"/>
-          <circle cx="160" cy="160" r="55" fill="none" stroke="#cdb17f" stroke-width="1" opacity=".8"/>
-          <path d="M160 15V305M15 160H305M57.5 57.5L262.5 262.5M262.5 57.5L57.5 262.5" stroke="#8c829f" stroke-width="1" opacity=".5"/>
-          <path d="M160 53L174 145L267 160L174 175L160 267L146 175L53 160L146 145Z" fill="none" stroke="#e6cb91" stroke-width="2"/>
-          <circle cx="160" cy="160" r="8" fill="#edcc89"/>
-        </svg>
-      </section>
-      <p class="disclaimer" role="status">{{ t('demoWarning') }}</p>
+      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ locale() === 'it' ? 'Calcolo sperimentale locale: inserisci data, ora, fuso IANA e coordinate.' : 'Experimental local calculation: enter date, time, IANA time zone and coordinates.' }}</p></section>
+      <form class="settings-card chart-form" (submit)="$event.preventDefault(); calculate()">
+        <label>{{ locale() === 'it' ? 'Cerca luogo (facoltativo)' : 'Search place (optional)' }} <input type="search" autocomplete="off" maxlength="80" [value]="placeQuery()" (input)="searchPlace($any($event.target).value)"></label>
+        <p class="catalog-credit">{{ locale() === 'it' ? 'Il catalogo non copre tutte le località: verifica coordinate e fuso anche per date storiche.' : 'The catalog does not cover every locality: check coordinates and time zone, especially for historical dates.' }}</p>
+        @if (placeState() === 'loading') { <p role="status">{{ locale() === 'it' ? 'Ricerca in corso…' : 'Searching…' }}</p> }
+        @if (placeState() === 'ready' && !placeResults().length) { <p role="status">{{ locale() === 'it' ? 'Nessun luogo trovato. Puoi inserire coordinate e fuso manualmente.' : 'No places found. You can enter coordinates and time zone manually.' }}</p> }
+        @if (placeError()) { <p role="alert">{{ locale() === 'it' ? 'Catalogo luoghi non disponibile: usa le coordinate manuali.' : 'Place catalog unavailable: enter coordinates manually.' }}</p> }
+        @if (placeResults().length) { <ul class="place-results">@for (place of placeResults(); track place.id) { <li><button type="button" (click)="choosePlace(place)">{{ place.name }} · {{ place.region }} · {{ place.country }} <small>{{ place.zone }}</small></button></li> }</ul> }
+        <label>{{ locale() === 'it' ? 'Data e ora locali' : 'Local date and time' }} <input type="datetime-local" [value]="utc" (input)="utc = $any($event.target).value" required></label>
+        <label>{{ locale() === 'it' ? 'Fuso orario IANA (es. Europe/Rome)' : 'IANA time zone (e.g. Europe/Rome)' }} <input type="text" [value]="timezone" (input)="timezone = $any($event.target).value" required></label>
+        <label>{{ locale() === 'it' ? 'Ora ripetuta al cambio DST' : 'Repeated time at DST transition' }} <select [value]="occurrence" (change)="occurrence = $any($event.target).value"><option value="">{{ locale() === 'it' ? 'Chiedi se ambigua' : 'Require a choice' }}</option><option value="earlier">{{ locale() === 'it' ? 'Prima occorrenza' : 'Earlier occurrence' }}</option><option value="later">{{ locale() === 'it' ? 'Seconda occorrenza' : 'Later occurrence' }}</option></select></label>
+        @if (timeError(); as error) { <p class="disclaimer" role="alert">{{ error }} · {{ locale() === 'it' ? 'Controlla il fuso e il cambio ora; per un’ora ripetuta scegli prima o seconda occorrenza.' : 'Check the zone and clock change; choose earlier or later for a repeated time.' }}</p> }
+        <label>{{ locale() === 'it' ? 'Latitudine (nord positiva)' : 'Latitude (north positive)' }} <input type="number" step="any" min="-90" max="90" [value]="latitude" (input)="latitude = $any($event.target).value" required></label>
+        <label>{{ locale() === 'it' ? 'Longitudine (est positiva)' : 'Longitude (east positive)' }} <input type="number" step="any" min="-180" max="180" [value]="longitude" (input)="longitude = $any($event.target).value" required></label>
+        <button class="primary" type="submit" [disabled]="calculating()">{{ calculating() ? '…' : (locale() === 'it' ? 'Calcola' : 'Calculate') }}</button>
+      </form>
+      @if (chartResult(); as result) {
+        @if (result.kind === 'ready') {
+          <vs-chart-wheel [chart]="result.chart" [utcIso]="chartUtc()" [locale]="locale()" [activeHouse]="selectedHouse()" [activePlanet]="selectedPlanet()" (houseChange)="selectedHouse.set($event)" (planetChange)="selectedPlanet.set($event)" />
+          <section class="settings-card chart-results" aria-live="polite"><h2>{{ locale() === 'it' ? 'Posizioni geocentriche apparenti' : 'Apparent geocentric positions' }}</h2>
+            <p>UTC: {{ chartUtc() }}</p>
+            <p>{{ result.provider.id }} {{ result.provider.engineVersion }} · {{ locale() === 'it' ? 'Risultati sperimentali' : 'Experimental results' }}</p>
+            <ul>@for (body of inspectorRows(); track body.id) { <li><button type="button" class="planet-select" [attr.aria-pressed]="selectedPlanet() === body.id" (click)="selectPlanet(body.id)">{{ body.id }}</button><span>{{ body.degree }} {{ zodiacNames[locale()][body.signIndex] }} @if (body.retrograde) { ℞ }<br><small>{{ locale() === 'it' ? 'Casa' : 'House' }}: {{ body.house ?? '—' }} · {{ body.longitude.toFixed(4) }}° · {{ body.source }}</small></span></li> }</ul>
+            <p>{{ locale() === 'it' ? 'Non disponibili' : 'Unavailable' }}: {{ result.chart.unavailableBodies.join(', ') || '—' }}</p>
+            @for (house of result.chart.houses; track house.id) {
+              <details><summary>{{ house.id }} · ASC {{ house.ascendantDeg.toFixed(4) }}° · MC {{ house.mcDeg.toFixed(4) }}°</summary>
+                <ol>@for (cusp of house.cuspsDeg; track $index) { <li>{{ cusp.toFixed(4) }}°</li> }</ol>
+              </details>
+            }
+            <p>{{ locale() === 'it' ? 'Case non disponibili' : 'Unavailable houses' }}: {{ result.chart.unavailableHouseSystems.join(', ') || '—' }}</p>
+          </section>
+        } @else { <p class="disclaimer" role="alert">{{ result.kind }} · {{ locale() === 'it' ? 'Controlla i dati e usa una build nativa con provider abilitato.' : 'Check the input and use a native build with an enabled provider.' }}</p> }
+      }
+      <p class="disclaimer">{{ t('demoWarning') }}</p>
+      <p class="catalog-credit">Località: <a href="https://www.geonames.org/" target="_blank" rel="noreferrer noopener">GeoNames</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer noopener">CC BY 4.0</a> · cities5000, modificato.</p>
     } @else if (tab() === 'archive') {
       <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
       <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
@@ -43,6 +66,7 @@
       <div class="settings-card">
         <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
         <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
+        <p class="catalog-credit">Noto Sans Symbols / Symbols 2 · <a href="https://openfontlicense.org/" target="_blank" rel="noreferrer noopener">SIL Open Font License 1.1</a></p>
         <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
       </div>
       <p class="disclaimer">{{ t('about') }}</p>

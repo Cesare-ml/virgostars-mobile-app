@@ -1,6 +1,6 @@
 # Security and privacy
 
-**Current version has no user login, personal-data input, account cache, remote API calls or synchronization.** The runtime bridge returns only a public platform label and schema revision. No production service credentials are needed. All presented chart geometry is illustrative.
+**Current version has no login, account cache, remote API calls, personal-data persistence or synchronization.** The experimental form accepts local civil time, an IANA zone and coordinates, passes a resolved UTC instant and coordinates to a local native command, and does not store or log them. Place searches use a bundled GeoNames catalog and do not call a remote service. The default build has no provider; Swiss is optional and local-only.
 
 Before implementing identity or local storage:
 1. Use system-browser OAuth 2 authorization code with PKCE, not an embedded login form.

@@ -21,9 +21,19 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
+                "output": "assets",
                 "glob": "**/*",
-                "input": "src/assets",
-                "output": "assets"
+                "input": ".local/frontend/assets"
+              },
+              {
+                "output": "assets",
+                "glob": "**/*",
+                "input": "src/assets"
+              },
+              {
+                "output": "assets",
+                "glob": "**/*",
+                "input": "src/chart-symbols"
               }
             ],
             "styles": [
