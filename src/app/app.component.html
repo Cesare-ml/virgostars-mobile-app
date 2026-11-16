@@ -14,7 +14,7 @@
       <div class="timestamp"><span class="live-dot" aria-hidden="true"></span>{{ t('updated') }} · {{ formattedInstant() }}</div>
     </section>
     @if (failed()) {
-      <p class="error" role="alert">{{ t('error') }}</p>
+      <div class="error" role="alert"><p>{{ t('error') }}</p><button class="lang" type="button" (click)="refresh()">{{ t('retry') }}</button></div>
     } @else if (sky(); as currentSky) {
       <section class="chart-card" aria-label="Live tropical zodiac chart">
         <svg class="chart-illustration" viewBox="0 0 320 320" role="img" [attr.aria-label]="t('geocentric')">
