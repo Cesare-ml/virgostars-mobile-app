@@ -61,3 +61,11 @@ test('foreground return refreshes live sky and error offers a retry', () => {
   assert.match(ui, /\(click\)="refresh\(\)"/);
   assert.match(ui, /t\('retry'\)/);
 });
+
+test('zodiac dividers remain in the outer annulus and conjunctions wrap at 360 degrees', () => {
+  const ui = text('src/app/app.component.html');
+  const component = text('src/app/app.component.ts');
+  assert.match(ui, /x1="160" y1="9" x2="160" y2="41" class="zodiac-divider"/);
+  assert.match(component, /body\.longitude \+ 360 - bodies\[bodies\.length - 1\]\.longitude/);
+  assert.match(component, /Math\.min\(gapFromPrevious, wrapGap\) < 11/);
+});
