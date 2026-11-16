@@ -22,17 +22,24 @@ test('minimum native permission surface', () => {
   assert.doesNotMatch(config.app.security.csp, /unsafe-eval/);
 });
 
-test('native command only reports public runtime information', () => {
-  const rust = text('src-tauri/src/lib.rs');
-  assert.match(rust, /fn runtime_info\(\)/);
-  assert.match(rust, /schema_version: 1/);
-  assert.doesNotMatch(rust, /reqwest|sqlx|http_client|password|secret|access_token/i);
+test('the home screen opens directly on the live chart', () => {
+  const ui = text('src/app/app.component.html');
+  const ts = text('src/app/app.component.ts');
+  assert.match(ui, /CIELO IN TEMPO REALE|LIVE SKY/);
+  assert.match(ui, /Powered by VirgoStars/);
+  assert.doesNotMatch(ui, /demoWarning|chart-illustration|bottom-nav/);
+  assert.match(ts, /calculateCurrentSky/);
+  assert.match(ts, /60_000/);
+  assert.ok(existsSync(new URL('../src/app/current-sky.mjs', import.meta.url)));
+  assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
+  assert.equal(pkg.dependencies['astronomy-engine'], '2.1.19');
+  assert.equal(pkg.private, true);
 });
 
-test('no fake astrology results or private data bundled', () => {
-  const ui = text('src/app/app.component.html');
-  assert.match(ui, /demoWarning/);
-  assert.match(ui, /Powered by VirgoStars/);
-  assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
-  assert.equal(pkg.private, true);
+test('no account, personal birth data or network feature is added to the MVP', () => {
+  const ts = text('src/app/app.component.ts');
+  const rust = text('src-tauri/src/lib.rs');
+  assert.doesNotMatch(ts, /localStorage|sessionStorage|fetch\(/);
+  assert.match(rust, /fn runtime_info\(\)/);
+  assert.doesNotMatch(rust, /reqwest|sqlx|password|secret|access_token/i);
 });
