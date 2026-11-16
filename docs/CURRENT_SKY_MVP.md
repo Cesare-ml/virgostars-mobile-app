@@ -53,3 +53,27 @@ Then compare all body longitudes against an independent trusted source for multi
 ## Upstream migration
 
 The public `VirgoStars-Ephemeris` core currently describes itself as experimental. It has a classic DE441 file reader but lacks a complete UTC/TT/TDB pipeline and validated apparent ecliptic-of-date positions. Its present geometric J2000 state vectors do not satisfy the current-sky provider contract. Migration is gated on those features, reference vectors and parity tests; see [VirgoStars-Ephemeris](https://github.com/Cesare-ml/VirgoStars-Ephemeris) and [architecture](ARCHITECTURE.md).
+
+
+## Android release acceptance gate (not yet executed)
+
+The following checks are required before moving PR #19 out of draft. Passing static
+contract tests is **not** evidence that an APK was built or launched.
+
+1. Install Node.js matching `package.json#engines`, Rust, Android SDK/NDK,
+   Java and the Tauri Android prerequisites on a build workstation.
+2. Run `npm install` and commit the generated `package-lock.json` after
+   reviewing dependency resolution; then use `npm ci` for subsequent builds.
+3. Run `npm run check` (Node contract tests followed by Angular production build).
+4. Run `npm run android:init` once if Android scaffolding is absent, inspect the
+   generated files, and run `npm run android:build`.
+5. Install the resulting APK on a real Android device. Verify first launch,
+   a populated 12-sign wheel, ten planet rows, time progression, refresh after
+   returning from background, offline operation and no permission prompts.
+6. Compare all ten longitudes at a fixed UTC instant against an independent
+   ephemeris. Investigate coordinate-frame or lunar-model differences rather
+   than silently changing tolerance to make the test pass.
+
+**Current status:** source and contract tests are committed; the dependency
+installation, Angular build, native Android build and device smoke test remain
+unverified. The pull request intentionally stays in draft.
