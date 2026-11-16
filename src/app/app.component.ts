@@ -14,6 +14,7 @@ const messages = {
     failure: 'Non è stato possibile verificare il risultato. Nessun grafico verrà mostrato.',
     retry: 'Riprova', lastRequest: 'Istante richiesto', timezone: 'Fuso orario',
     coordinates: 'Coordinate', accuracy: 'Precisione GPS', calculated: 'Calcolato',
+    positions: 'Posizioni planetarie',
     rendererMissing: 'Calcolo ricevuto; integrazione del renderer condiviso ancora da completare.',
     attribution: 'Powered by VirgoStars'
   },
@@ -29,6 +30,7 @@ const messages = {
     failure: 'The result could not be verified. No chart will be displayed.',
     retry: 'Retry', lastRequest: 'Requested instant', timezone: 'Time zone',
     coordinates: 'Coordinates', accuracy: 'GPS accuracy', calculated: 'Calculated',
+    positions: 'Planetary positions',
     rendererMissing: 'Calculation received; shared chart renderer integration is still pending.',
     attribution: 'Powered by VirgoStars'
   }
