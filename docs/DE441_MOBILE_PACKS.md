@@ -3,6 +3,7 @@
 Status: **Adopted product profile / implementation pending**, 2026-11-18.
 Canonical numerical engine: [VirgoStars-Ephemeris](https://github.com/Cesare-ml/VirgoStars-Ephemeris) in Rust.
 Exporter work item: [VirgoStars-Ephemeris #599](https://github.com/Cesare-ml/VirgoStars-Ephemeris/issues/599).
+Mobile settings work item: [virgostars-mobile-app #32](https://github.com/Cesare-ml/virgostars-mobile-app/issues/32).
 
 ## Why this profile
 
