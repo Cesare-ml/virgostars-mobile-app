@@ -22,7 +22,7 @@ Prototype: local Swiss provider, Functions adapter and Charts renderer with open
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
 - [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
 - [ ] Implement the [selected DE441 mobile pack profile](DE441_MOBILE_PACKS.md): 1600–2100 default, 0–1599 in eight 200-year historical packs and 2101–2300 in one future pack. This requires the separately validated Rust exporter (core issue #599), provenance clearance, source/pack parity tests and Android ARM64 memory benchmarks; no JPL kernel is currently bundled.
-- [ ] Implement Settings → Offline ephemerides: actual per-pack storage, explicit download/remove with verification, progress/retry, offline coverage and no silent fallback; see [DE441 pack profile](DE441_MOBILE_PACKS.md).
+- [ ] Implement [Settings → Offline ephemerides (#32)](https://github.com/Cesare-ml/virgostars-mobile-app/issues/32): actual per-pack storage, explicit download/remove with verification, progress/retry, offline coverage and no silent fallback; see [DE441 pack profile](DE441_MOBILE_PACKS.md).
 - [ ] Use only permitted synthetic/sample assets and accurately report method limits
 - [ ] Low-memory, dark-mode, portrait/landscape device tests
 
