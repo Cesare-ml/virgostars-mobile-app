@@ -33,6 +33,6 @@ test('no fake astrology results or private data bundled', () => {
   const ui = text('src/app/app.component.html');
   assert.match(ui, /demoWarning/);
   assert.match(ui, /Powered by VirgoStars/);
-  assert.ok(existsSync(new URL('../src/assets/virgostars-icon.svg', import.meta.url)));
+  assert.ok(existsSync(new URL('../src/assets/virgostars-icon.png', import.meta.url)));
   assert.equal(pkg.private, true);
 });
