@@ -21,6 +21,7 @@ Prototype: local Swiss provider, Functions adapter and Charts renderer with open
   - One Android emulator touch on the Sun glyph selected/deselected it; list selection persisted across navigation, house redraw and simulated WebGL recovery. Full touch and accessibility coverage remains open.
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
 - [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
+- [ ] Implement the [selected DE441 mobile pack profile](DE441_MOBILE_PACKS.md): 1800–2300 default, 0–1800 in nine on-demand historical packs. This requires the separately validated Rust exporter (core issue #599), provenance clearance, source/pack parity tests and Android ARM64 memory benchmarks; no JPL kernel is currently bundled.
 - [ ] Use only permitted synthetic/sample assets and accurately report method limits
 - [ ] Low-memory, dark-mode, portrait/landscape device tests
 
