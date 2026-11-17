@@ -3,7 +3,7 @@
 .masthead, .brand, .setting-row { display: flex; align-items: center; justify-content: space-between; }
 .masthead { gap: 16px; margin-bottom: 31px; }
 .brand { justify-content: flex-start; gap: 10px; }
-.brand-mark { display: grid; place-items: center; width: 45px; height: 45px; border-radius: 50%; border: 1px solid #ceae76; color: #e8c486; font-size: 28px; }
+.brand-mark { display: block; width: 45px; height: 45px; object-fit: contain; }
 .brand-text { font-weight: 750; letter-spacing: -.5px; font-size: 20px; line-height: 1; }
 .brand-text span { font-weight: 400; color: #d8bb8d; }
 .brand-text small { display: block; letter-spacing: 3px; font-size: 9px; color: #a8aab9; margin-top: 4px; }
