@@ -43,6 +43,7 @@ pub fn run() {
             de441_packs::ephemeris_pack_cancel,
             de441_packs::ephemeris_pack_remove,
             de441_probe::de441_probe,
+            de441_probe::de441_probe_civil,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");

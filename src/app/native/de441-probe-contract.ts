@@ -16,7 +16,27 @@ export type De441ProbeRequest = Readonly<{
 
 export type De441ProbeStatus =
   | 'ok' | 'provider_unavailable' | 'storage_unavailable' | 'invalid_request'
-  | 'outside_coverage' | 'missing_pack' | 'invalid_pack' | 'reader_failed';
+  | 'outside_coverage' | 'missing_pack' | 'invalid_pack' | 'reader_failed'
+  | 'unsupported_utc';
+
+export type De441CivilProbeRequest = Readonly<{
+  protocolVersion: 1;
+  timestamp: string;
+  target: De441Body;
+  center: De441Body;
+}>;
+
+export type De441CivilTimeConversion = Readonly<{
+  jdTdb: number;
+  model: 'IERS_LEAP_SECONDS_USNO_TRUNCATED_TDB_TT';
+  accuracy: 'approximate';
+  utcCoverage: '1972-01-01/2027-06-27';
+  source: 'virgostars_ephemeris_core';
+}>;
+
+export type De441CivilProbeResponse = De441ProbeResponse & Readonly<{
+  conversion: De441CivilTimeConversion | null;
+}>;
 
 export type De441ProbeVector = Readonly<{
   positionKm: readonly [number, number, number];
@@ -46,6 +66,7 @@ const bodies = new Set<De441Body>([
 const statuses = new Set<De441ProbeStatus>([
   'ok', 'provider_unavailable', 'storage_unavailable', 'invalid_request',
   'outside_coverage', 'missing_pack', 'invalid_pack', 'reader_failed',
+  'unsupported_utc',
 ]);
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -64,6 +85,16 @@ export function createDe441ProbeRequest(jdTdb: number, target: De441Body, center
     throw new Error('Invalid geometric DE441 probe request');
   }
   return Object.freeze({protocolVersion: DE441_PROBE_PROTOCOL_VERSION, jdTdb, target, center});
+}
+
+/** Syntax validation only. Calendar, leap seconds and UTC→TDB live in Rust. */
+export function createDe441CivilProbeRequest(timestamp: string, target: De441Body, center: De441Body): De441CivilProbeRequest {
+  if (typeof timestamp !== 'string' || timestamp.length > 64 ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(timestamp) ||
+    !bodies.has(target) || !bodies.has(center) || target === center) {
+    throw new Error('Invalid civil DE441 probe request');
+  }
+  return Object.freeze({protocolVersion: DE441_PROBE_PROTOCOL_VERSION, timestamp, target, center});
 }
 
 /** Fail closed on mismatched units, missing provenance or non-finite values. */
@@ -102,6 +133,38 @@ export function decodeDe441ProbeResponse(raw: unknown): De441ProbeResponse {
       velocityKmPerDay: Object.freeze([...result.velocityKmPerDay]) as unknown as readonly [number, number, number],
       frame: 'ICRF/J2000', quantity: 'geometric', epochScale: 'TDB',
       lengthUnit: 'km', speedUnit: 'km/day', source: 'de441_classic',
+    }),
+  });
+}
+
+/** Preserve the core's explicit UTC-range/accuracy guard in the response. */
+export function decodeDe441CivilProbeResponse(raw: unknown): De441CivilProbeResponse {
+  const probe = decodeDe441ProbeResponse(raw);
+  const payload = record(raw);
+  const conversion = payload && record(payload.conversion);
+  if (payload?.conversion === null) {
+    if (['ok', 'missing_pack', 'invalid_pack', 'outside_coverage', 'reader_failed'].includes(probe.status)) {
+      throw new Error('DE441 civil probe is missing time conversion provenance');
+    }
+    return Object.freeze({...probe, conversion: null});
+  }
+  if (!conversion || typeof conversion.jdTdb !== 'number' || !Number.isFinite(conversion.jdTdb) ||
+    conversion.model !== 'IERS_LEAP_SECONDS_USNO_TRUNCATED_TDB_TT' ||
+    conversion.accuracy !== 'approximate' ||
+    conversion.utcCoverage !== '1972-01-01/2027-06-27' ||
+    conversion.source !== 'virgostars_ephemeris_core' ||
+    probe.status === 'unsupported_utc' || probe.status === 'provider_unavailable' ||
+    probe.status === 'invalid_request' || probe.status === 'storage_unavailable') {
+    throw new Error('Invalid DE441 civil time conversion provenance');
+  }
+  return Object.freeze({
+    ...probe,
+    conversion: Object.freeze({
+      jdTdb: conversion.jdTdb,
+      model: 'IERS_LEAP_SECONDS_USNO_TRUNCATED_TDB_TT',
+      accuracy: 'approximate',
+      utcCoverage: '1972-01-01/2027-06-27',
+      source: 'virgostars_ephemeris_core',
     }),
   });
 }

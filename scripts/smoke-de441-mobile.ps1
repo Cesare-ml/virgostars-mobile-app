@@ -1,5 +1,6 @@
 param(
   [string]$PacksDirectory = 'D:\VirgoStars-DE441-Mobile\packs',
+  [switch]$CheckNativeProbe,
   [switch]$BuildAndroid
 )
 
@@ -45,6 +46,19 @@ try {
   }
   & npm run check
   if ($LASTEXITCODE -ne 0) { throw 'npm run check non riuscito.' }
+  if ($CheckNativeProbe) {
+    Write-Host 'Controllo compilazione Rust del lettore DE441 e conversione civile (senza scaricare kernels)...' -ForegroundColor Cyan
+    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+      throw 'cargo non trovato: installa Rust 1.90+ per controllare il lettore DE441.'
+    }
+    Push-Location (Join-Path $repo 'src-tauri')
+    try {
+      & cargo check --locked --features de441-native-probe
+      if ($LASTEXITCODE -ne 0) { throw 'cargo check del lettore DE441 non riuscito.' }
+    } finally {
+      Pop-Location
+    }
+  }
   if ($BuildAndroid) {
     Write-Host 'Compilazione Android (richiede SDK/NDK/JDK/Rust configurati)...' -ForegroundColor Cyan
     if (-not (Test-Path 'src-tauri\gen\android')) {

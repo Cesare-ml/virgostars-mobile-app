@@ -24,6 +24,8 @@ Prototype: local Swiss provider, Functions adapter and Charts renderer with open
   - [x] Source/contract prototype: local DE441 pack inventory, chunked import, SHA-256 verification and removal in app-private storage
   - [x] Source/contract prototype: user cancellation between import chunks with native staging cleanup (Android QA still pending)
   - [x] Source/contract prototype: opt-in diagnostic IPC delegates geometric JD TDB / ICRF state reads to canonical VirgoStars-Ephemeris; default provider stays unchanged
+  - [x] Source/contract prototype: second feature-gated diagnostic accepts explicitly offset civil timestamps using core's existing approximate UTC→TDB model, refusing UTC outside 1972–2027
+  - [ ] Independent review of extended UTC/TAI/TT/TDB models and historical Delta-T beyond core's currently bounded modern timestamp conversion
   - [ ] Compile the opt-in diagnostic feature against the pinned upstream commit; validate vectors on device (user deferred local run)
   - [ ] Implement and independently validate UTC→TT→TDB, apparent geocentric ecliptic coordinates and chart-specific semantics before enabling DE441 in the natal renderer
   - [ ] Compile and device-test native pack import on Android; interrupted file picker/transfer/storage rollback
