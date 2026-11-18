@@ -19,3 +19,5 @@ No GitHub Actions, auto-publishing or cloud deployment are configured.
 ## Experimental DE441 local-pack storage
 
 The app can import an explicit user-selected local `.eph` slice through bounded IPC chunks. Only ten fixed IDs and filenames are recognized; app-private temporary files are length- and SHA-256-checked before atomic installation. No broad OS filesystem permission, arbitrary path parameter, remote URL or server call is introduced. Installed files may be verified and removed explicitly. Distribution rights and independent scientific validation remain pending, so automatic downloading and bundling of ephemeris data are disabled. See [DE441 local packs](DE441_LOCAL_PACKS.md).
+
+The feature-gated DE441 diagnostics use only the installed, hash-verified catalog files. The civil-time variant accepts a short, explicit-offset timestamp, sends it only to the existing Rust time converter, rejects unsupported UTC ranges and does not persist the timestamp. No network or chart-database integration is introduced. Neither diagnostic returns app-private file paths.

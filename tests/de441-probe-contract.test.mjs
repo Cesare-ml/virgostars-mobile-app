@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
+  createDe441CivilProbeRequest,
   createDe441ProbeRequest,
+  decodeDe441CivilProbeResponse,
   decodeDe441ProbeResponse,
 } from '../src/app/native/de441-probe-contract.ts';
 
@@ -62,6 +64,43 @@ test('feature-off and missing-pack states contain no astronomical results', () =
   assert.throws(() => decodeDe441ProbeResponse({...good, result: null}));
 });
 
+test('civil adapter accepts an explicit timezone, never a device-local implicit timezone', () => {
+  assert.deepEqual(createDe441CivilProbeRequest('2026-11-18T12:30:00+01:00', 'sun', 'earth'), {
+    protocolVersion: 1, timestamp: '2026-11-18T12:30:00+01:00',
+    target: 'sun', center: 'earth',
+  });
+  assert.throws(() => createDe441CivilProbeRequest('2026-11-18T12:30:00', 'sun', 'earth'));
+  assert.throws(() => createDe441CivilProbeRequest('2026-11-18', 'sun', 'earth'));
+  assert.throws(() => createDe441CivilProbeRequest('2026-11-18T12:30:00Z', 'sun', 'sun'));
+  assert.throws(() => createDe441CivilProbeRequest('2026-11-18T12:30:00+01:00', 'invalid', 'earth'));
+});
+
+test('civil response identifies approximate TDB and closed historical UTC coverage', () => {
+  const conversion = {
+    jdTdb: 2461362.0,
+    model: 'IERS_LEAP_SECONDS_USNO_TRUNCATED_TDB_TT',
+    accuracy: 'approximate',
+    utcCoverage: '1972-01-01/2027-06-27',
+    source: 'virgostars_ephemeris_core',
+  };
+  const decoded = decodeDe441CivilProbeResponse({...good, conversion});
+  assert.equal(decoded.conversion.jdTdb, 2461362.0);
+  assert.equal(decoded.result.quantity, 'geometric');
+  for (const malformed of [
+    {...conversion, accuracy: 'high_precision'},
+    {...conversion, model: 'JavaScript_date'},
+    {...conversion, utcCoverage: '0000-01-01/2300-12-31'},
+    {...conversion, jdTdb: Infinity},
+  ]) {
+    assert.throws(() => decodeDe441CivilProbeResponse({...good, conversion: malformed}));
+  }
+  assert.deepEqual(decodeDe441CivilProbeResponse({
+    protocolVersion: 1, status: 'unsupported_utc', selectedPackId: null,
+    result: null, conversion: null,
+  }).status, 'unsupported_utc');
+  assert.throws(() => decodeDe441CivilProbeResponse({...good, conversion: null}));
+});
+
 test('Rust host uses the canonical DE441 reader behind opt-in feature, without chart wiring', () => {
   const rust = read('src-tauri/src/de441_probe.rs');
   const chart = read('src-tauri/src/chart_calculation.rs');
@@ -74,6 +113,9 @@ test('Rust host uses the canonical DE441 reader behind opt-in feature, without c
   assert.match(rust, /"geometric"/);
   assert.match(cargo, /de441-native-probe\s*=\s*\["dep:virgostars-ephemeris-core"\]/);
   assert.match(host, /de441_probe::de441_probe/);
+  assert.match(host, /de441_probe::de441_probe_civil/);
+  assert.match(rust, /CivilTimestamp::parse/);
+  assert.match(rust, /to_approximate_tdb_julian_date/);
   assert.doesNotMatch(chart, /de441_probe|De441PackManager/);
   assert.doesNotMatch(rust, /reqwest|https:\/\/|download|chart_calculation/);
 });

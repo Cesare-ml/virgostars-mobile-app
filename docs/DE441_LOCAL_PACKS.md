@@ -23,7 +23,7 @@ The **astronomical reader and calculations belong only in [VirgoStars-Ephemeris]
 5. **Verifica SHA-256** rehashes an installed pack on demand; **Rimuovi** deletes only that exact catalogued file, after user confirmation.
 6. A failed import clears its staging file. The native app does not ask for broad filesystem, networking, or storage permissions. The Android WebView file picker still needs device QA.
 7. The user can cancel during chunk upload. The transfer stops at the next safe chunk boundary, Rust deletes the partial staging file, and no incomplete file is installed. Once final SHA-256 verification begins, cancellation is disabled until its atomic outcome.
-8. A **separate, opt-in source-only diagnostic** now calls the canonical `De441PackManager` from the Rust library: `de441_probe` selects an installed pack by **JD TDB**, checks its fixed-catalog SHA-256 and returns only a geometric ICRF/J2000 position and velocity. Ordinary builds report `provider_unavailable`; the diagnostic requires the Cargo feature `de441-native-probe`. See [diagnostic protocol](#optional-rust-reader-diagnostic).
+8. Separate, **opt-in source-only diagnostics** call the canonical Rust core: `de441_probe` accepts explicit **JD TDB**, while `de441_probe_civil` accepts an ISO timestamp with an explicit UTC offset and invokes the core's **approximate** civil-to-TDB conversion for supported modern dates. Both check the selected pack's fixed-catalog SHA-256 and return only geometric ICRF/J2000 position and velocity. Ordinary builds report `provider_unavailable`; both require the Cargo feature `de441-native-probe`. See [diagnostic protocol](#optional-rust-reader-diagnostic).
 
 No network downloads are offered until legal provenance, independent science validation, secure hosting and an allowed, integrity-pinned distribution mechanism are agreed.
 
@@ -43,7 +43,7 @@ From `D:\GitHub\virgostars-mobile-app`:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-de441-mobile.ps1 -PacksDirectory "D:\VirgoStars-DE441-Mobile\packs"
 ```
 
-The script checks exact file hashes without copying or re-downloading the source kernel, then runs the Node contract tests. When the app and its sibling dependencies are installed and the Android toolchain is ready, use `npm run android:dev` to test import interactively.
+The script checks exact file hashes without copying or re-downloading the source kernel, then runs the Node contract tests. Add `-CheckNativeProbe` to that command when you are ready to check compilation of the optional Rust reader and modern civil-time adapter as part of the same one-shot workflow. Add `-BuildAndroid` only if Android SDK/NDK/JDK/Rust are configured and you also want a release build. When the app and its sibling dependencies are installed and the Android toolchain is ready, use `npm run android:dev` to test import interactively. These steps remain **pending on Mirko's PC**.
 
 ## Optional Rust reader diagnostic
 
@@ -56,7 +56,7 @@ cargo check --locked --features de441-native-probe
 
 It references a specific, reviewable VirgoStars-Ephemeris commit with `De441PackManager`, without copying the reader into the app. This command downloads **Rust source dependencies if not cached**, but **never downloads DE441 ephemeris files**. A real on-device build still requires Android/Tauri SDK configuration and must be tested later.
 
-The version-1 IPC command is `de441_probe` (not exposed as a UI action). Example developer request:
+The version-1 IPC command is `de441_probe` (not exposed as a UI action). Example developer request with an already-TDB epoch:
 
 ```json
 {
@@ -71,7 +71,22 @@ The version-1 IPC command is `de441_probe` (not exposed as a UI action). Example
 
 Successful results include `selectedPackId`, numeric `positionKm[3]`, `velocityKmPerDay[3]` and explicit provenance: `frame=ICRF/J2000`, `quantity=geometric`, `epochScale=TDB`, `lengthUnit=km`, `speedUnit=km/day`, `source=de441_classic`. They are not final astrological degrees and **must not** be rendered as natal placements. Failure statuses are normalized (`provider_unavailable`, `invalid_request`, `outside_coverage`, `missing_pack`, `invalid_pack`, `storage_unavailable`, `reader_failed`), without revealing the app-private path. Import/verification is explicit and offline; the diagnostic does not fetch, distribute or auto-install missing packs.
 
-The TypeScript contract is `src/app/native/de441-probe-contract.ts`; the optional invoking adapter is `src/app/native/de441-probe.ts`. Both are intentionally unused by the natal chart implementation. Local Node contract tests may pass even if the native feature cannot yet be compiled on Android.
+An additional version-1 command, `de441_probe_civil`, accepts an explicitly offset timestamp instead of a JD. Its native argument is:
+
+```json
+{
+  "request": {
+    "protocolVersion": 1,
+    "timestamp": "2026-11-18T12:00:00+01:00",
+    "target": "sun",
+    "center": "earth"
+  }
+}
+```
+
+Rust delegates parsing, UTC leap-second lookup, TT and approximate TDB conversion to **existing** `virgostars_ephemeris_core::first_sky::CivilTimestamp`; there is no TypeScript/Javascript astronomy implementation. When it succeeds, the result includes `conversion.jdTdb`, `accuracy=approximate`, `model=IERS_LEAP_SECONDS_USNO_TRUNCATED_TDB_TT`, `source=virgostars_ephemeris_core` and `utcCoverage=1972-01-01/2027-06-27`. The core's fixed leap-second schedule rejects UTC outside this closed period with `unsupported_utc`; a timestamp without `Z` or an explicit numeric offset is rejected. Leap-second labels such as `23:59:60` are unsupported. This is **not** a universal historical date converter: for older/newer dates the existing direct JD TDB diagnostic remains available, but the caller must obtain a scientifically justified TDB date independently. A numeric result does not establish independent NASA/JPL accuracy.
+
+The TypeScript contracts are `src/app/native/de441-probe-contract.ts`; both optional invoking adapters are in `src/app/native/de441-probe.ts`. They are intentionally unused by the natal chart implementation. Local Node contract tests may pass even if the native feature cannot yet be compiled on Android.
 
 ## Security
 

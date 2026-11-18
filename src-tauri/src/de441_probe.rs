@@ -1,8 +1,9 @@
 //! Optional, read-only diagnostic bridge to VirgoStars-Ephemeris.
 //!
 //! Returns **geometric** ICRF/J2000 state vectors, not astrological positions.
-//! Callers must supply JD TDB themselves; this module never converts UTC, and
-//! is deliberately not connected to the production chart calculator.
+//! `de441_probe` requires JD TDB directly. The separate `de441_probe_civil`
+//! delegates a documented, date-limited *approximate* UTC→TDB conversion to
+//! the canonical core. Neither is connected to the natal chart calculator.
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -55,6 +56,16 @@ pub struct ProbeRequest {
     center: BodyToken,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CivilProbeRequest {
+    protocol_version: u8,
+    /// ISO-8601 civil timestamp with Z or an explicit numeric UTC offset.
+    timestamp: String,
+    target: BodyToken,
+    center: BodyToken,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProbeVector {
@@ -75,6 +86,30 @@ pub struct ProbeResponse {
     status: &'static str,
     selected_pack_id: Option<String>,
     result: Option<ProbeVector>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CivilTimeConversion {
+    jd_tdb: f64,
+    model: &'static str,
+    accuracy: &'static str,
+    utc_coverage: &'static str,
+    source: &'static str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CivilProbeResponse {
+    #[serde(flatten)]
+    probe: ProbeResponse,
+    conversion: Option<CivilTimeConversion>,
+}
+
+impl CivilProbeResponse {
+    fn status(status: &'static str) -> Self {
+        Self { probe: ProbeResponse::status(status, None), conversion: None }
+    }
 }
 
 impl ProbeResponse {
@@ -110,6 +145,67 @@ pub async fn de441_probe(app: AppHandle, request: ProbeRequest) -> ProbeResponse
     {
         let _ = (app, request);
         ProbeResponse::status("provider_unavailable", None)
+    }
+}
+
+/// A separate opt-in diagnostic for modern civil dates (1972 through
+/// 2027-06-27 UTC), using the core's existing *approximate* model only.
+/// Historical DE441 packs remain accessible through explicit JD TDB input;
+/// this command must never invent a historical UTC offset or Delta-T.
+#[tauri::command]
+pub async fn de441_probe_civil(app: AppHandle, request: CivilProbeRequest) -> CivilProbeResponse {
+    if request.protocol_version != 1 || request.target == request.center ||
+        request.timestamp.len() > 64 || request.timestamp.len() < 20 ||
+        !request.timestamp.is_ascii()
+    {
+        return CivilProbeResponse::status("invalid_request");
+    }
+
+    #[cfg(feature = "de441-native-probe")]
+    {
+        use virgostars_ephemeris_core::first_sky::{CivilTimestamp, SkyError};
+
+        let civil = match CivilTimestamp::parse(&request.timestamp) {
+            Ok(civil) => civil,
+            Err(_) => return CivilProbeResponse::status("invalid_request"),
+        };
+        let jd_tdb = match civil.to_approximate_tdb_julian_date() {
+            Ok(epoch) if epoch.0.is_finite() => epoch.0,
+            Err(SkyError::UnsupportedUtc) => return CivilProbeResponse::status("unsupported_utc"),
+            _ => return CivilProbeResponse::status("invalid_request"),
+        };
+        let directory = match crate::de441_packs::pack_dir(&app) {
+            Ok(directory) => directory,
+            Err(_) => return CivilProbeResponse::status("storage_unavailable"),
+        };
+        let core_request = ProbeRequest {
+            protocol_version: 1,
+            jd_tdb,
+            target: request.target,
+            center: request.center,
+        };
+        let probe = match tauri::async_runtime::spawn_blocking(move || {
+            probe_from_directory(directory, core_request)
+        }).await {
+            Ok(probe) => probe,
+            Err(_) => ProbeResponse::status("reader_failed", None),
+        };
+        CivilProbeResponse {
+            probe,
+            conversion: Some(CivilTimeConversion {
+                jd_tdb,
+                model: "IERS_LEAP_SECONDS_USNO_TRUNCATED_TDB_TT",
+                accuracy: "approximate",
+                utc_coverage: "1972-01-01/2027-06-27",
+                source: "virgostars_ephemeris_core",
+            }),
+        }
+    }
+
+    #[cfg(not(feature = "de441-native-probe"))]
+    {
+        let _ = (app, request);
+        CivilProbeResponse::status("provider_unavailable")
     }
 }
 
@@ -163,7 +259,7 @@ fn probe_from_directory(directory: std::path::PathBuf, request: ProbeRequest) ->
 
 #[cfg(test)]
 mod tests {
-    use super::{BodyToken, ProbeRequest};
+    use super::{BodyToken, CivilProbeRequest, ProbeRequest};
 
     #[test]
     fn request_rejects_unknown_fields_and_parses_named_bodies() {
@@ -174,5 +270,28 @@ mod tests {
             r#"{"protocolVersion":1,"jdTdb":2451545.0,"target":"sun","center":"earth","path":"/tmp/escape"}"#
         ).is_err());
         assert_ne!(BodyToken::Sun, BodyToken::Earth);
+    }
+
+    #[test]
+    fn civil_request_requires_explicit_timestamp_and_rejects_extra_paths() {
+        assert!(serde_json::from_str::<CivilProbeRequest>(
+            r#"{"protocolVersion":1,"timestamp":"2026-11-18T12:00:00+01:00","target":"sun","center":"earth"}"#
+        ).is_ok());
+        assert!(serde_json::from_str::<CivilProbeRequest>(
+            r#"{"protocolVersion":1,"timestamp":"2026-11-18T12:00:00Z","target":"sun","center":"earth","filePath":"any"}"#
+        ).is_err());
+    }
+
+    #[cfg(feature = "de441-native-probe")]
+    #[test]
+    fn canonical_core_rejects_unsupported_civil_dates_and_matches_utc_offsets() {
+        use virgostars_ephemeris_core::first_sky::{CivilTimestamp, SkyError};
+        let utc = CivilTimestamp::parse("2026-11-18T11:00:00Z").unwrap()
+            .to_approximate_tdb_julian_date().unwrap();
+        let local = CivilTimestamp::parse("2026-11-18T12:00:00+01:00").unwrap()
+            .to_approximate_tdb_julian_date().unwrap();
+        assert_eq!(utc, local);
+        let unsupported = CivilTimestamp::parse("1960-01-01T00:00:00Z").unwrap();
+        assert!(matches!(unsupported.to_approximate_tdb_julian_date(), Err(SkyError::UnsupportedUtc)));
     }
 }
