@@ -26,7 +26,7 @@ function okResponse() {
     chart: {
       julianDayUt: 2451545.0,
       bodies: computed.map(body),
-      houses: HOUSE_SYSTEM_IDS.map(houseSystem),
+      houses: HOUSE_SYSTEM_IDS.slice(0, 5).map(houseSystem),
       unavailableBodies: ['Chiron'],
       unavailableHouseSystems: [],
     },

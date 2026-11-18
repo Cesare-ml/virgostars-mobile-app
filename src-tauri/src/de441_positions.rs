@@ -19,6 +19,8 @@ pub struct Position {
     longitude_speed_deg_day: f64,
     latitude_speed_deg_day: f64,
     distance_speed_au_day: f64,
+    right_ascension_deg: f64,
+    declination_deg: f64,
 }
 
 #[derive(Serialize)]
@@ -75,11 +77,12 @@ pub async fn de441_apparent_positions(app: AppHandle, request: Request) -> Respo
 fn calculate(directory: &std::path::Path, utc: &str) -> Response {
     use std::collections::HashSet;
     use virgostars_ephemeris_core::apparent_ecliptic_of_date::{
-        experimental_long_term_apparent_with_provider, ExperimentalLongTermStateProvider,
-        ExperimentalProviderApparentError,
+        apparent_to_degrees_au, experimental_long_term_apparent_with_provider,
+        geocentric_apparent_ecliptic_of_date_with_options, ApparentFrame, ApparentOptions,
+        ExperimentalLongTermStateProvider, ExperimentalProviderApparentError,
     };
     use virgostars_ephemeris_core::de441::{
-        Body, JulianDateTdb, StateVector, StateVectorWithAcceleration,
+        Body, De441, JulianDateTdb, StateVector, StateVectorWithAcceleration,
     };
     use virgostars_ephemeris_core::de441_pack_manager::{De441PackError, De441PackManager};
     use virgostars_ephemeris_core::first_sky::{CivilTimestamp, SkyError};
@@ -160,6 +163,31 @@ fn calculate(directory: &std::path::Path, utc: &str) -> Response {
         manager,
         verified: HashSet::new(),
     };
+    if let Err(error) = provider.verify(epoch) {
+        return match error {
+            Failure::Missing(id) => Response::error("missing_pack", Some(id)),
+            Failure::Invalid(id) => Response::error("invalid_pack", Some(id)),
+            _ => Response::error("outside_coverage", None),
+        };
+    }
+    let selected = match provider.manager.select_pack(epoch) {
+        Ok(pack) => pack,
+        Err(_) => return Response::error("outside_coverage", None),
+    };
+    if selected.id != "core"
+        || epoch.0 <= selected.start_tdb.0 + 1.0
+        || epoch.0 >= selected.end_tdb.0 - 1.0
+    {
+        return Response::error("outside_coverage", None);
+    }
+    let mut equatorial_reader = match De441::open(&selected.file_path) {
+        Ok(reader) => reader,
+        Err(_) => return Response::error("invalid_pack", Some(selected.id.clone())),
+    };
+    let equatorial_options = ApparentOptions {
+        frame: ApparentFrame::TrueEquatorOfDate,
+        ..ApparentOptions::default()
+    };
     let bodies = [
         ("Sun", Body::Sun),
         ("Moon", Body::Moon),
@@ -194,6 +222,17 @@ fn calculate(directory: &std::path::Path, utc: &str) -> Response {
             }
             Err(_) => return Response::error("calculation_failed", None),
         };
+        let equatorial = match geocentric_apparent_ecliptic_of_date_with_options(
+            &mut equatorial_reader,
+            body,
+            epoch,
+            equatorial_options,
+        )
+        .and_then(|v| apparent_to_degrees_au(&v))
+        {
+            Ok(v) => v.fields,
+            Err(_) => return Response::error("calculation_failed", None),
+        };
         positions.push(Position {
             id,
             longitude_deg: value.longitude_deg,
@@ -202,6 +241,8 @@ fn calculate(directory: &std::path::Path, utc: &str) -> Response {
             longitude_speed_deg_day: value.longitude_speed_deg_per_tdb_day,
             latitude_speed_deg_day: value.latitude_speed_deg_per_tdb_day,
             distance_speed_au_day: value.distance_speed_au_per_tdb_day,
+            right_ascension_deg: equatorial.longitude_deg,
+            declination_deg: equatorial.latitude_deg,
         });
     }
     Response {
@@ -254,6 +295,12 @@ mod tests {
             .iter()
             .all(|p| (0.0..360.0).contains(&p.longitude_deg) && p.distance_au > 0.0));
         assert!((result.positions[0].longitude_deg - 280.37).abs() < 0.03);
+        assert!((result.positions[0].declination_deg + 23.03243).abs() < 0.0001);
+        assert!(result
+            .positions
+            .iter()
+            .all(|p| (0.0..360.0).contains(&p.right_ascension_deg)
+                && (-90.0..=90.0).contains(&p.declination_deg)));
         for date in ["1972-01-01T00:00:00Z", "2027-06-27T23:59:59Z"] {
             let response = calculate(&dir, date);
             assert_eq!(response.status, "ok", "{date}");

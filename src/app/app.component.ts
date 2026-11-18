@@ -7,6 +7,8 @@ import { civilTimeToUtc } from './astro/civil-time';
 import { ChartWheelComponent } from './astro/chart-wheel.component';
 import { calculateChart } from './native/chart-calculation';
 import { calculateDe441, type De441Result } from './native/de441-apparent';
+import { getDe441HouseAngles } from './native/de441-house-angles';
+import { calculateDe441Houses, makeDe441Chart, type HouseMethod } from './astro/de441-house-systems';
 import type { ChartCalculationResult, HouseSystemId } from './native/chart-calculation-contract';
 import {importLocalPack, packServiceAvailable, readNativePacks, removePack, verifyPack, type PackInventory} from './native/de441-packs';
 
@@ -43,7 +45,7 @@ const messages = {
     browser: 'Anteprima browser',
     build: 'Interfaccia di sviluppo',
     packTitle: 'Effemeridi DE441',
-    packIntro: 'Pacchetti locali per intervalli storici. Non sono ancora collegati al calcolo del tema.',
+    packIntro: 'Pacchetti locali per il calcolo DE441 sperimentale; le date civili supportate sono limitate.',
     packImport: 'Importa file locale',
     packVerify: 'Verifica SHA-256',
     packRemove: 'Rimuovi',
@@ -91,7 +93,7 @@ const messages = {
     browser: 'Browser preview',
     build: 'Development shell',
     packTitle: 'DE441 ephemerides',
-    packIntro: 'Local historical-range packages. They are not connected to chart calculation yet.',
+    packIntro: 'Local packages for experimental DE441 calculation; supported civil dates are limited.',
     packImport: 'Import local file',
     packVerify: 'Verify SHA-256',
     packRemove: 'Remove',
@@ -139,6 +141,7 @@ export class AppComponent implements OnInit {
   readonly calculating = signal(false);
   readonly de441Result = signal<De441Result | null>(null);
   readonly de441Utc = signal('');
+  readonly de441Houses = signal<readonly HouseMethod[]>([]);
   utc = '2000-01-01T12:00';
   timezone = 'UTC';
   occurrence: '' | 'earlier' | 'later' = '';
@@ -175,6 +178,8 @@ export class AppComponent implements OnInit {
     this.placeState.set('idle');
     this.timeError.set('');
     this.chartResult.set(null);
+    this.de441Result.set(null);
+    this.de441Houses.set([]);
     this.selectedPlanet.set(null);
   }
   selectPlanet(id: string): void {
@@ -184,6 +189,8 @@ export class AppComponent implements OnInit {
   }
   async calculate(): Promise<void> {
     if (this.calculating()) return;
+    this.de441Result.set(null);
+    this.de441Houses.set([]);
     const lat = Number(this.latitude), lng = Number(this.longitude);
     if (!this.latitude.trim() || !this.longitude.trim() || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(this.utc)) {
       this.chartResult.set({kind: 'invalid_request'});
@@ -205,10 +212,30 @@ export class AppComponent implements OnInit {
   }
   async calculateDe441Positions(): Promise<void> {
     if (this.calculating()) return;
+    this.chartResult.set(null); this.de441Result.set(null); this.de441Houses.set([]);
+    const lat=Number(this.latitude), lng=Number(this.longitude);
+    if (!this.latitude.trim() || !this.longitude.trim() || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat)>=90 || Math.abs(lng)>180) {
+      this.de441Result.set({status:'invalid_site',packId:null,jdTdb:null,positions:[]}); return;
+    }
     const resolved = civilTimeToUtc(this.utc, this.timezone.trim(), this.occurrence);
     if (resolved.kind !== 'ready') { this.timeError.set(resolved.kind); this.de441Result.set(null); return; }
-    this.timeError.set(''); this.de441Result.set(null); this.calculating.set(true);
-    try { this.de441Utc.set(resolved.utcIso); this.de441Result.set(await calculateDe441(resolved.utcIso)); }
+    this.timeError.set(''); this.de441Result.set(null); this.de441Houses.set([]); this.chartResult.set(null); this.calculating.set(true);
+    try {
+      this.de441Utc.set(resolved.utcIso);
+      const result=await calculateDe441(resolved.utcIso);
+      this.de441Result.set(result);
+      if (result.status!=='ok') return;
+      const angleResult=await getDe441HouseAngles(resolved.utcIso,Math.round(lat*1e6),Math.round(lng*1e6));
+      if (angleResult.status!=='ok' || !angleResult.angles) {
+        this.de441Result.set({status:angleResult.status,packId:angleResult.packId,jdTdb:null,positions:[]}); return;
+      }
+      const methods=await calculateDe441Houses(resolved.utcIso,angleResult.angles);
+      this.de441Houses.set(methods);
+      const chart=makeDe441Chart(result,angleResult.angles,methods);
+      this.chartUtc.set(resolved.utcIso); this.selectedPlanet.set(null);
+      this.selectedHouse.set(chart.houses[0]?.id ?? null);
+      this.chartResult.set({kind:'ready',provider:{id:'de441_experimental',engineVersion:'8b08341'},chart});
+    }
     finally { this.calculating.set(false); }
   }
   de441Status(status: string): string {
@@ -217,12 +244,14 @@ export class AppComponent implements OnInit {
       unsupported_utc:'Data fuori dal periodo UTC supportato', outside_coverage:'Data fuori dalla copertura dei pacchetti',
       refinement_boundary:'Calcolo non disponibile su questo confine temporale', provider_unavailable:'Motore nativo non disponibile',
       invalid_request:'Data non valida', storage_unavailable:'Memoria non disponibile', calculation_failed:'Calcolo DE441 non riuscito',
+      invalid_site:'Coordinate non valide per le case',
     };
     const en: Record<string,string> = {
       missing_pack:'Required package is not installed', invalid_pack:'Invalid package: check SHA-256',
       unsupported_utc:'Date is outside supported UTC range', outside_coverage:'Date is outside package coverage',
       refinement_boundary:'Calculation is unavailable at this time boundary', provider_unavailable:'Native engine unavailable',
       invalid_request:'Invalid date', storage_unavailable:'Storage unavailable', calculation_failed:'DE441 calculation failed',
+      invalid_site:'Invalid coordinates for houses',
     };
     return (this.locale() === 'it' ? it : en)[status] ?? status;
   }

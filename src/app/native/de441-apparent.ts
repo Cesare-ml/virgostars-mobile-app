@@ -1,6 +1,6 @@
 import {invoke, isTauri} from '@tauri-apps/api/core';
 
-export type De441Position = Readonly<{id: string; longitudeDeg: number; latitudeDeg: number; distanceAu: number; longitudeSpeedDegDay: number; latitudeSpeedDegDay: number; distanceSpeedAuDay: number}>;
+export type De441Position = Readonly<{id: string; longitudeDeg: number; latitudeDeg: number; distanceAu: number; longitudeSpeedDegDay: number; latitudeSpeedDegDay: number; distanceSpeedAuDay: number; rightAscensionDeg: number; declinationDeg: number}>;
 export type De441Result = Readonly<{status: string; packId: string | null; jdTdb: number | null; positions: readonly De441Position[]}>;
 const ids = ['Sun','Moon','Mercury','Venus','Mars barycenter','Jupiter barycenter','Saturn barycenter','Uranus barycenter','Neptune barycenter','Pluto barycenter'];
 const errors = ['invalid_request','storage_unavailable','calculation_failed','provider_unavailable','unsupported_utc','missing_pack','invalid_pack','outside_coverage','refinement_boundary'];
@@ -19,10 +19,10 @@ export function decodeDe441Result(raw: unknown): De441Result {
   const positions = x['positions'].map((p: unknown, i: number) => {
     if (!p || typeof p !== 'object') throw new Error('invalid_response');
     const v=p as Record<string, unknown>;
-    const keys=['longitudeDeg','latitudeDeg','distanceAu','longitudeSpeedDegDay','latitudeSpeedDegDay','distanceSpeedAuDay'];
+    const keys=['longitudeDeg','latitudeDeg','distanceAu','longitudeSpeedDegDay','latitudeSpeedDegDay','distanceSpeedAuDay','rightAscensionDeg','declinationDeg'];
     if (v['id'] !== ids[i] || keys.some(k => typeof v[k] !== 'number' || !Number.isFinite(v[k] as number))) throw new Error('invalid_response');
-    if ((v['longitudeDeg'] as number) < 0 || (v['longitudeDeg'] as number) >= 360 || Math.abs(v['latitudeDeg'] as number) > 90 || (v['distanceAu'] as number) <= 0) throw new Error('invalid_response');
-    return {id:ids[i],longitudeDeg:v['longitudeDeg'] as number,latitudeDeg:v['latitudeDeg'] as number,distanceAu:v['distanceAu'] as number,longitudeSpeedDegDay:v['longitudeSpeedDegDay'] as number,latitudeSpeedDegDay:v['latitudeSpeedDegDay'] as number,distanceSpeedAuDay:v['distanceSpeedAuDay'] as number};
+    if ((v['longitudeDeg'] as number) < 0 || (v['longitudeDeg'] as number) >= 360 || Math.abs(v['latitudeDeg'] as number) > 90 || (v['distanceAu'] as number) <= 0 || (v['rightAscensionDeg'] as number) < 0 || (v['rightAscensionDeg'] as number) >= 360 || Math.abs(v['declinationDeg'] as number)>90) throw new Error('invalid_response');
+    return {id:ids[i],longitudeDeg:v['longitudeDeg'] as number,latitudeDeg:v['latitudeDeg'] as number,distanceAu:v['distanceAu'] as number,longitudeSpeedDegDay:v['longitudeSpeedDegDay'] as number,latitudeSpeedDegDay:v['latitudeSpeedDegDay'] as number,distanceSpeedAuDay:v['distanceSpeedAuDay'] as number,rightAscensionDeg:v['rightAscensionDeg'] as number,declinationDeg:v['declinationDeg'] as number};
   });
   return {status:'ok',packId:null,jdTdb:x['jdTdb'],positions};
 }
