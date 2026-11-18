@@ -136,7 +136,7 @@ fn sha256_file(path: &Path) -> Result<String, &'static str> {
 
 /// Gate experimental astronomy reads on the exact same fixed catalog and
 /// cryptographic digest used by local import. Never trust file presence alone.
-#[cfg(feature = "de441-native-probe")]
+#[cfg(any(feature = "de441-native-probe", feature = "de441-engine"))]
 pub(crate) fn verify_pack_in_directory(
     directory: &Path,
     id: &str,

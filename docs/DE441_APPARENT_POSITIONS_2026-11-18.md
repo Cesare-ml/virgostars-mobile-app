@@ -1,0 +1,16 @@
+# DE441 apparent positions in Mobile — experimental prototype
+
+The chart input screen offers an explicit **Calculate DE441 positions** action. A native Tauri command converts the resolved UTC timestamp using the core's approximate UTC→TDB converter and calls the canonical Rust long-term apparent provider with installed DE441 files. It displays geocentric apparent ecliptic longitude/latitude, distance and longitudinal speed for Sun, Moon, Mercury, Venus and Mars–Pluto system barycenters. This table is **not yet the natal chart engine**: it does not compute house systems or the equatorial fields required by the existing chart renderer. The normal `calculate_chart` provider remains separate and no Swiss or Moshier fallback is used for this DE441 action.
+
+The conversion supports UTC 1972-01-01 through 2027-06-27 only. The apparent long-term frame, approximations, physical-accuracy limitations and unresolved JPL Q20 convention are described in the pinned Ephemeris PR. The core may return an explicit refinement-boundary error if the sub-ULP correction crosses a logical package boundary. Timezone resolution remains the app's existing IANA conversion; its historical correctness is a separate limitation.
+
+The native command selects fixed catalog IDs only, checks each used file's expected length and SHA-256 before first access during the request, returns typed missing/invalid/uncovered statuses without private paths, and does not download data. File verification and subsequent file opening are separate operations; concurrent replacement is not covered by this prototype's tests. Install packages via the existing local import. Distribution rights remain `review_pending`, and the versioned GitHub release source does not enable downloading by itself.
+
+`de441-engine` is enabled by default in this branch; `--no-default-features` builds with an unavailable response. The separate geometric probe is still gated by `de441-native-probe`. The native command and Angular UI are experimental; Android build and manual-device results must be reported separately. No kernel file is bundled or committed.
+
+## Local verification — Windows 11, 18 November 2026
+
+- The core is pinned to `8b08341bfaa34d8cb6a99607cc9bbed826a03ef5` from Ephemeris draft PR #631. That commit remains unmerged.
+- `npm run test:contract`: 46 passed; Angular production build passed, with existing CommonJS `moment-timezone` warnings. Rust host tests: 16 passed, 1 ignored; the ignored test then passed separately with the real local core package, evaluating J2000 and the two civil-time endpoints. Missing and deliberately corrupted packages and unsupported UTC return errors with no positions.
+- `cargo check` succeeded for default features and `--no-default-features`. An initial Android build was blocked by sandbox access to the Gradle cache lock; with access to the existing cache, the ARM64 debug build produced APK and AAB. Zip inspection found no `.eph`, `.bsp` or `.se1` file in either. APK SHA-256 `40e7b15d889a03d66d999c227ec9e5ae780663509a696c9cbe268e6bfbb66def`; AAB SHA-256 `202bdc7144d4b832f1a0f8413299b1ab4543bf3ad32f8990113d3d7a8a639504`.
+- No installation, manual Android exercise, full chart/house validation, package download, release publication or merge was performed.

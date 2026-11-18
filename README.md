@@ -15,6 +15,8 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 
 The owner-published [versioned DE441 release source](docs/DE441_RELEASE_SOURCE_2026-11-18.md) is recorded for a future downloader; the release-source metadata does not itself enable network downloads or settle distribution rights.
 
+**Experimental DE441 apparent positions:** the chart form also offers an explicit DE441 positions table, backed by the Rust multipack apparent experiment and locally installed, hash-checked data. It currently accepts UTC instants from 1972-01-01 through 2027-06-27 and lists system barycenters where indicated. It does not supply houses or replace the natal-chart provider. See [DE441 positions prototype](docs/DE441_APPARENT_POSITIONS_2026-11-18.md).
+
 On the chart, use the zoom controls to enlarge the wheel up to 200%, then scroll in either direction to explore it. Fit returns to the full wheel; planet selection remains available while zoomed.
 
 ## Idee e sviluppo delle funzioni native
