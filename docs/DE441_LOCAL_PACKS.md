@@ -23,12 +23,13 @@ The **astronomical reader and calculations belong only in [VirgoStars-Ephemeris]
 5. **Verifica SHA-256** rehashes an installed pack on demand; **Rimuovi** deletes only that exact catalogued file, after user confirmation.
 6. A failed import clears its staging file. The native app does not ask for broad filesystem, networking, or storage permissions. The Android WebView file picker still needs device QA.
 7. The user can cancel during chunk upload. The transfer stops at the next safe chunk boundary, Rust deletes the partial staging file, and no incomplete file is installed. Once final SHA-256 verification begins, cancellation is disabled until its atomic outcome.
+8. A **separate, opt-in source-only diagnostic** now calls the canonical `De441PackManager` from the Rust library: `de441_probe` selects an installed pack by **JD TDB**, checks its fixed-catalog SHA-256 and returns only a geometric ICRF/J2000 position and velocity. Ordinary builds report `provider_unavailable`; the diagnostic requires the Cargo feature `de441-native-probe`. See [diagnostic protocol](#optional-rust-reader-diagnostic).
 
 No network downloads are offered until legal provenance, independent science validation, secure hosting and an allowed, integrity-pinned distribution mechanism are agreed.
 
 ## What is *not* yet integrated
 
-- The app's `calculate_chart` provider does **not yet** call `De441PackManager` and does not use installed slices. Adding the IPC to the canonical Rust engine must follow review of the new upstream API, astronomical reference comparisons and mobile binding tests. Until then the existing local-use Swiss provider remains optional and unchanged.
+- The app's `calculate_chart` provider does **not yet** call `De441PackManager` and does not use installed slices. The isolated diagnostic does not compute apparent/geocentric ecliptic longitude, light-time, aberration, precession/nutation or reliable UTC→TT→TDB. Connecting actual charts must follow independent reference comparisons and explicit astronomical conversion tests. Until then the existing local-use Swiss provider remains optional and unchanged.
 - No native Android build or real-device import test was performed by this change. The WebView file selector, storage persistence across restart, low-memory behaviour, long transfers and interrupted app processes require a physical-device/emulator check.
 - **Device QA intentionally deferred by Mirko:** tracked in [mobile issue #32](https://github.com/Cesare-ml/virgostars-mobile-app/issues/32). Continue source development but do not mark native validation complete or release this feature until checked.
 - No remote download, auto-update, cloud transfer, background task or installation of the full 2.79 GB `de441.eph`.
@@ -43,6 +44,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-de441-mobile
 ```
 
 The script checks exact file hashes without copying or re-downloading the source kernel, then runs the Node contract tests. When the app and its sibling dependencies are installed and the Android toolchain is ready, use `npm run android:dev` to test import interactively.
+
+## Optional Rust reader diagnostic
+
+The code is staged behind a deliberate Cargo feature, **off by default**:
+
+```powershell
+cd D:\GitHub\virgostars-mobile-app\src-tauri
+cargo check --locked --features de441-native-probe
+```
+
+It references a specific, reviewable VirgoStars-Ephemeris commit with `De441PackManager`, without copying the reader into the app. This command downloads **Rust source dependencies if not cached**, but **never downloads DE441 ephemeris files**. A real on-device build still requires Android/Tauri SDK configuration and must be tested later.
+
+The version-1 IPC command is `de441_probe` (not exposed as a UI action). Example developer request:
+
+```json
+{
+  "request": {
+    "protocolVersion": 1,
+    "jdTdb": 2451545.0,
+    "target": "sun",
+    "center": "earth"
+  }
+}
+```
+
+Successful results include `selectedPackId`, numeric `positionKm[3]`, `velocityKmPerDay[3]` and explicit provenance: `frame=ICRF/J2000`, `quantity=geometric`, `epochScale=TDB`, `lengthUnit=km`, `speedUnit=km/day`, `source=de441_classic`. They are not final astrological degrees and **must not** be rendered as natal placements. Failure statuses are normalized (`provider_unavailable`, `invalid_request`, `outside_coverage`, `missing_pack`, `invalid_pack`, `storage_unavailable`, `reader_failed`), without revealing the app-private path. Import/verification is explicit and offline; the diagnostic does not fetch, distribute or auto-install missing packs.
+
+The TypeScript contract is `src/app/native/de441-probe-contract.ts`; the optional invoking adapter is `src/app/native/de441-probe.ts`. Both are intentionally unused by the natal chart implementation. Local Node contract tests may pass even if the native feature cannot yet be compiled on Android.
 
 ## Security
 

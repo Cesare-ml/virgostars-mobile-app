@@ -23,6 +23,9 @@ Prototype: local Swiss provider, Functions adapter and Charts renderer with open
 - [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
   - [x] Source/contract prototype: local DE441 pack inventory, chunked import, SHA-256 verification and removal in app-private storage
   - [x] Source/contract prototype: user cancellation between import chunks with native staging cleanup (Android QA still pending)
+  - [x] Source/contract prototype: opt-in diagnostic IPC delegates geometric JD TDB / ICRF state reads to canonical VirgoStars-Ephemeris; default provider stays unchanged
+  - [ ] Compile the opt-in diagnostic feature against the pinned upstream commit; validate vectors on device (user deferred local run)
+  - [ ] Implement and independently validate UTC→TT→TDB, apparent geocentric ecliptic coordinates and chart-specific semantics before enabling DE441 in the natal renderer
   - [ ] Compile and device-test native pack import on Android; interrupted file picker/transfer/storage rollback
   - [ ] Review redistribution rights and independent JPL/NASA reference vectors before enabling download hosting
   - [ ] Connect the canonical VirgoStars-Ephemeris pack reader to `calculate_chart` with validated mobile bindings
