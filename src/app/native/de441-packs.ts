@@ -67,7 +67,8 @@ export function importLocalPack(
   pack: Pick<PackInventory, 'id' | 'bytes'>,
   file: Blob,
   onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
 ): Promise<Verification> {
   if (!packServiceAvailable()) return Promise.reject(new Error('native_only'));
-  return importPack(nativeTransport, pack, file, onProgress);
+  return importPack(nativeTransport, pack, file, onProgress, signal);
 }

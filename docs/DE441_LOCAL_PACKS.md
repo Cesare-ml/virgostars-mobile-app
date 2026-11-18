@@ -22,6 +22,7 @@ The **astronomical reader and calculations belong only in [VirgoStars-Ephemeris]
 4. Rust writes to a temporary file in the app-private data directory (`de441-packs/`), checks the complete byte count and streamed SHA-256 against the **compiled-in** catalog, flushes the file, then atomically renames the verified file.
 5. **Verifica SHA-256** rehashes an installed pack on demand; **Rimuovi** deletes only that exact catalogued file, after user confirmation.
 6. A failed import clears its staging file. The native app does not ask for broad filesystem, networking, or storage permissions. The Android WebView file picker still needs device QA.
+7. The user can cancel during chunk upload. The transfer stops at the next safe chunk boundary, Rust deletes the partial staging file, and no incomplete file is installed. Once final SHA-256 verification begins, cancellation is disabled until its atomic outcome.
 
 No network downloads are offered until legal provenance, independent science validation, secure hosting and an allowed, integrity-pinned distribution mechanism are agreed.
 
@@ -29,6 +30,7 @@ No network downloads are offered until legal provenance, independent science val
 
 - The app's `calculate_chart` provider does **not yet** call `De441PackManager` and does not use installed slices. Adding the IPC to the canonical Rust engine must follow review of the new upstream API, astronomical reference comparisons and mobile binding tests. Until then the existing local-use Swiss provider remains optional and unchanged.
 - No native Android build or real-device import test was performed by this change. The WebView file selector, storage persistence across restart, low-memory behaviour, long transfers and interrupted app processes require a physical-device/emulator check.
+- **Device QA intentionally deferred by Mirko:** tracked in [mobile issue #32](https://github.com/Cesare-ml/virgostars-mobile-app/issues/32). Continue source development but do not mark native validation complete or release this feature until checked.
 - No remote download, auto-update, cloud transfer, background task or installation of the full 2.79 GB `de441.eph`.
 - Historical year 0 is astronomical numbering (= 1 BCE). Slices use *JD TDB* logical date boundaries. File records can have intentional overlaps at each boundary: Rust reader selection, not the mobile UI, resolves that.
 

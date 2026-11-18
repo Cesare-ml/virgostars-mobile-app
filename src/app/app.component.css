@@ -79,4 +79,8 @@ h2 { font-size: 16px; margin: 0 0 5px; font-weight: 650; }
 .pack-import input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .pack-import input:focus-visible { outline:2px solid #e5c895; outline-offset:-3px; }
 .pack-progress { margin-top:10px; width:100%; accent-color:#e5c895; }
+.pack-transfer { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:9px; font-size:12px; color:#d7d9e4; }
+.pack-transfer progress { flex-basis:100%; margin:0; }
+.pack-transfer button { margin-left:auto; background:transparent; color:#e6c796; border:1px solid #a98b54; border-radius:8px; padding:7px 10px; cursor:pointer; }
+.pack-transfer button:disabled { opacity:.55; cursor:default; }
 .pack-error { color:#ffbaba; font-size:13px; }
