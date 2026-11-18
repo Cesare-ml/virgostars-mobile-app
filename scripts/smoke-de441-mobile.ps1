@@ -47,6 +47,11 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'npm run check non riuscito.' }
   if ($BuildAndroid) {
     Write-Host 'Compilazione Android (richiede SDK/NDK/JDK/Rust configurati)...' -ForegroundColor Cyan
+    if (-not (Test-Path 'src-tauri\gen\android')) {
+      Write-Host 'Inizializzazione progetto Android locale...' -ForegroundColor Cyan
+      & npm run android:init
+      if ($LASTEXITCODE -ne 0) { throw 'Inizializzazione Android non riuscita.' }
+    }
     & npm run android:build
     if ($LASTEXITCODE -ne 0) { throw 'Build Android non riuscita.' }
   }
