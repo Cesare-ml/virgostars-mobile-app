@@ -10,3 +10,13 @@ The official golden VirgoStars emblem supplied by the maintainer on 18 November 
 Generated Android/iOS native IDE trees remain ignored. Android launcher and adaptive masks must be visually tested in an emulator and on a physical device. iOS requires Xcode/macOS and has not yet been validated.
 
 The logo is a user-supplied brand asset; CPAL-1.0 on the source code is not by itself a trademark/artwork license.
+
+## Repair — 18 November 2026
+
+The original checked-in 1024px PNG and ICNS were truncated and could not be
+decoded by Tauri. The 1024px launcher source was reconstructed with Tauri from
+the intact, already checked-in 512px `src-tauri/icons/icon.png`, then all
+native icons were regenerated. This retains the existing emblem and background,
+but interpolating from 512px cannot recover the original 1024px fine detail.
+Replace it with the intact maintainer-supplied 1024px original if available.
+The brand test now checks PNG chunk CRCs, decoded image data and ICNS length.
