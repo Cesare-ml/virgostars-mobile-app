@@ -53,7 +53,7 @@ fn definition(id: &str) -> Result<PackDefinition, &'static str> {
     read_catalog().packs.into_iter().find(|item| item.id == id).ok_or("unknown_pack")
 }
 
-fn pack_dir(app: &AppHandle) -> Result<PathBuf, &'static str> {
+pub(crate) fn pack_dir(app: &AppHandle) -> Result<PathBuf, &'static str> {
     app.path().app_data_dir().map(|path| path.join("de441-packs")).map_err(|_| "storage_unavailable")
 }
 
@@ -132,6 +132,27 @@ fn sha256_file(path: &Path) -> Result<String, &'static str> {
         hash.update(&buffer[..size]);
     }
     Ok(format!("{:x}", hash.finalize()))
+}
+
+/// Gate experimental astronomy reads on the exact same fixed catalog and
+/// cryptographic digest used by local import. Never trust file presence alone.
+#[cfg(feature = "de441-native-probe")]
+pub(crate) fn verify_pack_in_directory(
+    directory: &Path,
+    id: &str,
+) -> Result<&'static str, &'static str> {
+    let pack = definition(id)?;
+    let path = directory.join(&pack.filename);
+    match fs::metadata(&path) {
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok("missing"),
+        Err(_) => Ok("invalid"),
+        Ok(meta) if !meta.is_file() || meta.len() != pack.bytes => Ok("invalid"),
+        Ok(_) => match sha256_file(&path) {
+            Ok(sha256) if sha256 == pack.sha256 => Ok("verified"),
+            Ok(_) => Ok("invalid"),
+            Err(_) => Ok("invalid"),
+        },
+    }
 }
 
 #[tauri::command]

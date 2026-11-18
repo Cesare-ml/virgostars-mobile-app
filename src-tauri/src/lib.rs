@@ -2,6 +2,7 @@
 use serde::Serialize;
 mod chart_calculation;
 mod de441_packs;
+mod de441_probe;
 #[cfg(feature = "swiss-ephemeris")]
 mod swiss_provider;
 
@@ -41,6 +42,7 @@ pub fn run() {
             de441_packs::ephemeris_pack_finish,
             de441_packs::ephemeris_pack_cancel,
             de441_packs::ephemeris_pack_remove,
+            de441_probe::de441_probe,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");
