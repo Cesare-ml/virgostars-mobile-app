@@ -14,6 +14,18 @@ Source reference: VirgoStars Desktop commit `b692b95eea1c8ba28bf8c4421388a6109cd
 ## Shared renderer setup
 
 From sibling checkout `astrological-charts`, run `npm ci`, `npm run build:library` and `npm run demo:pack` if its synthetic pack is not already present. Keep `astrological-functions` checked out beside this repository. In the mobile checkout run `npm ci` and `npm run check`. `prepare:charts` verifies the synthetic pack manifest and stages only its generated images in ignored `.local/frontend`; it refuses changed or non-synthetic packs. No proprietary artwork is copied. The adapter and asset staging script derive from the Desktop commit noted above. The graphical renderer is experimental; touch interaction, low-memory handling and physical-device behavior have not been verified on Android.
+
+For the stacked DE441 branch at mobile commit `9bc0226`, the renderer API was
+successfully compiled against `astrological-charts` commit
+`cf7b323ffd1be260d482ea101124522ebc6910d0`, the draft
+[Charts PR #146](https://github.com/Cesare-ml/astrological-charts/pull/146)
+based on experimental commit `4ec8b883f448c10e18e12a5570d6c7a75ccc2f45`.
+That PR fixes the library tsconfig and stale interaction-test probes; its
+`npm run build:library` and 34 interaction tests passed locally. The mobile
+dependency remains a local `file:` reference, so its lockfile does not pin the
+sibling Git commit; verify the checkout and rebuild its output before `npm ci`.
+The renderer revision is not integrated into Charts `main`, source/artwork
+rights review remains pending, and build success is not visual validation.
 ## Android emulator checkpoint — 2026-11-16
 
 A locally built debug APK with `swiss-ephemeris` was installed on a separate x86_64 Android 36.1 emulator. After a cold start with emulator Wi-Fi and mobile data disabled, a fictional J2000 request returned Swiss Ephemeris 2.10.03 / Moshier results (Sun 280.3689°, Moon 223.3238°), five house systems and Chiron unavailable; the shared chart rendered with synthetic checkerboard artwork. The emulator network was restored afterwards. Europe/Rome 2024 DST gap and overlap were checked in the actual app, including the later occurrence mapping to 01:30 UTC. These are local smoke checks, not a scientific accuracy audit, real-device test or release.

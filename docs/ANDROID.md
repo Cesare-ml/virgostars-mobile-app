@@ -11,7 +11,21 @@ These steps follow the official [Tauri v2 mobile prerequisites](https://v2.tauri
 
 For browser-only UI: `npm run dev`, then visit `http://localhost:1420`. The native runtime probe will gracefully report browser preview.
 
-The `npm run icons` script uses the original SVG placeholder; replace this with properly licensed, reviewed brand art before distributing the app. Do not commit `src-tauri/gen/`, generated signing files or local secrets. The Google Play release track, signed AAB, store listing and data-safety declaration are future maintainer tasks.
+The `npm run icons` script uses the maintainer-supplied raster emblem; see
+[brand icon provenance and repair](BRAND_ICON.md). Do not commit
+`src-tauri/gen/`, generated signing files or local secrets. The Google Play
+release track, signed AAB, store listing and data-safety declaration are future
+maintainer tasks.
+
+## Local Windows DE441 build checkpoint — 2026-11-18
+
+With the experimental Charts PR #146 revision documented in
+[shared renderer setup](SWISS_LOCAL_PROTOTYPE.md#shared-renderer-setup), Windows
+11, Node 22.18, JDK 25, Android SDK 37 and NDK 28.2.13676358, both the default
+and `de441-native-probe` ARM64 debug builds produced a local APK and AAB. The
+full `npm run check` passed 42 tests and 70 glyph checks; Gradle `test` completed
+but app unit-test tasks reported `NO-SOURCE`. These are local build results,
+not installation, device QA, release approval, or DE441 chart integration.
 
 **iOS:** avoid Android assumptions in shared packages. Later on macOS with Xcode and iOS Rust targets, use `npm run ios:init`, `npm run ios:dev`. This is deliberately out of scope for the first Android smoke.
 
