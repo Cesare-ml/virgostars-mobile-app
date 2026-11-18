@@ -77,6 +77,32 @@ test('bad native offset cancels partial upload, never finalizes', async () => {
   assert.deepEqual(calls, ['ephemeris_pack_begin', 'ephemeris_pack_write', 'ephemeris_pack_cancel']);
 });
 
+test('user abort between chunks triggers native staging cleanup', async () => {
+  const controller = new AbortController();
+  const calls = [];
+  const blob = new Blob([new Uint8Array(262_145)]);
+  const transport = {async invoke(command, args) {
+    calls.push(command);
+    if (command === 'ephemeris_pack_write') return args.offset + Buffer.from(args.chunkBase64, 'base64').length;
+    return undefined;
+  }};
+  await assert.rejects(
+    importPack(transport, {id:'core',bytes:blob.size}, blob, () => controller.abort(), controller.signal),
+    /upload_cancelled/,
+  );
+  assert.deepEqual(calls, ['ephemeris_pack_begin','ephemeris_pack_write','ephemeris_pack_cancel']);
+});
+
+test('pre-aborted import cannot open a staging session', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const transport = {async invoke() { throw new Error('should not be called'); }};
+  await assert.rejects(
+    importPack(transport, {id:'core',bytes:1}, new Blob(['x']), () => {}, controller.signal),
+    /upload_cancelled/,
+  );
+});
+
 test('native Rust adapter exposes fixed-path commands without network or astronomical logic', () => {
   const native = read('src-tauri/src/de441_packs.rs');
   const lib = read('src-tauri/src/lib.rs');

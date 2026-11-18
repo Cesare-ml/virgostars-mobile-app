@@ -56,7 +56,11 @@ const messages = {
     packOptional: 'Facoltativo',
     packFailure: 'Operazione non riuscita. Verifica che il file corrisponda al pacchetto e riprova.',
     packRemoveConfirm: 'Eliminare il pacchetto dalla memoria locale dell’app?',
-    packSizeMismatch: 'Dimensione del file non corrispondente al catalogo.'
+    packSizeMismatch: 'Dimensione del file non corrispondente al catalogo.',
+    packCancel: 'Annulla importazione',
+    packCancelling: 'Annullamento…',
+    packCancelled: 'Importazione annullata. Nessun pacchetto parziale installato.',
+    packVerifying: 'Verifica finale SHA-256 in corso…'
   },
   en: {
     tagline: 'The sky, in your hands',
@@ -100,7 +104,11 @@ const messages = {
     packOptional: 'Optional',
     packFailure: 'Operation failed. Check the selected file and try again.',
     packRemoveConfirm: 'Delete this package from the app’s local storage?',
-    packSizeMismatch: 'File size does not match the catalog.'
+    packSizeMismatch: 'File size does not match the catalog.',
+    packCancel: 'Cancel import',
+    packCancelling: 'Cancelling…',
+    packCancelled: 'Import cancelled. No partial package was installed.',
+    packVerifying: 'Final SHA-256 verification in progress…'
   }
 } as const;
 
@@ -199,10 +207,14 @@ export class AppComponent implements OnInit {
   readonly packInventory = signal<readonly PackInventory[]>([]);
   readonly packsLoading = signal(false);
   readonly packBusy = signal<string | null>(null);
+  readonly packImporting = signal(false);
   readonly packProgress = signal(0);
   readonly packError = signal('');
+  readonly packNotice = signal('');
+  readonly packCancelRequested = signal(false);
   readonly packChecked = signal<Readonly<Record<string, string>>>({});
   readonly nativePacks = packServiceAvailable();
+  private packAbort: AbortController | null = null;
 
   t(key: keyof typeof messages.it): string {
     return messages[this.locale()][key];
@@ -252,17 +264,32 @@ export class AppComponent implements OnInit {
       return;
     }
     this.packError.set('');
+    this.packNotice.set('');
     this.packBusy.set(id);
+    this.packImporting.set(true);
     this.packProgress.set(0);
+    this.packCancelRequested.set(false);
+    const controller = new AbortController();
+    this.packAbort = controller;
     try {
-      await importLocalPack(pack, file, value => this.packProgress.set(Math.round(value * 100)));
+      await importLocalPack(pack, file, value => this.packProgress.set(Math.round(value * 100)), controller.signal);
       this.packChecked.update(map => ({...map, [id]: 'verified'}));
       await this.refreshPacks();
     } catch {
-      this.packError.set(this.t('packFailure'));
+      if (controller.signal.aborted) this.packNotice.set(this.t('packCancelled'));
+      else this.packError.set(this.t('packFailure'));
     } finally {
+      this.packAbort = null;
+      this.packCancelRequested.set(false);
+      this.packImporting.set(false);
       this.packBusy.set(null);
     }
+  }
+
+  cancelPackImport(): void {
+    if (!this.packBusy() || this.packProgress() >= 100 || !this.packAbort) return;
+    this.packCancelRequested.set(true);
+    this.packAbort.abort();
   }
 
   async checkPack(id: string): Promise<void> {

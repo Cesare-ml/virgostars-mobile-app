@@ -22,6 +22,7 @@ Prototype: local Swiss provider, Functions adapter and Charts renderer with open
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
 - [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
   - [x] Source/contract prototype: local DE441 pack inventory, chunked import, SHA-256 verification and removal in app-private storage
+  - [x] Source/contract prototype: user cancellation between import chunks with native staging cleanup (Android QA still pending)
   - [ ] Compile and device-test native pack import on Android; interrupted file picker/transfer/storage rollback
   - [ ] Review redistribution rights and independent JPL/NASA reference vectors before enabling download hosting
   - [ ] Connect the canonical VirgoStars-Ephemeris pack reader to `calculate_chart` with validated mobile bindings

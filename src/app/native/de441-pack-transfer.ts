@@ -26,16 +26,20 @@ export async function importPack(
   pack: Readonly<{id: string; bytes: number}>,
   file: Blob,
   onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
 ): Promise<ImportResult> {
   if (file.size !== pack.bytes || !Number.isSafeInteger(file.size) || file.size <= 0) {
     throw new Error('file_size_mismatch');
   }
   let begun = false;
   try {
+    if (signal?.aborted) throw new Error('upload_cancelled');
     await transport.invoke('ephemeris_pack_begin', {id: pack.id});
     begun = true;
     for (let offset = 0; offset < file.size; offset += CHUNK_SIZE) {
+      if (signal?.aborted) throw new Error('upload_cancelled');
       const chunk = new Uint8Array(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer());
+      if (signal?.aborted) throw new Error('upload_cancelled');
       const accepted = await transport.invoke('ephemeris_pack_write', {
         id: pack.id, offset, chunkBase64: base64Chunk(chunk),
       });
@@ -43,6 +47,7 @@ export async function importPack(
       if (accepted !== next) throw new Error('upload_offset_mismatch');
       onProgress(next / file.size);
     }
+    if (signal?.aborted) throw new Error('upload_cancelled');
     const result = await transport.invoke('ephemeris_pack_finish', {id: pack.id}) as ImportResult;
     if (result?.id !== pack.id || result.status !== 'verified') throw new Error('pack_not_verified');
     return result;

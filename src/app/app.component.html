@@ -82,6 +82,7 @@
         @if (!nativePacks) { <p class="catalog-credit">{{ t('packUnavailable') }}</p> }
         @if (packsLoading()) { <p role="status">{{ locale() === 'it' ? 'Caricamento catalogo…' : 'Loading catalog…' }}</p> }
         @if (packError()) { <p class="pack-error" role="alert">{{ packError() }}</p> }
+        @if (packNotice()) { <p role="status">{{ packNotice() }}</p> }
         <div class="ephemeris-list">
           @for (pack of packInventory(); track pack.id) {
             <div class="ephemeris-pack">
@@ -92,8 +93,16 @@
                 </div>
                 <span class="pack-status" [class.pack-status-ok]="packChecked()[pack.id] === 'verified'">{{ packLabel(pack) }}</span>
               </div>
-              @if (packBusy() === pack.id && packProgress() > 0 && packProgress() < 100) {
-                <progress class="pack-progress" [value]="packProgress()" max="100" [attr.aria-label]="locale() === 'it' ? 'Importazione' : 'Import'"></progress>
+              @if (packBusy() === pack.id && packImporting()) {
+                <div class="pack-transfer" aria-live="polite">
+                  <progress class="pack-progress" [value]="packProgress()" max="100" [attr.aria-label]="locale() === 'it' ? 'Importazione' : 'Import'"></progress>
+                  @if (packProgress() < 100) {
+                    <span>{{ packProgress() }}%</span>
+                    <button type="button" [disabled]="packCancelRequested()" (click)="cancelPackImport()">{{ packCancelRequested() ? t('packCancelling') : t('packCancel') }}</button>
+                  } @else {
+                    <span>{{ t('packVerifying') }}</span>
+                  }
+                </div>
               }
               <div class="pack-actions">
                 @if (pack.status === 'missing') {
