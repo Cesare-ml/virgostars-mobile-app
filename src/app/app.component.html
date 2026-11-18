@@ -38,16 +38,23 @@
         <label>{{ locale() === 'it' ? 'Latitudine (nord positiva)' : 'Latitude (north positive)' }} <input type="number" step="any" min="-90" max="90" [value]="latitude" (input)="latitude = $any($event.target).value" required></label>
         <label>{{ locale() === 'it' ? 'Longitudine (est positiva)' : 'Longitude (east positive)' }} <input type="number" step="any" min="-180" max="180" [value]="longitude" (input)="longitude = $any($event.target).value" required></label>
         <button class="primary" type="submit" [disabled]="calculating()">{{ calculating() ? '…' : (locale() === 'it' ? 'Calcola' : 'Calculate') }}</button>
-        <button type="button" [disabled]="calculating()" (click)="calculateDe441Positions()">{{ locale() === 'it' ? 'Calcola posizioni DE441' : 'Calculate DE441 positions' }}</button>
+        <button type="button" [disabled]="calculating()" (click)="calculateDe441Positions()">{{ locale() === 'it' ? 'Calcola tema DE441 sperimentale' : 'Calculate experimental DE441 chart' }}</button>
       </form>
       @if (de441Result(); as de441) {
         <section class="settings-card" aria-live="polite">
           <h2>{{ locale() === 'it' ? 'Posizioni DE441 sperimentali' : 'Experimental DE441 positions' }}</h2>
           <p>{{ locale() === 'it' ? 'Geocentriche apparenti, eclittica della data. UTC supportato: 1972–27 giugno 2027. Le posizioni esterne indicano baricentri di sistema.' : 'Geocentric apparent, ecliptic of date. Supported UTC: 1972–27 June 2027. Outer positions are system barycenters.' }}</p>
-          <p>{{ locale() === 'it' ? 'Questa tabella non calcola case né sostituisce ancora il tema natale.' : 'This table does not calculate houses or yet replace the natal chart.' }}</p>
+          <p>{{ locale() === 'it' ? 'Case sperimentali: UT1 approssimato con UTC; equatoriali e angoli usano IAU 2006/2000B. Non tutti i punti del tema sono disponibili.' : 'Experimental houses: UT1 approximated by UTC; equatorial coordinates and angles use IAU 2006/2000B. Not all chart points are available.' }}</p>
           @if (de441.status === 'ok') {
             <p>UTC {{ de441Utc() }} · JD TDB {{ de441.jdTdb }}</p>
             <ul>@for (p of de441.positions; track p.id) { <li>{{ p.id }}: {{ p.longitudeDeg.toFixed(6) }}° · {{ p.latitudeDeg.toFixed(6) }}° · {{ p.distanceAu.toFixed(6) }} AU · {{ p.longitudeSpeedDegDay.toFixed(6) }}°/d</li> }</ul>
+            <h3>{{ locale() === 'it' ? 'Domificazioni disponibili' : 'Available house systems' }}</h3>
+            <p>{{ locale() === 'it' ? 'Seleziona nella ruota i sistemi calcolati; Gauquelin è mostrato come 36 settori distinti.' : 'Select calculated systems in the wheel; Gauquelin is shown separately as 36 sectors.' }}</p>
+            @for (method of de441Houses(); track method.id) {
+              <details><summary>{{ method.id }} @if (method.error) { · {{ method.error }} }</summary>
+                @if (!method.error) { <ol>@for (angle of method.values; track $index) { <li>{{ angle.toFixed(4) }}°</li> }</ol> }
+              </details>
+            }
           } @else { <p role="alert">{{ de441Status(de441.status) }} @if (de441.packId) { · {{ de441.packId }} }</p> }
         </section>
       }

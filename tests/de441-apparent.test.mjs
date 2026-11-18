@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {decodeDe441Result} from '../src/app/native/de441-apparent.ts';
 
 const ids=['Sun','Moon','Mercury','Venus','Mars barycenter','Jupiter barycenter','Saturn barycenter','Uranus barycenter','Neptune barycenter','Pluto barycenter'];
-const values=() => ids.map(id=>({id,longitudeDeg:123,latitudeDeg:2,distanceAu:1,longitudeSpeedDegDay:-0.1,latitudeSpeedDegDay:0,distanceSpeedAuDay:0}));
+const values=() => ids.map(id=>({id,longitudeDeg:123,latitudeDeg:2,distanceAu:1,longitudeSpeedDegDay:-0.1,latitudeSpeedDegDay:0,distanceSpeedAuDay:0,rightAscensionDeg:120,declinationDeg:1}));
 test('accepts ten apparent positions without inferring houses',()=>{
   const result=decodeDe441Result({protocolVersion:1,status:'ok',packId:null,jdTdb:2451545,positions:values()});
   assert.equal(result.positions.length,10); assert.equal(result.positions[0].longitudeSpeedDegDay,-0.1);

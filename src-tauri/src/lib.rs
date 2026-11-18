@@ -4,6 +4,7 @@ mod chart_calculation;
 mod de441_packs;
 mod de441_probe;
 mod de441_positions;
+mod de441_house_angles;
 #[cfg(feature = "swiss-ephemeris")]
 mod swiss_provider;
 
@@ -46,6 +47,7 @@ pub fn run() {
             de441_probe::de441_probe,
             de441_probe::de441_probe_civil,
             de441_positions::de441_apparent_positions,
+            de441_house_angles::de441_house_angles,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start VirgoStars Mobile");

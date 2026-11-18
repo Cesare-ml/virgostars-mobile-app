@@ -9,7 +9,11 @@ export const CHART_BODY_IDS = Object.freeze([
 ] as const);
 export type ChartBodyId = typeof CHART_BODY_IDS[number];
 
-export const HOUSE_SYSTEM_IDS = Object.freeze(['egizia', 'placido', 'koch', 'regio-montano', 'porfirio'] as const);
+export const HOUSE_SYSTEM_IDS = Object.freeze(['egizia', 'placido', 'koch', 'regio-montano', 'porfirio',
+  'PLACIDUS','KOCH','CAMPANUS','REGIOMONTANUS','EQUAL_ASCENDANT','EQUAL_MIDHEAVEN','VEHLOW',
+  'WHOLE_SIGN','WHOLE_ARIES','MERIDIAN','PORPHYRY','ALCABITIUS','KRUSINSKI_PISA_GOELZER',
+  'AZIMUTH','MORINUS','POLICH_PAGE','APC','PULLEN_SD','PULLEN_SR','SRIPATI',
+  'CARTER_POLI_EQUATORIAL','SUNSHINE','ALBATEGNIUS'] as const);
 export type HouseSystemId = typeof HOUSE_SYSTEM_IDS[number];
 
 export type EphemerisSource = 'moshier' | 'swiss_files' | 'jpl';
