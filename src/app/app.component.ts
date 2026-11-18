@@ -5,6 +5,8 @@ import { chartInspectorRows, ZODIAC_NAMES } from './astro/chart-inspector';
 import { nextPlanetSelection } from './astro/planet-selection';
 import { civilTimeToUtc } from './astro/civil-time';
 import { ChartWheelComponent } from './astro/chart-wheel.component';
+import { MonomericCrossComponent, monomericCrossViewFromGeometry, type MonomericCrossView } from 'grafici-astrologici';
+import { buildMonomericCrossGeometry, type TraditionalPlanet } from 'astrological-functions/monomeric-cross';
 import { calculateChart } from './native/chart-calculation';
 import type { ChartCalculationResult, HouseSystemId } from './native/chart-calculation-contract';
 
@@ -74,7 +76,7 @@ const messages = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [ChartWheelComponent],
+  imports: [ChartWheelComponent, MonomericCrossComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -88,6 +90,31 @@ export class AppComponent implements OnInit {
   readonly zodiacNames = ZODIAC_NAMES;
   readonly selectedHouse = signal<HouseSystemId | null>(null);
   readonly selectedPlanet = signal<string | null>(null);
+  readonly crossVisible = signal(false);
+  readonly manualHourRuler = signal<TraditionalPlanet | ''>('');
+  readonly hourRulerOptions: readonly TraditionalPlanet[] = ['SUN','MOON','MERCURY','VENUS','MARS','JUPITER','SATURN'];
+  readonly monomericCross = computed<MonomericCrossView | null>(() => {
+    const result = this.chartResult();
+    const hourRuler = this.manualHourRuler();
+    if (result?.kind !== 'ready' || !hourRuler) return null;
+    const house = result.chart.houses.find(item => item.id === this.selectedHouse()) ?? result.chart.houses[0];
+    if (!house) return null;
+    const identifiers: Record<TraditionalPlanet,string> = {
+      SUN:'Sun', MOON:'Moon', MERCURY:'Mercury', VENUS:'Venus', MARS:'Mars', JUPITER:'Jupiter', SATURN:'Saturn',
+    };
+    const longitudes = {} as Record<TraditionalPlanet,number>;
+    for (const planet of this.hourRulerOptions) {
+      const longitude = result.chart.bodies.find(body => body.id === identifiers[planet])?.longitudeDeg;
+      if (longitude === undefined || !Number.isFinite(longitude)) return null;
+      longitudes[planet] = longitude;
+    }
+    try {
+      return monomericCrossViewFromGeometry(buildMonomericCrossGeometry({
+        hourRuler, planetLongitudesDeg:longitudes,
+        houseCuspsDeg:house.cuspsDeg, houseSystemId:house.id,
+      }), this.locale());
+    } catch { return null; }
+  });
   readonly inspectorRows = computed(() => {
     const result = this.chartResult();
     return result?.kind === 'ready' ? chartInspectorRows(result.chart, this.selectedHouse()) : [];
@@ -131,6 +158,7 @@ export class AppComponent implements OnInit {
     this.placeState.set('idle');
     this.timeError.set('');
     this.chartResult.set(null);
+    this.manualHourRuler.set('');
     this.selectedPlanet.set(null);
   }
   selectPlanet(id: string): void {
@@ -150,6 +178,7 @@ export class AppComponent implements OnInit {
     this.timeError.set('');
     this.calculating.set(true);
     this.chartResult.set(null);
+    this.manualHourRuler.set('');
     try {
       const utcIso = resolved.utcIso;
       const result = await calculateChart({utcIso, latMicro: Math.round(lat * 1e6), lngMicro: Math.round(lng * 1e6)});

@@ -41,7 +41,22 @@
       </form>
       @if (chartResult(); as result) {
         @if (result.kind === 'ready') {
-          <vs-chart-wheel [chart]="result.chart" [utcIso]="chartUtc()" [locale]="locale()" [activeHouse]="selectedHouse()" [activePlanet]="selectedPlanet()" (houseChange)="selectedHouse.set($event)" (planetChange)="selectedPlanet.set($event)" />
+          <div class="cross-view-switch" role="group" [attr.aria-label]="locale() === 'it' ? 'Vista astrologica' : 'Astrological view'">
+            <button type="button" [attr.aria-pressed]="!crossVisible()" [class.selected]="!crossVisible()" (click)="crossVisible.set(false)">{{ locale() === 'it' ? 'Carta' : 'Chart' }}</button>
+            <button type="button" [attr.aria-pressed]="crossVisible()" [class.selected]="crossVisible()" (click)="crossVisible.set(true)">{{ locale() === 'it' ? 'Croce monomerica' : 'Monomeric cross' }}</button>
+          </div>
+          @if (crossVisible()) {
+            <label class="manual-ruler">{{ locale() === 'it' ? "Maestro dell'ora planetaria" : 'Planetary-hour ruler' }}
+              <select [value]="manualHourRuler()" (change)="manualHourRuler.set($any($event.target).value)">
+                <option value="">{{ locale() === 'it' ? 'Seleziona' : 'Select' }}</option>
+                @for (planet of hourRulerOptions; track planet) { <option [value]="planet">{{ planet }}</option> }
+              </select>
+            </label>
+            <p class="disclaimer">{{ locale() === 'it' ? "Selezione manuale, non calcolata: l'integrazione dei sorgere/tramontare del Sole e del catalogo storico è ancora da completare." : 'Manual, not calculated: solar events and the historical monomer catalog are not integrated yet.' }}</p>
+            <vs-monomeric-cross [cross]="monomericCross()" [locale]="locale()" />
+          } @else {
+            <vs-chart-wheel [chart]="result.chart" [utcIso]="chartUtc()" [locale]="locale()" [activeHouse]="selectedHouse()" [activePlanet]="selectedPlanet()" (houseChange)="selectedHouse.set($event)" (planetChange)="selectedPlanet.set($event)" />
+          }
           <section class="settings-card chart-results" aria-live="polite"><h2>{{ locale() === 'it' ? 'Posizioni geocentriche apparenti' : 'Apparent geocentric positions' }}</h2>
             <p>UTC: {{ chartUtc() }}</p>
             <p>{{ result.provider.id }} {{ result.provider.engineVersion }} · {{ locale() === 'it' ? 'Risultati sperimentali' : 'Experimental results' }}</p>
