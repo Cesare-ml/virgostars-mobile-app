@@ -1,0 +1,18 @@
+{
+  "schema": "virgostars.de441.pack-catalog.v1",
+  "distributionRights": "review_pending",
+  "scientificValidation": "independent_reference_pending",
+  "description": "Locally generated, single-source-parity-checked DE441 classic slices. No kernel or download URL is distributed here.",
+  "packs": [
+    {"id":"core","firstYear":1600,"lastYear":2100,"required":true,"filename":"de441-core.eph","bytes":46599968,"sha256":"863c83229749d12751320447da01ddd9e72e813c7512723b8cab905ec69ab21f"},
+    {"id":"history-0000-0199","firstYear":0,"lastYear":199,"required":false,"filename":"de441-history-0000-0199.eph","bytes":18617184,"sha256":"e06525a559fb06c196814158b521ae0b84215ea189399a99d9592dc9a2514727"},
+    {"id":"history-0200-0399","firstYear":200,"lastYear":399,"required":false,"filename":"de441-history-0200-0399.eph","bytes":18617184,"sha256":"6711cdaebaa1315cf2b3b5fea1118626bf3113e6b83b7675864afe348f737c34"},
+    {"id":"history-0400-0599","firstYear":400,"lastYear":599,"required":false,"filename":"de441-history-0400-0599.eph","bytes":18609040,"sha256":"b0e89a6d6034d7dc8da160ba6de26420bc6458c1e87b03d922834e990dba1f2e"},
+    {"id":"history-0600-0799","firstYear":600,"lastYear":799,"required":false,"filename":"de441-history-0600-0799.eph","bytes":18617184,"sha256":"2d627f3540985c4cea6c785eac591308d40476c2289298129c6e895af88b3e94"},
+    {"id":"history-0800-0999","firstYear":800,"lastYear":999,"required":false,"filename":"de441-history-0800-0999.eph","bytes":18617184,"sha256":"a031fe60d9da5427bdaa3b00eaa6fc577fd8578b7c855f7ba8b603edc9ab8561"},
+    {"id":"history-1000-1199","firstYear":1000,"lastYear":1199,"required":false,"filename":"de441-history-1000-1199.eph","bytes":18617184,"sha256":"a28494528e2776a149e1158d2f2af7415642dd4f4ffae516305bf2e1a05908d7"},
+    {"id":"history-1200-1399","firstYear":1200,"lastYear":1399,"required":false,"filename":"de441-history-1200-1399.eph","bytes":18609040,"sha256":"577ae2c1fd859d48935940529b07b495f136577669a26ec6dfb89b2aebfd4e08"},
+    {"id":"history-1400-1599","firstYear":1400,"lastYear":1599,"required":false,"filename":"de441-history-1400-1599.eph","bytes":18617184,"sha256":"70dd9aa1a7e24d063d6d67befee2857af23723a242b6abcbe6fdf981988c0bc2"},
+    {"id":"future-2101-2300","firstYear":2101,"lastYear":2300,"required":false,"filename":"de441-future-2101-2300.eph","bytes":18609040,"sha256":"71c2e24f1f982f4f2f9546fbcf410cffd90889831ec1b03d76ef877c810e2f28"}
+  ]
+}

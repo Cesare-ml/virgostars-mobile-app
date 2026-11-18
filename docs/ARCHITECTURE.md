@@ -26,6 +26,8 @@ VirgoStars server: independent authenticated/versioned API, not a direct DB link
 
 The host exposes `runtime_info` and `calculate_chart`. The default build returns provider unavailable; an optional local-use Swiss provider calculates apparent geocentric positions and houses. The UI passes calculated positions through the Desktop-derived adapter using astrological-functions into astrological-charts. Manifest-verified synthetic assets are staged beneath open-font glyph textures for zodiac signs, houses and calculated bodies; proprietary artwork is not bundled. OAuth, storage and sync remain unintegrated.
 
+The separate DE441 local-pack custody adapter exposes explicit native IPC commands for fixed-catalog inventory, import (128 KiB chunks), hash verification and removal in an app-private folder. It has no network access or astronomy calculations. The canonical `De441PackManager` remains in VirgoStars-Ephemeris, and chart calculation is not yet wired to installed packs. See [DE441 local packs](DE441_LOCAL_PACKS.md).
+
 ## Reuse policy
 
 - **virgostars-desktop:** share verified DTOs, Rust ports and security principles; do **not** copy experimental desktop UI wholesale. Mobile UI is touch-first.

@@ -7,6 +7,7 @@ import { civilTimeToUtc } from './astro/civil-time';
 import { ChartWheelComponent } from './astro/chart-wheel.component';
 import { calculateChart } from './native/chart-calculation';
 import type { ChartCalculationResult, HouseSystemId } from './native/chart-calculation-contract';
+import {importLocalPack, packServiceAvailable, readNativePacks, removePack, verifyPack, type PackInventory} from './native/de441-packs';
 
 type Tab = 'home' | 'chart' | 'archive' | 'settings';
 type Locale = 'it' | 'en';
@@ -39,7 +40,23 @@ const messages = {
     native: 'Host nativo',
     connected: 'Connesso al bridge locale',
     browser: 'Anteprima browser',
-    build: 'Interfaccia di sviluppo'
+    build: 'Interfaccia di sviluppo',
+    packTitle: 'Effemeridi DE441',
+    packIntro: 'Pacchetti locali per intervalli storici. Non sono ancora collegati al calcolo del tema.',
+    packImport: 'Importa file locale',
+    packVerify: 'Verifica SHA-256',
+    packRemove: 'Rimuovi',
+    packMissing: 'Non installato',
+    packPresent: 'Presente, da verificare',
+    packVerified: 'Hash verificato',
+    packInvalid: 'File da sostituire',
+    packUnavailable: 'Importazione disponibile nell’app nativa Android/iOS, non nel browser.',
+    packBlocked: 'Download automatico non attivo: diritti di distribuzione e verifica scientifica indipendente in revisione.',
+    packCore: 'Base',
+    packOptional: 'Facoltativo',
+    packFailure: 'Operazione non riuscita. Verifica che il file corrisponda al pacchetto e riprova.',
+    packRemoveConfirm: 'Eliminare il pacchetto dalla memoria locale dell’app?',
+    packSizeMismatch: 'Dimensione del file non corrispondente al catalogo.'
   },
   en: {
     tagline: 'The sky, in your hands',
@@ -67,7 +84,23 @@ const messages = {
     native: 'Native host',
     connected: 'Local bridge connected',
     browser: 'Browser preview',
-    build: 'Development shell'
+    build: 'Development shell',
+    packTitle: 'DE441 ephemerides',
+    packIntro: 'Local historical-range packages. They are not connected to chart calculation yet.',
+    packImport: 'Import local file',
+    packVerify: 'Verify SHA-256',
+    packRemove: 'Remove',
+    packMissing: 'Not installed',
+    packPresent: 'Present, not verified',
+    packVerified: 'Hash verified',
+    packInvalid: 'File must be replaced',
+    packUnavailable: 'Import is available in the native Android/iOS app, not in the browser.',
+    packBlocked: 'Automatic downloads disabled: redistribution rights and independent scientific validation are pending.',
+    packCore: 'Base',
+    packOptional: 'Optional',
+    packFailure: 'Operation failed. Check the selected file and try again.',
+    packRemoveConfirm: 'Delete this package from the app’s local storage?',
+    packSizeMismatch: 'File size does not match the catalog.'
   }
 } as const;
 
@@ -163,6 +196,13 @@ export class AppComponent implements OnInit {
   readonly locale = signal<Locale>('it');
   readonly runtime = signal<string | null>(null);
   readonly navTabs: readonly Tab[] = ['home', 'chart', 'archive', 'settings'];
+  readonly packInventory = signal<readonly PackInventory[]>([]);
+  readonly packsLoading = signal(false);
+  readonly packBusy = signal<string | null>(null);
+  readonly packProgress = signal(0);
+  readonly packError = signal('');
+  readonly packChecked = signal<Readonly<Record<string, string>>>({});
+  readonly nativePacks = packServiceAvailable();
 
   t(key: keyof typeof messages.it): string {
     return messages[this.locale()][key];
@@ -170,6 +210,92 @@ export class AppComponent implements OnInit {
 
   navigate(tab: Tab): void {
     this.tab.set(tab);
+    if (tab === 'settings') void this.refreshPacks();
+  }
+
+  private async refreshPacks(): Promise<void> {
+    this.packsLoading.set(true);
+    this.packError.set('');
+    try {
+      if (this.nativePacks) {
+        this.packInventory.set(await readNativePacks());
+      } else {
+        // The catalog has no download addresses or binary files: browser preview only.
+        const response = await fetch('assets/de441-pack-catalog.json');
+        if (!response.ok) throw new Error('catalog_unavailable');
+        const catalog = await response.json() as {packs: Omit<PackInventory, 'status'>[]};
+        if (!Array.isArray(catalog.packs) || catalog.packs.length !== 10) throw new Error('catalog_invalid');
+        this.packInventory.set(catalog.packs.map(pack => ({...pack, status: 'missing' as const})));
+      }
+    } catch {
+      this.packError.set(this.t('packFailure'));
+    } finally {
+      this.packsLoading.set(false);
+    }
+  }
+
+  packLabel(pack: PackInventory): string {
+    const checked = this.packChecked()[pack.id];
+    if (checked === 'verified') return this.t('packVerified');
+    if (checked === 'invalid_hash' || checked === 'invalid_size' || pack.status === 'invalid_size') return this.t('packInvalid');
+    return pack.status === 'missing' ? this.t('packMissing') : this.t('packPresent');
+  }
+
+  async importPackFile(id: string, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const pack = this.packInventory().find(item => item.id === id);
+    if (!pack || !file || !this.nativePacks || this.packBusy()) return;
+    if (file.size !== pack.bytes) {
+      this.packError.set(this.t('packSizeMismatch'));
+      return;
+    }
+    this.packError.set('');
+    this.packBusy.set(id);
+    this.packProgress.set(0);
+    try {
+      await importLocalPack(pack, file, value => this.packProgress.set(Math.round(value * 100)));
+      this.packChecked.update(map => ({...map, [id]: 'verified'}));
+      await this.refreshPacks();
+    } catch {
+      this.packError.set(this.t('packFailure'));
+    } finally {
+      this.packBusy.set(null);
+    }
+  }
+
+  async checkPack(id: string): Promise<void> {
+    if (!this.nativePacks || this.packBusy()) return;
+    this.packError.set('');
+    this.packBusy.set(id);
+    try {
+      const result = await verifyPack(id);
+      this.packChecked.update(map => ({...map, [id]: result.status}));
+    } catch {
+      this.packError.set(this.t('packFailure'));
+    } finally {
+      this.packBusy.set(null);
+    }
+  }
+
+  async deletePack(id: string): Promise<void> {
+    if (!this.nativePacks || this.packBusy() || !window.confirm(this.t('packRemoveConfirm'))) return;
+    this.packError.set('');
+    this.packBusy.set(id);
+    try {
+      await removePack(id);
+      this.packChecked.update(map => {
+        const next = {...map};
+        delete next[id];
+        return next;
+      });
+      await this.refreshPacks();
+    } catch {
+      this.packError.set(this.t('packFailure'));
+    } finally {
+      this.packBusy.set(null);
+    }
   }
 
   switchLocale(): void {

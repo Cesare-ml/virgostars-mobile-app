@@ -69,6 +69,48 @@
         <p class="catalog-credit">Noto Sans Symbols / Symbols 2 · <a href="https://openfontlicense.org/" target="_blank" rel="noreferrer noopener">SIL Open Font License 1.1</a></p>
         <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
       </div>
+      <section class="settings-card ephemeris-card" aria-labelledby="ephemeris-title">
+        <div class="ephemeris-heading">
+          <div>
+            <span class="eyebrow">DE441 · OFFLINE</span>
+            <h2 id="ephemeris-title">{{ t('packTitle') }}</h2>
+          </div>
+          <span class="ephemeris-count">{{ packInventory().length }} {{ locale() === 'it' ? 'intervalli' : 'ranges' }}</span>
+        </div>
+        <p>{{ t('packIntro') }}</p>
+        <p class="pack-warning">{{ t('packBlocked') }}</p>
+        @if (!nativePacks) { <p class="catalog-credit">{{ t('packUnavailable') }}</p> }
+        @if (packsLoading()) { <p role="status">{{ locale() === 'it' ? 'Caricamento catalogo…' : 'Loading catalog…' }}</p> }
+        @if (packError()) { <p class="pack-error" role="alert">{{ packError() }}</p> }
+        <div class="ephemeris-list">
+          @for (pack of packInventory(); track pack.id) {
+            <div class="ephemeris-pack">
+              <div class="ephemeris-pack-top">
+                <div>
+                  <span class="pack-range">{{ pack.firstYear }}–{{ pack.lastYear }}</span>
+                  <span class="pack-size">{{ (pack.bytes / 1000000).toFixed(1) }} MB · {{ pack.required ? t('packCore') : t('packOptional') }}</span>
+                </div>
+                <span class="pack-status" [class.pack-status-ok]="packChecked()[pack.id] === 'verified'">{{ packLabel(pack) }}</span>
+              </div>
+              @if (packBusy() === pack.id && packProgress() > 0 && packProgress() < 100) {
+                <progress class="pack-progress" [value]="packProgress()" max="100" [attr.aria-label]="locale() === 'it' ? 'Importazione' : 'Import'"></progress>
+              }
+              <div class="pack-actions">
+                @if (pack.status === 'missing') {
+                  <label class="pack-import" [class.pack-import-disabled]="!nativePacks || !!packBusy()">
+                    {{ t('packImport') }}
+                    <input type="file" accept=".eph" [disabled]="!nativePacks || !!packBusy()" (change)="importPackFile(pack.id, $event)" [attr.aria-label]="t('packImport') + ': ' + pack.firstYear + '–' + pack.lastYear">
+                  </label>
+                } @else {
+                  <button type="button" [disabled]="!nativePacks || !!packBusy()" (click)="checkPack(pack.id)">{{ t('packVerify') }}</button>
+                  <button type="button" class="pack-danger" [disabled]="!nativePacks || !!packBusy()" (click)="deletePack(pack.id)">{{ t('packRemove') }}</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <p class="catalog-credit">{{ locale() === 'it' ? 'I pacchetti vengono importati solo su scelta dell’utente e conservati nella directory privata dell’app. Verifica le licenze prima della distribuzione.' : 'Packages are imported only by user choice and stored in app-private storage. Review licensing before redistribution.' }}</p>
+      </section>
       <p class="disclaimer">{{ t('about') }}</p>
     }
   </main>

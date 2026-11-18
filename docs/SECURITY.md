@@ -15,3 +15,7 @@ Before implementing identity or local storage:
 Do not upload logs containing natal data, access tokens or personal identifiers. Vulnerabilities should be disclosed privately to maintainers; do not open a public issue containing an exploit or secrets.
 
 No GitHub Actions, auto-publishing or cloud deployment are configured.
+
+## Experimental DE441 local-pack storage
+
+The app can import an explicit user-selected local `.eph` slice through bounded IPC chunks. Only ten fixed IDs and filenames are recognized; app-private temporary files are length- and SHA-256-checked before atomic installation. No broad OS filesystem permission, arbitrary path parameter, remote URL or server call is introduced. Installed files may be verified and removed explicitly. Distribution rights and independent scientific validation remain pending, so automatic downloading and bundling of ephemeris data are disabled. See [DE441 local packs](DE441_LOCAL_PACKS.md).

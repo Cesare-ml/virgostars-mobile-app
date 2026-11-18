@@ -21,6 +21,10 @@ Prototype: local Swiss provider, Functions adapter and Charts renderer with open
   - One Android emulator touch on the Sun glyph selected/deselected it; list selection persisted across navigation, house redraw and simulated WebGL recovery. Full touch and accessibility coverage remains open.
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
 - [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
+  - [x] Source/contract prototype: local DE441 pack inventory, chunked import, SHA-256 verification and removal in app-private storage
+  - [ ] Compile and device-test native pack import on Android; interrupted file picker/transfer/storage rollback
+  - [ ] Review redistribution rights and independent JPL/NASA reference vectors before enabling download hosting
+  - [ ] Connect the canonical VirgoStars-Ephemeris pack reader to `calculate_chart` with validated mobile bindings
 - [ ] Use only permitted synthetic/sample assets and accurately report method limits
 - [ ] Low-memory, dark-mode, portrait/landscape device tests
 
