@@ -111,7 +111,8 @@ test('Rust host uses the canonical DE441 reader behind opt-in feature, without c
   assert.match(rust, /spawn_blocking/);
   assert.match(rust, /"ICRF\/J2000"/);
   assert.match(rust, /"geometric"/);
-  assert.match(cargo, /de441-native-probe\s*=\s*\["dep:virgostars-ephemeris-core"\]/);
+  assert.match(cargo, /de441-native-probe\s*=\s*\["de441-engine"\]/);
+  assert.match(cargo, /de441-engine\s*=\s*\["dep:virgostars-ephemeris-core"\]/);
   assert.match(host, /de441_probe::de441_probe/);
   assert.match(host, /de441_probe::de441_probe_civil/);
   assert.match(rust, /CivilTimestamp::parse/);

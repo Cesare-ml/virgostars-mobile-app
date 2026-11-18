@@ -11,9 +11,10 @@ name = "virgostars_mobile_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = []
+default = ["de441-engine"]
 swiss-ephemeris = ["dep:sweph-sys"]
-de441-native-probe = ["dep:virgostars-ephemeris-core"]
+de441-engine = ["dep:virgostars-ephemeris-core"]
+de441-native-probe = ["de441-engine"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -25,6 +26,6 @@ sweph-sys = { version = "=0.3.0", optional = true }
 serde_json = "1"
 sha2 = "0.10"
 base64 = "0.23"
-virgostars-ephemeris-core = { git = "https://github.com/Cesare-ml/VirgoStars-Ephemeris", rev = "996b0056aad4207c7b748b837c5440eb587e382b", optional = true }
+virgostars-ephemeris-core = { git = "https://github.com/Cesare-ml/VirgoStars-Ephemeris", rev = "8b08341bfaa34d8cb6a99607cc9bbed826a03ef5", optional = true }
 
 [dev-dependencies]

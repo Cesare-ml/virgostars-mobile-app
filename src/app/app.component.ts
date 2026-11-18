@@ -6,6 +6,7 @@ import { nextPlanetSelection } from './astro/planet-selection';
 import { civilTimeToUtc } from './astro/civil-time';
 import { ChartWheelComponent } from './astro/chart-wheel.component';
 import { calculateChart } from './native/chart-calculation';
+import { calculateDe441, type De441Result } from './native/de441-apparent';
 import type { ChartCalculationResult, HouseSystemId } from './native/chart-calculation-contract';
 import {importLocalPack, packServiceAvailable, readNativePacks, removePack, verifyPack, type PackInventory} from './native/de441-packs';
 
@@ -136,6 +137,8 @@ export class AppComponent implements OnInit {
   readonly chartUtc = signal('');
   readonly chartResult = signal<ChartCalculationResult | null>(null);
   readonly calculating = signal(false);
+  readonly de441Result = signal<De441Result | null>(null);
+  readonly de441Utc = signal('');
   utc = '2000-01-01T12:00';
   timezone = 'UTC';
   occurrence: '' | 'earlier' | 'later' = '';
@@ -199,6 +202,29 @@ export class AppComponent implements OnInit {
       this.selectedHouse.set(result.kind === 'ready' ? result.chart.houses[0]?.id ?? null : null);
       this.chartResult.set(result);
     } finally { this.calculating.set(false); }
+  }
+  async calculateDe441Positions(): Promise<void> {
+    if (this.calculating()) return;
+    const resolved = civilTimeToUtc(this.utc, this.timezone.trim(), this.occurrence);
+    if (resolved.kind !== 'ready') { this.timeError.set(resolved.kind); this.de441Result.set(null); return; }
+    this.timeError.set(''); this.de441Result.set(null); this.calculating.set(true);
+    try { this.de441Utc.set(resolved.utcIso); this.de441Result.set(await calculateDe441(resolved.utcIso)); }
+    finally { this.calculating.set(false); }
+  }
+  de441Status(status: string): string {
+    const it: Record<string,string> = {
+      missing_pack:'Pacchetto necessario non installato', invalid_pack:'Pacchetto non valido: verifica SHA-256',
+      unsupported_utc:'Data fuori dal periodo UTC supportato', outside_coverage:'Data fuori dalla copertura dei pacchetti',
+      refinement_boundary:'Calcolo non disponibile su questo confine temporale', provider_unavailable:'Motore nativo non disponibile',
+      invalid_request:'Data non valida', storage_unavailable:'Memoria non disponibile', calculation_failed:'Calcolo DE441 non riuscito',
+    };
+    const en: Record<string,string> = {
+      missing_pack:'Required package is not installed', invalid_pack:'Invalid package: check SHA-256',
+      unsupported_utc:'Date is outside supported UTC range', outside_coverage:'Date is outside package coverage',
+      refinement_boundary:'Calculation is unavailable at this time boundary', provider_unavailable:'Native engine unavailable',
+      invalid_request:'Invalid date', storage_unavailable:'Storage unavailable', calculation_failed:'DE441 calculation failed',
+    };
+    return (this.locale() === 'it' ? it : en)[status] ?? status;
   }
   readonly tab = signal<Tab>('home');
   readonly locale = signal<Locale>('it');
