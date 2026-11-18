@@ -13,6 +13,8 @@ Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 +
 
 **DE441 mobile data packs (prototype):** the native Settings screen can import one of ten user-supplied local slices, verify its SHA-256 and remove it. See [DE441 local packages](docs/DE441_LOCAL_PACKS.md). An optional, **developer-only** Rust diagnostic reads locally verified packs through the canonical `VirgoStars-Ephemeris` core, either at an explicit JD TDB or from a modern civil timestamp via the core's bounded **approximate** UTC→TDB converter. These commands are **off by default and not connected to natal chart calculations**. No binary ephemerides are bundled, and automated downloads remain disabled pending distribution-rights review.
 
+The owner-published [versioned DE441 release source](docs/DE441_RELEASE_SOURCE_2026-11-18.md) is recorded for a future downloader; the release-source metadata does not itself enable network downloads or settle distribution rights.
+
 On the chart, use the zoom controls to enlarge the wheel up to 200%, then scroll in either direction to explore it. Fit returns to the full wheel; planet selection remains available while zoomed.
 
 ## Idee e sviluppo delle funzioni native

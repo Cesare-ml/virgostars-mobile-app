@@ -1,0 +1,11 @@
+{
+  "schema": "virgostars.de441.release-source.v1",
+  "releaseTag": "de441-mobile-v1.0.0",
+  "releaseUrl": "https://github.com/Cesare-ml/VirgoStars-Ephemeris/releases/tag/de441-mobile-v1.0.0",
+  "assetBaseUrl": "https://github.com/Cesare-ml/VirgoStars-Ephemeris/releases/download/de441-mobile-v1.0.0/",
+  "manifestFilename": "de441-mobile-manifest-v1.json",
+  "manifestBytes": 8657,
+  "manifestSha256": "a4a204169555ee4ec01d5b3f25ce331a44ff6c9fd273d7f812cfa245e6ef6b7a",
+  "distributionRights": "review_pending",
+  "downloadImplementation": "not_implemented"
+}
