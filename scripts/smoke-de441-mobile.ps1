@@ -38,14 +38,15 @@ Write-Host "Tutti i $count pacchetti validi." -ForegroundColor Green
 
 Push-Location $repo
 try {
-  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { throw 'npm non trovato (installa Node.js).' }
+  # 2026-11-18: npm.ps1 can misparse `& npm ...` under Windows PowerShell 5.
+  # Calling the Windows command shim directly preserves its arguments.
+  $npm = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue
+  if (-not $npm) { throw 'npm.cmd non trovato (installa Node.js).' }
   if (-not (Test-Path 'node_modules')) {
     Write-Host 'Dipendenze npm assenti, installazione lockfile...' -ForegroundColor Cyan
-    & npm ci
+    & $npm.Source ci
     if ($LASTEXITCODE -ne 0) { throw 'npm ci non riuscito; verifica le librerie sibling.' }
   }
-  & npm run check
-  if ($LASTEXITCODE -ne 0) { throw 'npm run check non riuscito.' }
   if ($CheckNativeProbe) {
     Write-Host 'Controllo compilazione Rust del lettore DE441 e conversione civile (senza scaricare kernels)...' -ForegroundColor Cyan
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
@@ -59,14 +60,16 @@ try {
       Pop-Location
     }
   }
+  & $npm.Source run check
+  if ($LASTEXITCODE -ne 0) { throw 'npm run check non riuscito.' }
   if ($BuildAndroid) {
     Write-Host 'Compilazione Android (richiede SDK/NDK/JDK/Rust configurati)...' -ForegroundColor Cyan
     if (-not (Test-Path 'src-tauri\gen\android')) {
       Write-Host 'Inizializzazione progetto Android locale...' -ForegroundColor Cyan
-      & npm run android:init
+      & $npm.Source run android:init
       if ($LASTEXITCODE -ne 0) { throw 'Inizializzazione Android non riuscita.' }
     }
-    & npm run android:build
+    & $npm.Source run android:build
     if ($LASTEXITCODE -ne 0) { throw 'Build Android non riuscita.' }
   }
 } finally {

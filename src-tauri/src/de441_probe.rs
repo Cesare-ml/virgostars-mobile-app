@@ -294,4 +294,41 @@ mod tests {
         let unsupported = CivilTimestamp::parse("1960-01-01T00:00:00Z").unwrap();
         assert!(matches!(unsupported.to_approximate_tdb_julian_date(), Err(SkyError::UnsupportedUtc)));
     }
+
+    // Modification 2026-11-18: exercise the real diagnostic boundary and its
+    // fail-closed responses without changing any user-owned packages.
+    #[cfg(feature = "de441-native-probe")]
+    #[test]
+    fn probe_rejects_missing_and_corrupt_core_without_fallback() {
+        use super::probe_from_directory;
+        let dir = std::env::temp_dir().join(format!("virgostars-de441-probe-audit-{}", std::process::id()));
+        std::fs::create_dir(&dir).unwrap();
+        let request = || ProbeRequest { protocol_version: 1, jd_tdb: 2451545.0, target: BodyToken::Sun, center: BodyToken::Earth };
+        let missing = probe_from_directory(dir.clone(), request());
+        assert_eq!(missing.status, "missing_pack");
+        assert!(missing.result.is_none());
+        let path = dir.join("de441-core.eph");
+        std::fs::write(&path, b"corrupt").unwrap();
+        let corrupt = probe_from_directory(dir.clone(), request());
+        assert_eq!(corrupt.status, "invalid_pack");
+        assert!(corrupt.result.is_none());
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[cfg(feature = "de441-native-probe")]
+    #[test]
+    #[ignore = "requires DE441_PACKS_DIR with locally held, separately licensed packs"]
+    fn probe_reads_verified_real_base_pack() {
+        use super::probe_from_directory;
+        let directory = std::path::PathBuf::from(std::env::var_os("DE441_PACKS_DIR").expect("DE441_PACKS_DIR"));
+        let response = probe_from_directory(directory, ProbeRequest { protocol_version: 1, jd_tdb: 2451545.0, target: BodyToken::Sun, center: BodyToken::Earth });
+        assert_eq!(response.status, "ok");
+        assert_eq!(response.selected_pack_id.as_deref(), Some("core"));
+        let state = response.result.expect("geometric state");
+        assert_eq!(state.quantity, "geometric");
+        assert_eq!(state.frame, "ICRF/J2000");
+        assert!(state.position_km.iter().chain(state.velocity_km_per_day.iter()).all(|x| x.is_finite()));
+        println!("sun-earth JD TDB 2451545.0 position_km={:?} velocity_km_per_day={:?}", state.position_km, state.velocity_km_per_day);
+    }
 }
