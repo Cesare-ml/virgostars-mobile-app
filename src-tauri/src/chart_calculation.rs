@@ -64,12 +64,30 @@ pub struct HouseSystemV1 {
     pub vertex_deg: f64,
 }
 
+/// Astronomical inputs for shared house methods. UTC is approximated as UT1 by the provider.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HouseAngleFactsV1 {
+    pub model: &'static str,
+    pub time_source: &'static str,
+    pub tt_julian_day: f64,
+    pub latitude_deg: f64,
+    pub longitude_deg_east: f64,
+    pub armc_deg: f64,
+    pub true_obliquity_deg: f64,
+    pub ascendant_deg: f64,
+    pub mc_deg: f64,
+    pub vertex_deg: f64,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ChartSnapshotV1 {
     pub julian_day_ut: f64,
     pub bodies: Vec<BodyPositionV1>,
     pub houses: Vec<HouseSystemV1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub house_angle_facts: Option<HouseAngleFactsV1>,
     /// Requested but not computable with the available data. Never substituted.
     pub unavailable_bodies: Vec<&'static str>,
     pub unavailable_house_systems: Vec<&'static str>,
@@ -105,6 +123,7 @@ pub enum Luminary {
 
 pub trait EphemerisProvider: Send + Sync {
     fn info(&self) -> ProviderInfoV1;
+    fn covers(&self, _request: &ValidatedRequest) -> bool { true }
     fn chart(&self, request: &ValidatedRequest) -> Result<ChartSnapshotV1, ProviderError>;
     /// Apparent geocentric ecliptic longitude of a luminary, degrees in `[0, 360)`.
     /// Providers that cannot answer keep this default and searches report a failure.
@@ -193,6 +212,9 @@ pub fn respond(provider: Option<&dyn EphemerisProvider>, request: &ChartRequestV
     let Some(provider) = provider else {
         return failure("provider_unavailable");
     };
+    if !provider.covers(&valid) {
+        return failure("out_of_range");
+    }
     match provider.chart(&valid) {
         Ok(chart) => ChartResponseV1 {
             protocol_version: PROTOCOL_VERSION,
@@ -204,12 +226,17 @@ pub fn respond(provider: Option<&dyn EphemerisProvider>, request: &ChartRequestV
     }
 }
 
+#[cfg(all(feature = "virgostars-ephemeris", not(feature = "swiss-ephemeris")))]
+pub(crate) fn active_provider() -> Option<&'static dyn EphemerisProvider> {
+    crate::virgostars_provider::data_available().then_some(&crate::virgostars_provider::VirgoStarsEphemeris)
+}
+
 #[cfg(feature = "swiss-ephemeris")]
 pub(crate) fn active_provider() -> Option<&'static dyn EphemerisProvider> {
     Some(&crate::swiss_provider::SwissEphemeris)
 }
 
-#[cfg(not(feature = "swiss-ephemeris"))]
+#[cfg(not(any(feature = "swiss-ephemeris", feature = "virgostars-ephemeris")))]
 pub(crate) fn active_provider() -> Option<&'static dyn EphemerisProvider> {
     None
 }
@@ -247,6 +274,7 @@ mod tests {
             julian_day_ut: 2_451_545.0,
             bodies: vec![],
             houses: vec![],
+            house_angle_facts: None,
             unavailable_bodies: vec!["Chiron"],
             unavailable_house_systems: vec![],
         }
@@ -316,6 +344,19 @@ mod tests {
     fn test_no_provider_is_reported_and_never_replaced_by_made_up_positions() {
         let response = respond(None, &request("2001-02-03T04:05:06Z"));
         assert_eq!(response.status, "provider_unavailable");
+        assert!(response.provider.is_none() && response.chart.is_none());
+    }
+
+    #[test]
+    fn test_out_of_range_never_invokes_the_provider_chart() {
+        struct OutOfRange;
+        impl EphemerisProvider for OutOfRange {
+            fn info(&self) -> ProviderInfoV1 { panic!("out-of-range provider must not be read") }
+            fn covers(&self, _: &ValidatedRequest) -> bool { false }
+            fn chart(&self, _: &ValidatedRequest) -> Result<ChartSnapshotV1, ProviderError> { panic!("out-of-range chart must not be calculated") }
+        }
+        let response = respond(Some(&OutOfRange), &request("2000-01-01T12:00:00Z"));
+        assert_eq!(response.status, "out_of_range");
         assert!(response.provider.is_none() && response.chart.is_none());
     }
 

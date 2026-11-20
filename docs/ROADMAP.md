@@ -2,6 +2,10 @@
 
 Milestones represent intended work, not completed functionality.
 
+Desktop Lab 0.0.1 is the functional parity target; see [DESKTOP_PARITY.md](DESKTOP_PARITY.md) for the current comparison and dependencies. Parity is not complete.
+
+The agreed first Android release scope and current sign-in/sync blockers are tracked in [Android v1 checkpoint](ANDROID_V1_CHECKPOINT.md).
+
 Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astrologer Toolkit](NATIVE_ASTROLOGER_TOOLKIT.md); il documento distingue le funzioni progettate dalle integrazioni già realizzate.
 
 ## M0 — Bootstrap (this repository state)
@@ -14,18 +18,19 @@ Le proposte relative alle API e ai sensori nativi sono raccolte in [Native Astro
 - [ ] Android toolchain initialized, physical/emulator smoke test
 
 ## M1 — Android demo with legitimate computed charts
-Prototype: local Swiss provider, Functions adapter and Charts renderer with open-font glyphs and synthetic fallback artwork integrated; browser mock smoke, ARM64 build and x86_64 Android emulator smoke completed, including offline calculation and synthetic chart rendering. Physical-device rendering and scientific validation remain open.
+Prototype: VirgoStars-Ephemeris provider, manual DE441/USNO/Chiron import and update, shared Functions adapter and Charts renderer with open-font glyphs and synthetic fallback artwork integrated. Automated data delivery, independent scientific validation and physical-device rendering remain open.
 - [ ] Validate `astrological-charts` touch gestures, DPI, memory and WebGL restoration
   - Emulator smoke: house-system change, landscape state preservation and simulated WebGL loss/restoration passed; touch, memory and physical-device testing remain open.
   - The result list shows signs, truncated degrees, retrograde marks and houses; one emulator case confirmed synchronization after changing house systems and navigating away and back.
   - One Android emulator touch on the Sun glyph selected/deselected it; list selection persisted across navigation, house redraw and simulated WebGL recovery. Full touch and accessibility coverage remains open.
 - [ ] Share `astrological-functions` typed DTOs and contract vectors
-- [ ] Integrate independently validated Rust ephemeris adapter; preserve astronomy provenance and tests
+- [ ] Independently validate the integrated Rust ephemeris adapter and data provisioning; preserve astronomy provenance and tests
 - [ ] Use only permitted synthetic/sample assets and accurately report method limits
 - [ ] Low-memory, dark-mode, portrait/landscape device tests
 
 ## M2 — Local-first private archive
-- [ ] Design versioned SQLite schema, migration/rollback and OS-backed encryption/key storage
+- [x] Implement experimental Android device-only encrypted chart archive and OS-backed wrapped key; desktop legacy import is disabled
+- [ ] Validate physical devices, interrupted writes, upgrades, key loss and any future migration/recovery policy before release
 - [ ] OAuth2 Authorization Code + PKCE via system browser, account-aware device binding
 - [ ] Verified offline unlock policy and explicit revocation limitations
 - [ ] Transactional outbox, idempotency, cursor sync and conflict UI with server-owned authorization

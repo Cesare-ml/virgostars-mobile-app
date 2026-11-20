@@ -12,7 +12,7 @@ export type ChartBodyId = typeof CHART_BODY_IDS[number];
 export const HOUSE_SYSTEM_IDS = Object.freeze(['egizia', 'placido', 'koch', 'regio-montano', 'porfirio'] as const);
 export type HouseSystemId = typeof HOUSE_SYSTEM_IDS[number];
 
-export type EphemerisSource = 'moshier' | 'swiss_files' | 'jpl';
+export type EphemerisSource = 'moshier' | 'swiss_files' | 'jpl' | 'virgostars_model' | 'jpl_small_body';
 
 export type ChartBodyV1 = Readonly<{
   id: ChartBodyId;
@@ -36,10 +36,18 @@ export type ChartHouseSystemV1 = Readonly<{
   vertexDeg: number;
 }>;
 
+export type HouseAngleFactsV1 = Readonly<{
+  model:'iau2006_2000b_utc_as_ut1';
+  timeSource:'iers_leap_seconds' | 'delta_t_polynomial' | 'delta_t_observed' | 'delta_t_predicted';
+  ttJulianDay:number; latitudeDeg:number; longitudeDegEast:number; armcDeg:number;
+  trueObliquityDeg:number; ascendantDeg:number; mcDeg:number; vertexDeg:number;
+}>;
+
 export type ChartSnapshotV1 = Readonly<{
   julianDayUt: number;
   bodies: readonly ChartBodyV1[];
   houses: readonly ChartHouseSystemV1[];
+  houseAngleFacts?: HouseAngleFactsV1;
   unavailableBodies: readonly ChartBodyId[];
   unavailableHouseSystems: readonly HouseSystemId[];
 }>;
@@ -50,7 +58,7 @@ export type ChartRequestV1 = Readonly<{utcIso: string; latMicro: number; lngMicr
 
 export type ChartCalculationResult =
   | Readonly<{kind: 'ready'; provider: ChartProviderV1; chart: ChartSnapshotV1}>
-  | Readonly<{kind: 'not_native' | 'provider_unavailable' | 'invalid_request' | 'calculation_failed' | 'unavailable'}>;
+  | Readonly<{kind: 'not_native' | 'provider_unavailable' | 'invalid_request' | 'out_of_range' | 'calculation_failed' | 'unavailable'}>;
 
 export interface ChartCalculationTransport {
   isNative(): boolean;
@@ -62,7 +70,7 @@ export interface ChartCalculationTransport {
 
 const PROTOCOL_ERROR = 'Invalid chart calculation protocol';
 const UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
-const SOURCES: readonly string[] = ['moshier', 'swiss_files', 'jpl'];
+const SOURCES: readonly string[] = ['moshier', 'swiss_files', 'jpl', 'virgostars_model', 'jpl_small_body'];
 
 function plainObject(x: unknown): x is Record<string, unknown> {
   if (typeof x !== 'object' || x === null || Array.isArray(x)) return false;
@@ -137,16 +145,29 @@ function decodeHouseSystem(raw: unknown, seen: Set<string>): ChartHouseSystemV1 
   });
 }
 
+function decodeHouseAngles(raw: unknown, jdUt: number): HouseAngleFactsV1 {
+  if (!plainObject(raw) || field(raw, 'model') !== 'iau2006_2000b_utc_as_ut1') throw new Error(PROTOCOL_ERROR);
+  const source = field(raw, 'timeSource');
+  if (source !== 'iers_leap_seconds' && source !== 'delta_t_polynomial' && source !== 'delta_t_observed' && source !== 'delta_t_predicted') throw new Error(PROTOCOL_ERROR);
+  const tt = finite(field(raw, 'ttJulianDay'), 2_300_000, 2_600_000);
+  const obliquity = finite(field(raw, 'trueObliquityDeg'), 0, 90);
+  if (Math.abs(tt - jdUt) > 1 || obliquity === 0 || obliquity === 90) throw new Error(PROTOCOL_ERROR);
+  return Object.freeze({model:'iau2006_2000b_utc_as_ut1', timeSource:source,
+    ttJulianDay:tt, latitudeDeg:finite(field(raw, 'latitudeDeg'), -90, 90), longitudeDegEast:finite(field(raw, 'longitudeDegEast'), -180, 180),
+    armcDeg:circle(field(raw, 'armcDeg')), trueObliquityDeg:obliquity,
+    ascendantDeg:circle(field(raw, 'ascendantDeg')), mcDeg:circle(field(raw, 'mcDeg')), vertexDeg:circle(field(raw, 'vertexDeg'))});
+}
+
 type DecodedResponse =
   | Readonly<{status: 'ok'; provider: ChartProviderV1; chart: ChartSnapshotV1}>
-  | Readonly<{status: 'provider_unavailable' | 'invalid_request' | 'calculation_failed'}>;
+  | Readonly<{status: 'provider_unavailable' | 'invalid_request' | 'out_of_range' | 'calculation_failed'}>;
 
 /** Detached, frozen values from one native response; throws a generic error otherwise. */
 export function decodeChartResponse(raw: unknown): DecodedResponse {
   try {
     if (!plainObject(raw) || field(raw, 'protocolVersion') !== 1) throw new Error(PROTOCOL_ERROR);
     const status = field(raw, 'status');
-    if (status === 'provider_unavailable' || status === 'invalid_request' || status === 'calculation_failed') {
+    if (status === 'provider_unavailable' || status === 'invalid_request' || status === 'out_of_range' || status === 'calculation_failed') {
       return Object.freeze({status});
     }
     if (status !== 'ok') throw new Error(PROTOCOL_ERROR);
@@ -172,6 +193,12 @@ export function decodeChartResponse(raw: unknown): DecodedResponse {
       .map(id => member(id, CHART_BODY_IDS, bodyIds));
     const unavailableHouseSystems = denseArray(field(chart, 'unavailableHouseSystems'), HOUSE_SYSTEM_IDS.length)
       .map(id => member(id, HOUSE_SYSTEM_IDS, houseIds));
+    const julianDayUt = finite(field(chart, 'julianDayUt'), 2_300_000, 2_600_000);
+    const factsDescriptor = Object.getOwnPropertyDescriptor(chart, 'houseAngleFacts');
+    const houseAngleFacts = factsDescriptor ? decodeHouseAngles(field(chart, 'houseAngleFacts'), julianDayUt) : undefined;
+    if (providerId === 'virgostars_ephemeris') {
+      if (engineVersion !== 'core-0.1.0-6835e00' || !houseAngleFacts || houses.length !== 0 || unavailableHouseSystems.length !== HOUSE_SYSTEM_IDS.length) throw new Error(PROTOCOL_ERROR);
+    } else if (houseAngleFacts) throw new Error(PROTOCOL_ERROR);
     if (!bodyIds.has('Sun') || !bodyIds.has('Moon') ||
         unavailableBodies.includes('Sun') || unavailableBodies.includes('Moon')) {
       throw new Error(PROTOCOL_ERROR);
@@ -180,9 +207,10 @@ export function decodeChartResponse(raw: unknown): DecodedResponse {
       status: 'ok',
       provider: Object.freeze({id: providerId, engineVersion}),
       chart: Object.freeze({
-        julianDayUt: finite(field(chart, 'julianDayUt'), 2_300_000, 2_600_000),
+        julianDayUt,
         bodies: Object.freeze(bodies),
         houses: Object.freeze(houses),
+        ...(houseAngleFacts ? {houseAngleFacts} : {}),
         unavailableBodies: Object.freeze(unavailableBodies),
         unavailableHouseSystems: Object.freeze(unavailableHouseSystems),
       }),
@@ -214,6 +242,13 @@ export async function requestChart(
       request: {protocolVersion: 1, utcIso: request.utcIso, latMicro: request.latMicro, lngMicro: request.lngMicro},
     });
     const decoded = decodeChartResponse(raw);
+    if (decoded.status === 'ok' && decoded.chart.houseAngleFacts) {
+      const facts = decoded.chart.houseAngleFacts;
+      const epoch = Date.parse(request.utcIso);
+      const fromJd = (decoded.chart.julianDayUt - 2_440_587.5) * 86_400_000;
+      if (!Number.isFinite(epoch) || Math.abs(epoch - fromJd) > 1 ||
+          facts.latitudeDeg !== request.latMicro / 1e6 || facts.longitudeDegEast !== request.lngMicro / 1e6) throw new Error(PROTOCOL_ERROR);
+    }
     return decoded.status === 'ok'
       ? {kind: 'ready', provider: decoded.provider, chart: decoded.chart}
       : {kind: decoded.status};

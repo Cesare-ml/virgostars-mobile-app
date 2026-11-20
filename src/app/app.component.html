@@ -1,86 +1,269 @@
-<div class="app-shell">
+<div class="app-shell" [attr.data-theme]="theme()">
   <header class="masthead">
     <div class="brand" aria-label="VirgoStars Mobile">
       <div class="brand-mark" aria-hidden="true">✦</div>
       <div class="brand-text">Virgo<span>Stars</span><small>MOBILE</small></div>
     </div>
-    <button class="lang" type="button" (click)="switchLocale()" [attr.aria-label]="'Switch language / Cambia lingua'">
-      {{ locale() === 'it' ? 'EN' : 'IT' }}
-    </button>
+    @if (tab() === 'chart' && chartResult()?.kind === 'ready') {
+      <button class="sky-status" type="button" [disabled]="calculating() || overlayBusy()" (click)="openCurrentSky()" [attr.aria-label]="!chartIsSky() ? (locale() === 'it' ? 'Torna al cielo in tempo reale' : 'Return to live sky') : liveSky() ? (locale() === 'it' ? 'Cielo in tempo reale: metti in pausa' : 'Live sky: pause') : (locale() === 'it' ? 'Cielo in pausa: riprendi' : 'Sky paused: resume')"><span class="sky-indicator" [class.live]="chartIsSky() && liveSky()" aria-hidden="true"></span>{{ locale() === 'it' ? 'Cielo' : 'Sky' }}</button>
+    }
   </header>
 
+  @if (uiPreferencesSaving() || chartPreferencesSaving()) { <p role="status">{{ locale() === 'it' ? 'Salvataggio impostazioni…' : 'Saving settings…' }}</p> }
+  @if (uiPreferencesError() || chartPreferencesError()) {
+    <div class="settings-card" role="alert"><p>{{ locale() === 'it' ? 'Impossibile conservare alcune impostazioni: le modifiche potrebbero andare perse alla chiusura.' : 'Some settings could not be saved and may be lost when the app closes.' }}</p><button class="secondary" type="button" (click)="retryDisplayPreferences()">{{ locale() === 'it' ? 'Riprova salvataggio' : 'Retry saving' }}</button></div>
+  }
+
   <main id="main-content">
-    @if (tab() === 'home') {
-      <section class="hero">
-        <span class="eyebrow">{{ t('status') }}</span>
-        <div class="hero-star" aria-hidden="true">✧</div>
-        <h1>{{ t('welcome') }}</h1>
-        <p>{{ t('intro') }}</p>
-        <button class="primary" type="button" (click)="navigate('chart')">{{ t('explore') }} <span aria-hidden="true">→</span></button>
-      </section>
-      <section class="info-card" aria-labelledby="offline-title">
-        <div class="info-symbol" aria-hidden="true">◷</div>
-        <div><h2 id="offline-title">{{ t('offlineTitle') }}</h2><p>{{ t('offlineBody') }}</p></div>
-      </section>
-    } @else if (tab() === 'chart') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('chartTitle') }}</h1><p>{{ locale() === 'it' ? 'Calcolo sperimentale locale: inserisci data, ora, fuso IANA e coordinate.' : 'Experimental local calculation: enter date, time, IANA time zone and coordinates.' }}</p></section>
-      <form class="settings-card chart-form" (submit)="$event.preventDefault(); calculate()">
-        <label>{{ locale() === 'it' ? 'Cerca luogo (facoltativo)' : 'Search place (optional)' }} <input type="search" autocomplete="off" maxlength="80" [value]="placeQuery()" (input)="searchPlace($any($event.target).value)"></label>
-        <p class="catalog-credit">{{ locale() === 'it' ? 'Il catalogo non copre tutte le località: verifica coordinate e fuso anche per date storiche.' : 'The catalog does not cover every locality: check coordinates and time zone, especially for historical dates.' }}</p>
-        @if (placeState() === 'loading') { <p role="status">{{ locale() === 'it' ? 'Ricerca in corso…' : 'Searching…' }}</p> }
-        @if (placeState() === 'ready' && !placeResults().length) { <p role="status">{{ locale() === 'it' ? 'Nessun luogo trovato. Puoi inserire coordinate e fuso manualmente.' : 'No places found. You can enter coordinates and time zone manually.' }}</p> }
-        @if (placeError()) { <p role="alert">{{ locale() === 'it' ? 'Catalogo luoghi non disponibile: usa le coordinate manuali.' : 'Place catalog unavailable: enter coordinates manually.' }}</p> }
-        @if (placeResults().length) { <ul class="place-results">@for (place of placeResults(); track place.id) { <li><button type="button" (click)="choosePlace(place)">{{ place.name }} · {{ place.region }} · {{ place.country }} <small>{{ place.zone }}</small></button></li> }</ul> }
-        <label>{{ locale() === 'it' ? 'Data e ora locali' : 'Local date and time' }} <input type="datetime-local" [value]="utc" (input)="utc = $any($event.target).value" required></label>
-        <label>{{ locale() === 'it' ? 'Fuso orario IANA (es. Europe/Rome)' : 'IANA time zone (e.g. Europe/Rome)' }} <input type="text" [value]="timezone" (input)="timezone = $any($event.target).value" required></label>
-        <label>{{ locale() === 'it' ? 'Ora ripetuta al cambio DST' : 'Repeated time at DST transition' }} <select [value]="occurrence" (change)="occurrence = $any($event.target).value"><option value="">{{ locale() === 'it' ? 'Chiedi se ambigua' : 'Require a choice' }}</option><option value="earlier">{{ locale() === 'it' ? 'Prima occorrenza' : 'Earlier occurrence' }}</option><option value="later">{{ locale() === 'it' ? 'Seconda occorrenza' : 'Later occurrence' }}</option></select></label>
-        @if (timeError(); as error) { <p class="disclaimer" role="alert">{{ error }} · {{ locale() === 'it' ? 'Controlla il fuso e il cambio ora; per un’ora ripetuta scegli prima o seconda occorrenza.' : 'Check the zone and clock change; choose earlier or later for a repeated time.' }}</p> }
-        <label>{{ locale() === 'it' ? 'Latitudine (nord positiva)' : 'Latitude (north positive)' }} <input type="number" step="any" min="-90" max="90" [value]="latitude" (input)="latitude = $any($event.target).value" required></label>
-        <label>{{ locale() === 'it' ? 'Longitudine (est positiva)' : 'Longitude (east positive)' }} <input type="number" step="any" min="-180" max="180" [value]="longitude" (input)="longitude = $any($event.target).value" required></label>
-        <button class="primary" type="submit" [disabled]="calculating()">{{ calculating() ? '…' : (locale() === 'it' ? 'Calcola' : 'Calculate') }}</button>
-      </form>
+    @if (tab() === 'chart') {
+      @if (skyReturnError()) { <p role="alert">{{ locale() === 'it' ? 'Cielo attuale non disponibile.' : 'Current sky unavailable.' }}</p> }
+      <section class="section-head chart-heading"><h1>{{ chartHeading() }}</h1>@if (chartResult()?.kind === 'ready') { <p>{{ chartMetadata() }}</p> }</section>
+      @if (startupBusy()) { <p role="status">{{ locale() === 'it' ? 'Calcolo in corso…' : 'Calculating…' }}</p> }
+      @if (chartResult()?.kind === 'ready') {
+        <nav class="chart-menu" [attr.aria-label]="locale() === 'it' ? 'Sezioni della carta' : 'Chart sections'">
+          @for (item of [{id:'chart',it:'Grafico',en:'Chart'},{id:'latitude',it:'Latitudini',en:'Latitudes'},{id:'planets',it:'Pianeti',en:'Planets'},{id:'aspects',it:'Aspetti',en:'Aspects'},{id:'elements',it:'Elementi',en:'Elements'},{id:'tools',it:'Strumenti',en:'Tools'}]; track item.id) {
+            <button type="button" [class.active]="chartPanel() === item.id" [attr.aria-current]="chartPanel() === item.id ? 'page' : null" (click)="setChartPanel($any(item.id))">{{ locale() === 'it' ? item.it : item.en }}</button>
+          }
+        </nav>
+      }
+      @if (calculating() && chartResult()?.kind !== 'ready') { <p role="status">{{ locale() === 'it' ? 'Calcolo in corso…' : 'Calculating…' }}</p> }
       @if (chartResult(); as result) {
         @if (result.kind === 'ready') {
-          <vs-chart-wheel [chart]="result.chart" [utcIso]="chartUtc()" [locale]="locale()" [activeHouse]="selectedHouse()" [activePlanet]="selectedPlanet()" (houseChange)="selectedHouse.set($event)" (planetChange)="selectedPlanet.set($event)" />
-          <section class="settings-card chart-results" aria-live="polite"><h2>{{ locale() === 'it' ? 'Posizioni geocentriche apparenti' : 'Apparent geocentric positions' }}</h2>
-            <p>UTC: {{ chartUtc() }}</p>
-            <p>{{ result.provider.id }} {{ result.provider.engineVersion }} · {{ locale() === 'it' ? 'Risultati sperimentali' : 'Experimental results' }}</p>
-            <ul>@for (body of inspectorRows(); track body.id) { <li><button type="button" class="planet-select" [attr.aria-pressed]="selectedPlanet() === body.id" (click)="selectPlanet(body.id)">{{ body.id }}</button><span>{{ body.degree }} {{ zodiacNames[locale()][body.signIndex] }} @if (body.retrograde) { ℞ }<br><small>{{ locale() === 'it' ? 'Casa' : 'House' }}: {{ body.house ?? '—' }} · {{ body.longitude.toFixed(4) }}° · {{ body.source }}</small></span></li> }</ul>
-            <p>{{ locale() === 'it' ? 'Non disponibili' : 'Unavailable' }}: {{ result.chart.unavailableBodies.join(', ') || '—' }}</p>
-            @for (house of result.chart.houses; track house.id) {
-              <details><summary>{{ house.id }} · ASC {{ house.ascendantDeg.toFixed(4) }}° · MC {{ house.mcDeg.toFixed(4) }}°</summary>
-                <ol>@for (cusp of house.cuspsDeg; track $index) { <li>{{ cusp.toFixed(4) }}°</li> }</ol>
-              </details>
+          @if (chartPanel() === 'tools') {
+          <section class="settings-card chart-utilities">
+            <h2>{{ locale() === 'it' ? 'Luogo ed elettiva' : 'Location and election' }}</h2>
+            <button class="secondary" type="button" [disabled]="calculating() || archiveBusy()" (click)="openElective()">{{ locale() === 'it' ? 'Erigi elettiva' : 'Create election chart' }}</button>
+            @if (electiveOpen()) {
+              <div role="group" [attr.aria-label]="locale() === 'it' ? 'Salva elettiva' : 'Save election chart'">
+                <label>{{ locale() === 'it' ? 'Nome elettiva' : 'Election chart name' }} <input type="text" maxlength="80" [value]="electiveName" (input)="electiveName = $any($event.target).value"></label>
+                <button class="secondary" type="button" [disabled]="archiveBusy() || !electiveName.trim()" (click)="saveElective()">{{ locale() === 'it' ? 'Salva nuova elettiva' : 'Save new election chart' }}</button>
+                <button class="secondary" type="button" (click)="electiveOpen.set(false)">{{ locale() === 'it' ? 'Annulla' : 'Cancel' }}</button>
+              </div>
             }
-            <p>{{ locale() === 'it' ? 'Case non disponibili' : 'Unavailable houses' }}: {{ result.chart.unavailableHouseSystems.join(', ') || '—' }}</p>
+            <details #relocationPanel class="relocation">
+              <summary (click)="openRelocation($event)">{{ locale() === 'it' ? 'Cambia luogo del tema' : 'Change chart location' }}</summary>
+              <label>{{ locale() === 'it' ? 'Cerca luogo di destinazione' : 'Search destination' }} <input type="search" autocomplete="off" maxlength="80" [value]="relocationQuery()" (input)="searchRelocation($any($event.target).value)"></label>
+              @if (relocationSearchState() === 'loading') { <p role="status">{{ locale() === 'it' ? 'Ricerca in corso…' : 'Searching…' }}</p> }
+              @if (relocationSearchState() === 'ready' && !relocationResults().length) { <p role="status">{{ locale() === 'it' ? 'Nessun luogo trovato: inserisci i dati manualmente.' : 'No places found: enter the details manually.' }}</p> }
+              @if (relocationSearchState() === 'error') { <p role="alert">{{ locale() === 'it' ? 'Catalogo non disponibile: inserisci i dati manualmente.' : 'Catalog unavailable: enter the details manually.' }}</p> }
+              @if (relocationResults().length) { <ul class="place-results">@for (place of relocationResults(); track place.id) { <li><button type="button" (click)="chooseRelocation(place)">{{ place.name }} · {{ place.region }} · {{ countryLabel(place.country, locale()) || place.countryName }} <small>{{ place.zone || (locale() === 'it' ? 'Fuso da inserire' : 'Enter time zone') }}</small></button></li> }</ul> }
+              <label>{{ locale() === 'it' ? 'Latitudine di destinazione' : 'Destination latitude' }} <input type="number" step="any" min="-90" max="90" [value]="relocationLatitude" (input)="relocationLatitude = $any($event.target).value; editRelocation()"></label>
+              <label>{{ locale() === 'it' ? 'Longitudine di destinazione' : 'Destination longitude' }} <input type="number" step="any" min="-180" max="180" [value]="relocationLongitude" (input)="relocationLongitude = $any($event.target).value; editRelocation()"></label>
+              <label>{{ locale() === 'it' ? 'Fuso IANA di destinazione' : 'Destination IANA time zone' }} <input type="text" [value]="relocationZone" (input)="relocationZone = $any($event.target).value; editRelocation()"></label>
+              <label>{{ locale() === 'it' ? 'Tempo da mantenere' : 'Time to preserve' }} <select [value]="relocationMode" (change)="relocationMode = $any($event.target).value; relocationOccurrence = ''; relocationError.set('')"><option value="instant">{{ locale() === 'it' ? 'Stesso istante UTC' : 'Same UTC instant' }}</option><option value="wall">{{ locale() === 'it' ? 'Stessa ora locale' : 'Same local time' }}</option></select></label>
+              @if (relocationMode === 'wall') { <label>{{ locale() === 'it' ? 'Ora locale ripetuta nella destinazione' : 'Repeated local time at destination' }} <select [value]="relocationOccurrence" (change)="relocationOccurrence = $any($event.target).value; relocationError.set('')"><option value="">{{ locale() === 'it' ? 'Chiedi se ambigua' : 'Require a choice' }}</option><option value="earlier">{{ locale() === 'it' ? 'Prima occorrenza' : 'Earlier occurrence' }}</option><option value="later">{{ locale() === 'it' ? 'Seconda occorrenza' : 'Later occurrence' }}</option></select></label> }
+              @if (relocationError(); as error) {
+                <p role="alert">{{ error === 'ambiguous' ? (locale() === 'it' ? 'L’ora locale si ripete: scegli la prima o la seconda occorrenza.' : 'This local time occurs twice: choose the earlier or later occurrence.') : error === 'nonexistent' ? (locale() === 'it' ? 'L’ora locale non esiste nel fuso di destinazione.' : 'This local time does not exist in the destination time zone.') : error === 'unknown_zone' ? (locale() === 'it' ? 'Fuso IANA di destinazione non valido.' : 'Invalid destination IANA time zone.') : error === 'invalid_coordinates' ? (locale() === 'it' ? 'Controlla latitudine e longitudine.' : 'Check latitude and longitude.') : (locale() === 'it' ? 'Data o ora non disponibile.' : 'Date or time unavailable.') }}</p>
+              }
+              <button class="secondary" type="button" [disabled]="overlayBusy()" (click)="relocateChart()">{{ locale() === 'it' ? 'Applica nuovo luogo' : 'Apply destination' }}</button>
+            </details>
           </section>
-        } @else { <p class="disclaimer" role="alert">{{ result.kind }} · {{ locale() === 'it' ? 'Controlla i dati e usa una build nativa con provider abilitato.' : 'Check the input and use a native build with an enabled provider.' }}</p> }
+          }
+          @if (chartPanel() === 'chart' || chartPanel() === 'latitude') {
+          <vs-chart-wheel [chart]="result.chart" [utcIso]="chartUtc()" [locale]="locale()" [theme]="theme()" [activeHouse]="selectedHouse()" [housePreferenceReady]="preferencesReady()" [activePlanet]="selectedPlanet()" [settings]="chartSettings()" [mode]="effectiveMode()" [overlay]="overlay()" (houseChange)="setHousePreference($event)" (planetChange)="selectedPlanet.set($event)">
+            <section sky-controls class="sky-navigation" [attr.aria-label]="locale() === 'it' ? 'Navigazione nel tempo' : 'Time navigation'">
+              <div class="sky-current-time" aria-live="polite">{{ navigationTime() }}</div>
+              <div class="sky-stepper">
+                <button class="sky-arrow" type="button" [disabled]="overlayBusy()" [attr.aria-label]="locale() === 'it' ? 'Indietro nel tempo' : 'Back in time'" (pointerdown)="holdSky($event,-1)" (pointerup)="stopSkyHold()" (pointercancel)="stopSkyHold()" (lostpointercapture)="stopSkyHold()" (click)="clickSky($event,-1)">‹</button>
+                <input type="number" min="1" max="30" step="1" inputmode="numeric" [attr.aria-label]="locale() === 'it' ? 'Passo' : 'Step'" [value]="skyAmount" (input)="pauseLiveSky(); skyAmount = $any($event.target).valueAsNumber; pendingSkyStep.set(null)">
+                <select [attr.aria-label]="locale() === 'it' ? 'Unità di tempo' : 'Time unit'" [value]="skyStep" (change)="pauseLiveSky(); skyStep = $any($event.target).value; pendingSkyStep.set(null)"><option value="minute">{{ locale() === 'it' ? 'Minuti' : 'Minutes' }}</option><option value="hour">{{ locale() === 'it' ? 'Ore' : 'Hours' }}</option><option value="day">{{ locale() === 'it' ? 'Giorni' : 'Days' }}</option><option value="month">{{ locale() === 'it' ? 'Mesi' : 'Months' }}</option><option value="year">{{ locale() === 'it' ? 'Anni' : 'Years' }}</option></select>
+                <button class="sky-arrow" type="button" [disabled]="overlayBusy()" [attr.aria-label]="locale() === 'it' ? 'Avanti nel tempo' : 'Forward in time'" (pointerdown)="holdSky($event,1)" (pointerup)="stopSkyHold()" (pointercancel)="stopSkyHold()" (lostpointercapture)="stopSkyHold()" (click)="clickSky($event,1)">›</button>
+              </div>
+              <div class="sky-quick-actions"><button type="button" [disabled]="overlayBusy()" (click)="navigateToNow()">{{ locale() === 'it' ? 'Adesso' : 'Now' }}</button><button type="button" [disabled]="overlayBusy() || !canRestoreNavigation()" (click)="restoreNavigation()">{{ locale() === 'it' ? 'Ripristina' : 'Restore' }}</button></div>
+              @if (navigationError()) { <p role="alert">{{ locale() === 'it' ? 'Scegli un passo intero tra 1 e 30.' : 'Choose a whole-number step between 1 and 30.' }}</p> }
+              @if (navigationCalculationError()) { <p role="alert">{{ locale() === 'it' ? 'Calcolo non disponibile. Il tema precedente è stato mantenuto.' : 'Calculation unavailable. The previous chart was kept.' }}</p> }
+              @if (pendingSkyStep(); as pending) {
+                <div class="sky-resolution" role="group" [attr.aria-label]="locale() === 'it' ? 'Risoluzione cambio ora' : 'Clock change resolution'">
+                  @if (pending.kind === 'ambiguous') {
+                    <p role="status">{{ locale() === 'it' ? 'L’ora locale è ripetuta: scegli quale occorrenza usare.' : 'This local time occurs twice: choose an occurrence.' }} {{ pending.civil }} · {{ pending.zone }}</p>
+                    <div class="sky-actions"><button class="secondary" type="button" (click)="resolveSkyStep('earlier')">{{ locale() === 'it' ? 'Prima occorrenza' : 'Earlier occurrence' }}</button><button class="secondary" type="button" (click)="resolveSkyStep('later')">{{ locale() === 'it' ? 'Seconda occorrenza' : 'Later occurrence' }}</button></div>
+                  } @else {
+                    <p role="status">{{ locale() === 'it' ? 'L’ora locale non esiste per il cambio d’ora. Scegli un altro passo.' : 'This local time does not exist because of a clock change. Choose a different step.' }} {{ pending.civil }} · {{ pending.zone }}</p>
+                  }
+                  <button class="secondary" type="button" (click)="pendingSkyStep.set(null)">{{ locale() === 'it' ? 'Annulla passo' : 'Cancel step' }}</button>
+                </div>
+              }
+            </section>
+          </vs-chart-wheel>
+          @if (chartPanel() === 'latitude') { <p>{{ locale() === 'it' ? 'I corpi con latitudine esattamente zero non sono disegnati.' : 'Bodies at exactly zero latitude are not drawn.' }}</p> }
+          }
+          @if (chartPanel() === 'aspects') {
+          <section class="settings-card aspect-table">
+            <h2>{{ locale() === 'it' ? 'Aspetti' : 'Aspects' }}</h2>
+            @if (!chartSettings().showAspects) { <p>{{ locale() === 'it' ? 'Le linee degli aspetti sono nascoste nel grafico.' : 'Aspect lines are hidden on the chart.' }}</p> }
+            <details class="natal-aspects" open>
+              <summary><h3>{{ locale() === 'it' ? 'Aspetti del tema' : 'Chart aspects' }} ({{ natalAspectRows().length }})</h3></summary>
+              @if (!natalAspectRows().length) { <p>{{ locale() === 'it' ? 'Nessun aspetto con le impostazioni attuali.' : 'No aspects with the current settings.' }}</p> }
+              <ul class="aspect-rows">@for (row of natalAspectRows(); track $index) { <li><span class="aspect-glyph" aria-hidden="true">{{ aspectSymbol(row.aspect) }}</span><span class="aspect-pair"><img class="celestial-glyph" [src]="pointGlyph(row.from)" [alt]="pointLabel(row.from, locale())"> → <img class="celestial-glyph" [src]="pointGlyph(row.to)" [alt]="pointLabel(row.to, locale())"><small>{{ aspectLabel(row.aspect, locale()) }}</small></span><span class="aspect-value">{{ formatOrb(row.orb) }} @if (row.trend) { <abbr [attr.title]="row.trend === 'applying' ? (locale() === 'it' ? 'Applicante' : 'Applying') : (locale() === 'it' ? 'Separante' : 'Separating')">{{ row.trend === 'applying' ? 'A' : 'S' }}</abbr> }</span></li> }</ul>
+            </details>
+          </section>
+          }
+          @if (chartPanel() === 'tools') {
+          <section class="settings-card session-save">
+            <h2>{{ locale() === 'it' ? 'Salva tema' : 'Save chart' }}</h2>
+            <label>{{ locale() === 'it' ? 'Nome facoltativo' : 'Optional name' }} <input type="text" maxlength="80" [value]="sessionName" (focusin)="pauseLiveSky()" (input)="sessionName = $any($event.target).value"></label>
+            <button class="secondary" type="button" [disabled]="archiveBusy() || calculating()" (click)="requestArchiveSave()">{{ activeArchiveId() ? (locale() === 'it' ? 'Aggiorna tema salvato' : 'Update saved chart') : (locale() === 'it' ? 'Salva nell’archivio' : 'Save to archive') }}</button>
+            @if (pendingArchiveUpdate()) { <div role="group"><p>{{ locale() === 'it' ? 'Sostituire i dati del tema salvato con quelli visualizzati?' : 'Replace the saved chart inputs with those shown?' }}</p><button class="secondary" type="button" [disabled]="archiveBusy() || calculating()" (click)="confirmArchiveUpdate()">{{ locale() === 'it' ? 'Conferma aggiornamento' : 'Confirm update' }}</button><button class="secondary" type="button" (click)="pendingArchiveUpdate.set(false)">{{ locale() === 'it' ? 'Annulla' : 'Cancel' }}</button></div> }
+            @if (archiveNotice() === 'saved') { <p role="status">{{ locale() === 'it' ? 'Tema salvato nell’archivio.' : 'Chart saved to the archive.' }}</p> }
+            @if (archiveState(); as archive) { @if (archive.kind !== 'ready') { <p role="alert">{{ archiveMessage(archive.kind) }}</p> } }
+          </section>
+          }
+          @if (chartPanel() === 'planets') {
+          <section class="settings-card chart-results" aria-live="polite"><h2>{{ locale() === 'it' ? 'Pianeti' : 'Planets' }}</h2>
+            <ul>@for (body of inspectorRows(); track body.id) {
+              <li>
+                <div class="planet-summary"><button type="button" class="planet-select" [attr.aria-label]="pointLabel(body.id, locale())" [attr.aria-pressed]="selectedPlanet() === body.id" (click)="selectPlanet(body.id)"><img class="celestial-glyph" [src]="pointGlyph(body.id)" alt=""></button><span>{{ body.degree }} <img class="celestial-glyph" [src]="zodiacGlyph(body.signIndex)" [alt]="zodiacNames[locale()][body.signIndex]"> @if (body.retrograde) { <abbr [attr.title]="locale() === 'it' ? 'Retrogrado' : 'Retrograde'">℞</abbr> }<br><small>{{ locale() === 'it' ? 'Casa' : 'House' }}: {{ body.house ?? '—' }} · {{ body.longitude.toFixed(4) }}° · {{ body.source }}</small></span></div>
+                <details class="planet-details"><summary [attr.aria-label]="(locale() === 'it' ? 'Dettagli di ' : 'Details of ') + pointLabel(body.id, locale())">{{ locale() === 'it' ? 'Dettagli' : 'Details' }}</summary>
+                  <dl>
+                    <dt>{{ locale() === 'it' ? 'Velocità in longitudine' : 'Longitude speed' }}</dt><dd>{{ body.longitudeSpeed.toFixed(4) }} °/{{ locale() === 'it' ? 'giorno' : 'day' }}</dd>
+                    <dt>{{ locale() === 'it' ? 'Latitudine eclittica' : 'Ecliptic latitude' }}</dt><dd>{{ body.latitude.toFixed(4) }}°</dd>
+                    <dt>{{ locale() === 'it' ? 'Velocità in latitudine' : 'Latitude speed' }}</dt><dd>{{ body.latitudeSpeed.toFixed(4) }} °/{{ locale() === 'it' ? 'giorno' : 'day' }}</dd>
+                    <dt>{{ locale() === 'it' ? 'Ascensione retta' : 'Right ascension' }}</dt><dd>{{ body.rightAscension.toFixed(4) }}°</dd>
+                    <dt>{{ locale() === 'it' ? 'Declinazione' : 'Declination' }}</dt><dd>{{ body.declination.toFixed(4) }}°</dd>
+                    <dt>{{ locale() === 'it' ? 'Distanza geocentrica' : 'Geocentric distance' }}</dt><dd>{{ body.distanceAu.toFixed(6) }} {{ locale() === 'it' ? 'UA' : 'AU' }}</dd>
+                    <dt>{{ locale() === 'it' ? 'Variazione della distanza' : 'Distance rate' }}</dt><dd>{{ body.distanceSpeed.toFixed(6) }} {{ locale() === 'it' ? 'UA/giorno' : 'AU/day' }}</dd>
+                  </dl>
+                </details>
+              </li>
+            }</ul>
+            <p>{{ locale() === 'it' ? 'Non disponibili' : 'Unavailable' }}: @if (result.chart.unavailableBodies.length) { @for (id of result.chart.unavailableBodies; track id) { <img class="celestial-glyph" [src]="pointGlyph(id)" [alt]="pointLabel(id, locale())"> } } @else { — }</p>
+          </section>
+          }
+          @if (chartPanel() === 'elements') {
+            <section class="settings-card elements-card"><h2>{{ locale() === 'it' ? 'Elementi' : 'Elements' }}</h2>
+              <p>{{ locale() === 'it' ? 'Distribuzione dei dieci pianeti nei segni.' : 'Distribution of the ten planets by sign.' }}</p>
+              <div class="element-grid">@for (group of elementGroups(); track group.id) {
+                <div class="element-item"><strong>{{ elementNames[locale()][group.id] }}</strong><span class="element-count">{{ group.points.length }}</span><small>@for (point of group.points; track point) { <img class="celestial-glyph" [src]="pointGlyph(point)" [alt]="pointLabel(point, locale())"> } @empty { — }</small></div>
+              }</div>
+              <button class="secondary dodecatemoria-toggle" type="button" [attr.aria-expanded]="showDodecatemoria()" aria-controls="dodecatemoria-list" (click)="showDodecatemoria.set(!showDodecatemoria())">{{ showDodecatemoria() ? (locale() === 'it' ? 'Nascondi dodecatemori' : 'Hide dodecatemoria') : (locale() === 'it' ? 'Mostra dodecatemori' : 'Show dodecatemoria') }}</button>
+              <div id="dodecatemoria-list" [hidden]="!showDodecatemoria()">
+                <h3>{{ locale() === 'it' ? 'Dodecatemori' : 'Dodecatemoria' }}</h3>
+                <ul class="dodecatemoria-list">@for (point of dodecatemoria(); track point.name) {
+                  <li><img class="celestial-glyph" [src]="pointGlyph(point.name)" [alt]="pointLabel(point.name, locale())"><span>{{ formatPosition(point.degreeInSign) }} <img class="celestial-glyph" [src]="zodiacGlyph(point.signIndex)" [alt]="zodiacNames[locale()][point.signIndex]"> · {{ locale() === 'it' ? 'Casa' : 'House' }} {{ point.house ?? '—' }}</span></li>
+                } @empty { <li>{{ locale() === 'it' ? 'Nessun dodecatemorio disponibile.' : 'No dodecatemoria available.' }}</li> }</ul>
+              </div>
+            </section>
+          }
+        } @else {
+          <p role="alert">@if (result.kind === 'out_of_range') { {{ locale() === 'it' ? 'Data non coperta dalle effemeridi.' : 'Date outside ephemeris coverage.' }} } @else if (result.kind === 'provider_unavailable') { {{ locale() === 'it' ? 'Effemeridi non disponibili. Importa i dati nelle opzioni.' : 'Ephemeris data unavailable. Import data in settings.' }} } @else { {{ locale() === 'it' ? 'Calcolo non disponibile.' : 'Calculation unavailable.' }} }</p>
+          @if (result.kind === 'provider_unavailable') { <button class="secondary" type="button" (click)="navigate('settings'); openSetting('de441')">{{ locale() === 'it' ? 'Effemeridi DE441' : 'DE441 ephemeris' }}</button> }
+          <button class="secondary" type="button" (click)="retryStartup()">{{ locale() === 'it' ? 'Riprova' : 'Retry' }}</button>
+        }
       }
-      <p class="disclaimer">{{ t('demoWarning') }}</p>
-      <p class="catalog-credit">Località: <a href="https://www.geonames.org/" target="_blank" rel="noreferrer noopener">GeoNames</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer noopener">CC BY 4.0</a> · cities5000, modificato.</p>
+    } @else if (tab() === 'new-chart') {
+      <section class="section-head"><h1>{{ locale() === 'it' ? 'Nuovo tema' : 'New chart' }}</h1></section>
+      <form class="settings-card chart-form" (focusin)="pauseLiveSky()" (input)="pauseLiveSky()" (change)="pauseLiveSky()" (submit)="$event.preventDefault(); calculate()">
+        <fieldset [disabled]="calculating() || overlayBusy()">
+        <label>{{ locale() === 'it' ? 'Nome del tema' : 'Chart name' }} <input type="text" maxlength="80" [value]="chartInputName" (input)="chartInputName = $any($event.target).value"></label>
+        <label>{{ locale() === 'it' ? 'Cerca luogo (facoltativo)' : 'Search place (optional)' }} <input type="search" autocomplete="off" maxlength="80" [placeholder]="locale() === 'it' ? 'Nome, paese (es. Roma, Italia)' : 'Name, country (e.g. Rome, Italy)'" [value]="placeQuery()" (input)="searchPlace($any($event.target).value)"></label>
+        @if (placeState() === 'loading') { <p role="status">{{ locale() === 'it' ? 'Preparazione del catalogo e ricerca in corso…' : 'Preparing catalog and searching…' }}</p> }
+        @if (placeState() === 'ready' && !placeResults().length) { <p role="status">{{ locale() === 'it' ? 'Nessun luogo trovato. Puoi inserire coordinate e fuso manualmente.' : 'No places found. You can enter coordinates and time zone manually.' }}</p> }
+        @if (placeError()) { <p role="alert">{{ locale() === 'it' ? 'Catalogo luoghi non disponibile: usa le coordinate manuali.' : 'Place catalog unavailable: enter coordinates manually.' }}</p> }
+        @if (placeResults().length) { <ul class="place-results">@for (place of placeResults(); track place.id) { <li><button type="button" (click)="choosePlace(place)">{{ place.name }} · {{ place.region }} · {{ countryLabel(place.country, locale()) || place.countryName }} <small>{{ place.zone || (locale() === 'it' ? 'Fuso da inserire' : 'Enter time zone') }}</small></button></li> }</ul> }
+        <label>{{ locale() === 'it' ? 'Data e ora locali' : 'Local date and time' }} <input id="chart-civil-time" type="datetime-local" step="0.001" [value]="utc" (input)="utc = $any($event.target).value; pendingSkyStep.set(null)" required></label>
+        <label>{{ locale() === 'it' ? 'Fuso orario IANA (es. Europe/Rome)' : 'IANA time zone (e.g. Europe/Rome)' }} <input type="text" [value]="timezone" (input)="timezone = $any($event.target).value; pendingSkyStep.set(null)" required></label>
+        <button class="secondary" type="button" (click)="setNow()">{{ locale() === 'it' ? 'Usa il momento attuale' : 'Use current time' }}</button>
+        <label>{{ locale() === 'it' ? 'Ora ripetuta al cambio DST' : 'Repeated time at DST transition' }} <select [value]="occurrence" (change)="occurrence = $any($event.target).value; pendingSkyStep.set(null)"><option value="">{{ locale() === 'it' ? 'Chiedi se ambigua' : 'Require a choice' }}</option><option value="earlier">{{ locale() === 'it' ? 'Prima occorrenza' : 'Earlier occurrence' }}</option><option value="later">{{ locale() === 'it' ? 'Seconda occorrenza' : 'Later occurrence' }}</option></select></label>
+        @if (timeError(); as error) { <p class="disclaimer" role="alert">{{ error }} · {{ locale() === 'it' ? 'Controlla il fuso e il cambio ora; per un’ora ripetuta scegli prima o seconda occorrenza.' : 'Check the zone and clock change; choose earlier or later for a repeated time.' }}</p> }
+        <label>{{ locale() === 'it' ? 'Latitudine (nord positiva)' : 'Latitude (north positive)' }} <input type="number" step="any" min="-90" max="90" [value]="latitude" (input)="latitude = $any($event.target).value; pendingSkyStep.set(null)" required></label>
+        <label>{{ locale() === 'it' ? 'Longitudine (est positiva)' : 'Longitude (east positive)' }} <input type="number" step="any" min="-180" max="180" [value]="longitude" (input)="longitude = $any($event.target).value; pendingSkyStep.set(null)" required></label>
+        @if (archiveNotice() === 'saved') { <p role="status">{{ locale() === 'it' ? 'Dati salvati nell’archivio.' : 'Inputs saved to the archive.' }}</p> }
+        @if (archiveState(); as archive) { @if (archive.kind !== 'ready') { <p role="alert">{{ archiveMessage(archive.kind) }}</p> } }
+        <button class="primary" type="submit" [disabled]="calculating() || archiveBusy()">{{ calculating() ? '…' : (locale() === 'it' ? 'Salva' : 'Save') }}</button>
+        @if (newChartError(); as error) { <p role="alert">{{ error === 'out_of_range' ? (locale() === 'it' ? 'Data non coperta dalle effemeridi.' : 'Date outside ephemeris coverage.') : error === 'provider_unavailable' ? (locale() === 'it' ? 'Effemeridi non disponibili.' : 'Ephemeris data unavailable.') : (locale() === 'it' ? 'Impossibile calcolare il tema. Controlla i dati.' : 'Unable to calculate the chart. Check the inputs.') }}</p> }
+        <button class="secondary" type="button" (click)="cancelNewChart()">{{ locale() === 'it' ? 'Annulla' : 'Cancel' }}</button>
+        </fieldset>
+      </form>
     } @else if (tab() === 'archive') {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('archiveTitle') }}</h1></section>
-      <div class="empty-state"><span aria-hidden="true">◇</span><p>{{ t('archiveBody') }}</p></div>
+      <section class="section-head archive-heading"><h1>{{ t('archiveTitle') }}</h1><button class="primary" type="button" [disabled]="archiveBusy() || calculating()" (click)="openNewChart()">{{ locale() === 'it' ? 'Nuovo tema' : 'New chart' }}</button></section>
+      <section class="settings-card session-list" aria-labelledby="saved-charts-title">
+        <h2 id="saved-charts-title">{{ locale() === 'it' ? 'Archivio' : 'Archive' }}</h2>
+        @if (archiveBusy()) { <p role="status">{{ locale() === 'it' ? 'Archivio in uso…' : 'Working with archive…' }}</p> }
+        @if (archiveChartError()) { <p role="alert">{{ locale() === 'it' ? 'Impossibile ricalcolare il tema: verifica i dati effemeridi.' : 'Unable to recalculate the chart: check the ephemeris data.' }}</p> }
+        @if (archiveState(); as archive) {
+          @if (archive.kind === 'ready') {
+            @if (!archive.charts.length) { <p>{{ locale() === 'it' ? 'Nessun tema salvato.' : 'No saved charts.' }}</p> }
+            @if (archive.charts.length) { <label>{{ locale() === 'it' ? 'Cerca nell’archivio' : 'Search archive' }} <input type="search" maxlength="80" [value]="archiveQuery()" (input)="archiveQuery.set($any($event.target).value)"></label> }
+            @if (archive.charts.length && !visibleArchive().length) { <p>{{ locale() === 'it' ? 'Nessun tema corrispondente.' : 'No matching charts.' }}</p> }
+            @for (chart of visibleArchive(); track chart.id) {
+              <div class="session-row"><div><strong>{{ chart.name || (locale() === 'it' ? 'Tema senza nome' : 'Untitled chart') }}</strong><small>{{ chart.utcIso }} · {{ chart.timeZone }} @if (chart.placeName) { · {{ chart.placeName }} }</small></div>
+                <div class="session-actions"><button class="secondary" type="button" [disabled]="archiveBusy() || calculating() || overlayBusy()" (click)="openArchivedChart(chart)">{{ locale() === 'it' ? 'Apri' : 'Open' }}</button>
+                @if (pendingArchiveDelete() === chart.id) { <button class="secondary" type="button" [disabled]="archiveBusy()" (click)="deleteArchivedChart(chart.id)">{{ locale() === 'it' ? 'Conferma eliminazione' : 'Confirm deletion' }}</button><button class="secondary" type="button" (click)="pendingArchiveDelete.set(null)">{{ locale() === 'it' ? 'Annulla' : 'Cancel' }}</button> }
+                @else { <button class="secondary" type="button" [disabled]="archiveBusy()" (click)="pendingArchiveDelete.set(chart.id)" [attr.aria-label]="(locale() === 'it' ? 'Elimina ' : 'Delete ') + chart.name">{{ locale() === 'it' ? 'Elimina' : 'Delete' }}</button> }</div>
+              </div>
+            }
+          } @else { <p role="alert">{{ archiveMessage(archive.kind) }}</p> }
+        }
+      </section>
     } @else {
-      <section class="section-head"><span class="eyebrow">{{ t('build') }}</span><h1>{{ t('settingsTitle') }}</h1></section>
-      <div class="settings-card">
-        <div class="setting-row"><span>{{ t('language') }}</span><button type="button" (click)="switchLocale()">{{ locale() === 'it' ? 'Italiano' : 'English' }} ⇄</button></div>
-        <div class="setting-row"><span>{{ t('runtime') }}</span><span>{{ runtime() ?? t('browser') }}</span></div>
-        <p class="catalog-credit">Noto Sans Symbols / Symbols 2 · <a href="https://openfontlicense.org/" target="_blank" rel="noreferrer noopener">SIL Open Font License 1.1</a></p>
-        <h2>{{ t('data') }}</h2><p>{{ t('dataBody') }}</p>
-      </div>
-      <p class="disclaimer">{{ t('about') }}</p>
+      @if (settingsPage(); as page) {
+        <section class="section-head settings-heading"><button class="back-button" type="button" (click)="settingsPage.set(null)">‹ {{ locale() === 'it' ? 'Opzioni' : 'Settings' }}</button><h1>{{ settingTitle(page) }}</h1></section>
+        @if (page === 'appearance') {
+          <section class="settings-card option-detail">
+            <label><input type="radio" name="theme" [checked]="theme() === 'light'" [disabled]="!preferencesReady()" (change)="setTheme('light')"> {{ locale() === 'it' ? 'Chiaro' : 'Light' }}</label>
+            <label><input type="radio" name="theme" [checked]="theme() === 'dark'" [disabled]="!preferencesReady()" (change)="setTheme('dark')"> {{ locale() === 'it' ? 'Scuro' : 'Dark' }}</label>
+          </section>
+        } @else if (page === 'language') {
+          <section class="settings-card option-detail"><label><input type="radio" name="language" [checked]="locale() === 'it'" [disabled]="!preferencesReady()" (change)="setLocale('it')"> Italiano</label><label><input type="radio" name="language" [checked]="locale() === 'en'" [disabled]="!preferencesReady()" (change)="setLocale('en')"> English</label></section>
+        } @else if (page === 'houses') {
+          <section class="settings-card option-detail">@for (house of houseOptions; track house.id) { <label><input type="radio" name="house" [checked]="preferredHouse() === house.id" [disabled]="!preferencesReady()" (change)="setHousePreference(house.id)"> {{ house.label }}</label> }</section>
+        } @else if (page === 'startup') {
+          <section class="settings-card option-detail">
+        @if (startupSaving()) { <p role="status">{{ locale() === 'it' ? 'Salvataggio preferenza…' : 'Saving preference…' }}</p> }
+        @if (startupStorageError()) { <p role="alert">{{ locale() === 'it' ? 'Impossibile conservare la preferenza di avvio su questo dispositivo.' : 'Unable to store the startup preference on this device.' }}</p> }
+        <label><input type="radio" name="startup" [checked]="startup().mode === 'sky'" (change)="setStartup('sky')"> {{ locale() === 'it' ? 'Cielo del momento' : 'Current sky' }}</label>
+        @if (archiveState(); as archive) {
+          @if (archive.kind === 'ready') {
+            <label><input type="radio" name="startup" [checked]="startup().mode === 'natal-transits'" [disabled]="!archive.charts.length" (change)="setStartup('natal-transits', archive.charts[0]?.id ?? null)"> {{ locale() === 'it' ? 'Un tema salvato' : 'A saved chart' }}</label>
+            @if (startup().mode === 'natal-transits') { <label>{{ locale() === 'it' ? 'Tema iniziale' : 'Startup chart' }} <select [value]="startup().chartId" (change)="setStartup('natal-transits',$any($event.target).value)">@for (chart of archive.charts; track chart.id) { <option [value]="chart.id">{{ chart.name }}</option> }</select></label> }
+            @if (!archive.charts.length) { <p>{{ locale() === 'it' ? 'Salva prima un tema nell’archivio.' : 'Save a chart in the archive first.' }}</p> }
+          } @else { <p role="status">{{ archiveMessage(archive.kind) }}</p> }
+        }
+          </section>
+        } @else if (page === 'aspects' || page === 'points') {
+          @if (preferencesReady()) { <vs-chart-settings [section]="page" [settings]="chartSettings()" [locale]="locale()" (settingsChange)="setChartSettings($event)" /> }
+        } @else if (page === 'licenses') {
+          <section class="settings-card"><p class="catalog-credit">Noto Sans Symbols / Symbols 2 · <a href="https://openfontlicense.org/" target="_blank" rel="noreferrer noopener">SIL Open Font License 1.1</a></p></section>
+        } @else {
+          <section class="settings-card option-detail">
+            @if (ephemeris(); as data) {
+              @if (page === 'de441') {
+          <p role="status">{{ data.available ? (locale() === 'it' ? 'Motore disponibile' : 'Engine available') : (locale() === 'it' ? 'Motore non disponibile' : 'Engine unavailable') }}@if (data.installedBytes) { · {{ (data.installedBytes / 1048576).toFixed(1) }} MB }</p>
+          @if (data.startJulianDayTdb !== null && data.endJulianDayTdb !== null) { <p>{{ locale() === 'it' ? 'Intervallo del file (TDB)' : 'File coverage (TDB)' }}: {{ coverageDate(data.startJulianDayTdb) }} – {{ coverageDate(data.endJulianDayTdb) }}. {{ locale() === 'it' ? 'Il modello temporale può ridurre questo intervallo.' : 'The time model may narrow this range.' }}</p> }
+          <label>{{ data.installedBytes ? (locale() === 'it' ? 'Aggiorna file DE441' : 'Update DE441 file') : (locale() === 'it' ? 'Importa file DE441' : 'Import DE441 file') }} <input type="file" [disabled]="ephemerisBusy()" (change)="selectEphemeris($event)"></label>
+              } @else if (page === 'usno') {
+          <p>{{ locale() === 'it' ? 'Seleziona insieme deltat.data e historic_deltat.data; aggiungi deltat.preds per includere le previsioni. Ogni file può pesare al massimo 4 MiB. Per aggiornare, seleziona nuovamente il gruppo completo.' : 'Select deltat.data and historic_deltat.data together; add deltat.preds to include predictions. Each file is limited to 4 MiB. To update, select the complete set again.' }}</p>
+          @if (data.usno; as usno) { <p>{{ locale() === 'it' ? 'Tabelle installate' : 'Tables installed' }}: {{ coverageDate(usno.startJulianDayUt) }} – {{ coverageDate(usno.endJulianDayUt) }} · {{ usno.predictions ? (locale() === 'it' ? 'previsioni incluse' : 'predictions included') : (locale() === 'it' ? 'senza previsioni' : 'no predictions') }}. {{ locale() === 'it' ? 'Il calcolo è disponibile dal 1900 e nei limiti del file DE441.' : 'Calculation is supported from 1900 and within the DE441 file coverage.' }}</p> } @else { <p>{{ locale() === 'it' ? 'Nessun gruppo USNO importato.' : 'No USNO set imported.' }}</p> }
+          <label>{{ data.usno ? (locale() === 'it' ? 'Aggiorna tabelle USNO' : 'Update USNO tables') : (locale() === 'it' ? 'Importa tabelle USNO' : 'Import USNO tables') }} <input type="file" multiple [disabled]="ephemerisBusy()" (change)="selectEphemeris($event, 'usno')"></label>
+              } @else {
+          @if (data.chiron; as chiron) { <p>{{ locale() === 'it' ? 'File installato (TDB)' : 'File installed (TDB)' }}: {{ coverageDate(chiron.startJulianDayTdb) }} – {{ coverageDate(chiron.endJulianDayTdb) }}</p> } @else { <p>{{ locale() === 'it' ? 'Nessun file Chirone importato.' : 'No Chiron file imported.' }}</p> }
+          <label>{{ data.chiron ? (locale() === 'it' ? 'Aggiorna file Chirone' : 'Update Chiron file') : (locale() === 'it' ? 'Importa file Chirone' : 'Import Chiron file') }} <input type="file" [disabled]="ephemerisBusy()" (change)="selectEphemeris($event, 'chiron')"></label>
+              }
+          @if (ephemerisBusy()) { <p role="status">{{ locale() === 'it' ? 'Importazione' : 'Importing' }}: {{ ephemerisProgress() }}%</p><progress max="100" [value]="ephemerisProgress()"></progress> <button type="button" (click)="cancelEphemeris()">{{ locale() === 'it' ? 'Annulla' : 'Cancel' }}</button> }
+          @if (ephemerisResult(); as result) { <p role="status">@switch (result) {
+            @case ('imported') { {{ locale() === 'it' ? 'File installato. Ricalcola le carte già aperte per usare i nuovi dati.' : 'File installed. Recalculate open charts to use the new data.' }} }
+            @case ('cancelled') { {{ locale() === 'it' ? 'Importazione annullata.' : 'Import cancelled.' }} }
+            @case ('invalid_file') { {{ locale() === 'it' ? 'File non valido o incompleto per questo motore.' : 'File is invalid or incomplete for this engine.' }} }
+            @case ('invalid_size') { {{ locale() === 'it' ? 'Dimensione dei dati non supportata.' : 'Unsupported data size.' }} }
+            @case ('missing_usno_files') { {{ locale() === 'it' ? 'Seleziona insieme i due file USNO richiesti e, se desideri, il file delle previsioni; controlla nomi e dimensioni.' : 'Select both required USNO files together and optionally the predictions file; check their names and sizes.' }} }
+            @default { {{ locale() === 'it' ? 'Importazione non riuscita. Controlla lo spazio disponibile e riprova.' : 'Import failed. Check available storage and try again.' }} }
+          }</p> }
+            } @else { <p>{{ locale() === 'it' ? 'Dati effemeridi non disponibili.' : 'Ephemeris data unavailable.' }}</p> }
+          </section>
+        }
+      } @else {
+        <section class="section-head"><h1>{{ t('settingsTitle') }}</h1></section>
+        <label class="settings-search"><span class="visually-hidden">{{ locale() === 'it' ? 'Cerca nelle opzioni' : 'Search settings' }}</span><input type="search" [placeholder]="locale() === 'it' ? 'Cerca nelle opzioni' : 'Search settings'" [value]="settingsQuery()" (input)="settingsQuery.set($any($event.target).value)"></label>
+        <div class="settings-list">@for (entry of settingsResults(); track entry.id) { <button type="button" (click)="openSetting(entry.id)"><span>{{ entry[locale()] }}</span><span aria-hidden="true">›</span></button> } @empty { <p>{{ locale() === 'it' ? 'Nessuna opzione trovata.' : 'No settings found.' }}</p> }</div>
+      }
     }
   </main>
 
-  <footer class="attribution"><span>Powered by VirgoStars</span> · <a href="https://www.virgostars.it/" target="_blank" rel="noreferrer noopener">virgostars.it</a></footer>
-
   <nav class="bottom-nav" aria-label="Navigation">
     @for (item of navTabs; track item) {
-      <button type="button" (click)="navigate(item)" [class.active]="tab() === item" [attr.aria-current]="tab() === item ? 'page' : null">
+      <button type="button" (click)="navigate(item)" [class.active]="tab() === item || (tab() === 'new-chart' && item === 'archive')" [attr.aria-current]="tab() === item || (tab() === 'new-chart' && item === 'archive') ? 'page' : null">
         <span class="nav-glyph" aria-hidden="true">
           @switch (item) {
-            @case ('home') { ⌂ }
             @case ('chart') { ✧ }
             @case ('archive') { ▤ }
             @case ('settings') { ⚙ }

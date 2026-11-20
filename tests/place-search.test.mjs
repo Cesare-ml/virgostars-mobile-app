@@ -1,26 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {decodePlaces,searchPlaces} from '../src/app/astro/place-search.ts';
-const places=decodePlaces([[1,'Roma','Rome',41.89,12.49,'IT','07','Europe/Rome',2700000,['Rome']] ,[2,'Róma','Roma',1,2,'XX','01','UTC',10,[]],[3,'Aroma','Aroma',1,2,'XX','01','UTC',1,[]]]);
-test('search normalizes accents, prioritizes prefixes and bounds results',()=>{
- assert.deepEqual(searchPlaces(places,'roma').map(x=>x.id),[1,2,3]);
- assert.equal(searchPlaces(places,'roma',1).length,1);
- assert.deepEqual(searchPlaces(places,'r'),[]);
+import {countryLabel,placeLabel,normalizePlaceQuery} from '../src/app/astro/place-search.ts';
+import {decodeOfflinePlaceResults,OfflinePlaceSearch} from '../src/app/native/offline-places-contract.ts';
+const row={id:1,name:'Example',italianName:null,latMicro:1000000,lngMicro:2000000,population:null,stateId:1,region:'Region',timeZone:'UTC',countryName:'Italy',countryCode:'IT'};
+test('native results are bounded and validated',()=>{
+  assert.equal(decodeOfflinePlaceResults({protocolVersion:1,items:[row]})[0].name,'Example');
+  assert.throws(()=>decodeOfflinePlaceResults({protocolVersion:1,items:[{...row,latMicro:90000001}]}));
+  assert.throws(()=>decodeOfflinePlaceResults({protocolVersion:1,items:[row,row]}));
+  assert.throws(()=>decodeOfflinePlaceResults({protocolVersion:1,items:Array(31).fill(row)}));
 });
-test('rejects malformed or out-of-range catalogue entries',()=>{
- assert.throws(()=>decodePlaces([[1,'X','X',100,0,'IT','','UTC',1,[]]]));
- assert.throws(()=>decodePlaces([[1,'X','X',0,0,'IT','','',1,[]]]));
- assert.throws(()=>decodePlaces({}));
+test('search does not use a web fallback and ignores stale replies',async()=>{
+  const offline=new OfflinePlaceSearch({isNative:()=>false,invoke:async()=>{throw Error('not called')}});
+  assert.equal((await offline.search('Example')).kind,'not_native');
+  let resolve; const search=new OfflinePlaceSearch({isNative:()=>true,invoke:()=>new Promise(r=>resolve=r)});
+  const pending=search.search('Example');search.clear();resolve({protocolVersion:1,items:[row]});
+  assert.equal((await pending).kind,'stale');
 });
-test('bundled GeoNames snapshot is intact and resolves Roma', async () => {
- const {readFile} = await import('node:fs/promises');
- const {createHash} = await import('node:crypto');
- const bytes = await readFile(new URL('../src/assets/cities5000.json', import.meta.url));
- assert.equal(createHash('sha256').update(bytes).digest('hex'),'cc1ed9715545a6cfc462ed7fafbea12c3d728010f9340da10cefb89753004aea');
- const all = decodePlaces(JSON.parse(bytes.toString('utf8')));
- assert.equal(all.length,70042);
- const city = searchPlaces(all,'Roma').find(p=>p.id===3169070);
- assert.ok(city);
- assert.equal(city.country,'IT');
- assert.equal(city.zone,'Europe/Rome');
+test('place labels and country display handle missing codes',()=>{
+  assert.equal(countryLabel('IT','it'),'Italia'); assert.equal(countryLabel('IT','en'),'Italy');
+  assert.equal(normalizePlaceQuery('Landriano, Italia'),'Landriano, IT');
+  assert.equal(normalizePlaceQuery('Landriano, Lombardia, Italy'),'Landriano, Lombardia, IT');
+  assert.equal(placeLabel({name:'Example',country:'',countryName:'Italy'}),'Example, Italy');
 });

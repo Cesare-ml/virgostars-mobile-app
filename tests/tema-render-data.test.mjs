@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  availableHouseSystems, buildTemaRenderData, formatDegreeInSign, planetRows,
+  availableHouseSystems, buildTemaRenderData, dodecatemoriaRows, formatDegreeInSign, planetRows,
 } from '../src/app/astro/tema-render-data.ts';
 
 // Visibly fictional snapshot: round numbers chosen to make the arithmetic obvious.
@@ -48,6 +48,17 @@ test('dodecatemoria exist only for the seven traditional bodies', () => {
     {longitude: 130, longitudeSpeed: 1, longitudeSign: 4, longitude30: 10});
   assert.equal(data.planets.Uranus.dodecatemoria, undefined);
   assert.equal(data.planets['true Node'].dodecatemoria, undefined);
+});
+
+test('dodecatemoria rows retain the shared positions and follow the selected house system', () => {
+  const data = buildTemaRenderData(snapshot(), '2001-02-03T04:05:06Z');
+  const egizia = dodecatemoriaRows(data, 'egizia');
+  assert.deepEqual(egizia.map(row => row.name), ['Sun', 'Moon', 'Mars']);
+  assert.deepEqual([egizia[0].longitude, egizia[0].signIndex, egizia[0].degreeInSign, egizia[0].house], [130, 4, 10, 2]);
+  const shifted = {...data, houses:{...data.houses, egizia:{...data.houses.egizia, house:Array.from({length:12}, (_, i) => i * 30)}}};
+  assert.equal(dodecatemoriaRows(shifted, 'egizia')[0].house, 5);
+  assert.ok(dodecatemoriaRows(data, null).every(row => row.house === null));
+  assert.ok(dodecatemoriaRows(data, 'placido').every(row => row.house === null));
 });
 
 test('south node and perigee are exact opposites; nothing else is derived', () => {

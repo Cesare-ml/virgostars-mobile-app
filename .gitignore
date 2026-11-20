@@ -11,6 +11,7 @@ coverage/
 
 # Rust / Tauri native outputs and generated mobile IDE projects
 src-tauri/target/
+tests/archive-harness/target/
 src-tauri/gen/
 src-tauri/icons/
 src-tauri/.local/
@@ -31,3 +32,7 @@ src-tauri/.cargo/config.toml
 
 # Locally generated synthetic chart assets
 .local/
+
+# Local historical catalog and privately sourced artwork; never commit them.
+src/assets/cities1000.json
+src/assets/img/
