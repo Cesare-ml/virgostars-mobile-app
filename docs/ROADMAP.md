@@ -42,7 +42,9 @@ Prototype: VirgoStars-Ephemeris provider, manual DE441/USNO/Chiron import and up
 - [ ] Offline and network-failure QA on real low-end and high-end phones
 
 ## M4 — iOS adaptation
-- [ ] Generate iOS native target on macOS with Xcode
+- [x] Configure an opt-in GitHub Actions macOS iOS build with synthetic/open-font preview assets (configuration only, not a passing native build)
+- [ ] Validate first unsigned iOS simulator workflow run and generated Xcode target on macOS/Xcode
+- [ ] Generate iOS native target on macOS with Xcode and verify the result
 - [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
 - [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
 - [ ] Signed iOS beta/release after explicit owner approval
