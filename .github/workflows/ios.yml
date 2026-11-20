@@ -193,10 +193,9 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          mkdir -p "$RUNNER_TEMP/apple-auth"
-          printf '%s' "$APPLE_API_PRIVATE_KEY" > "$RUNNER_TEMP/apple-auth/AuthKey_${APPLE_API_KEY}.p8"
-          echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple-auth/AuthKey_${APPLE_API_KEY}.p8" >> "$GITHUB_ENV"
-          echo "API_PRIVATE_KEYS_DIR=$RUNNER_TEMP/apple-auth" >> "$GITHUB_ENV"
+          mkdir -p "$HOME/.private_keys"
+          printf '%s' "$APPLE_API_PRIVATE_KEY" > "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
+          echo "APPLE_API_KEY_PATH=$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8" >> "$GITHUB_ENV"
       - name: Build signed iPhone IPA
         working-directory: virgostars-mobile-app
         env:
@@ -216,4 +215,4 @@ jobs:
         run: xcrun altool --upload-app --type ios --file "$IOS_ARTIFACT" --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
       - name: Remove temporary API key
         if: always()
-        run: rm -rf "$RUNNER_TEMP/apple-auth"
+        run: rm -f "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
