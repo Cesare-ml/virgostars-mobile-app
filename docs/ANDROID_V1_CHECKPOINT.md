@@ -33,6 +33,17 @@ after the application and release gates are ready.
   Platform trust behavior, revocation and certificate updates require a release
   decision and security review before activation. HTTP/TLS libraries may keep
   transient copies of sensitive values despite wiping owned request buffers.
+- An experimental native snapshot reader, also off by default, uses only a
+  verified session and checks that the snapshot cursor epoch matches that
+  session's profile. It reads the fixed HTTPS snapshot endpoint with an 8 MiB
+  cap, rejects duplicate IDs, unknown fields and unexpected notes, and keeps
+  the accepted JSON unchanged, including unknown birth times or locations.
+  Invalid, oversized or incompatible responses fail as a whole. It does not
+  calculate UTC instants, write the local archive, synchronize changes or expose
+  data through IPC. JSON parsing and HTTP/TLS may retain temporary copies in
+  native memory. Semantic validation and lossless transactional conversion
+  remain necessary before any future import. Tests use synthetic data only;
+  no real account or service request has been exercised.
 
 ## Login and sync: remaining implementation
 
