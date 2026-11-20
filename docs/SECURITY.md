@@ -22,4 +22,4 @@ Before implementing identity, synchronization or release:
 
 Do not upload logs containing natal data, access tokens or personal identifiers. Vulnerabilities should be disclosed privately to maintainers; do not open a public issue containing an exploit or secrets.
 
-No GitHub Actions, auto-publishing or cloud deployment are configured.
+A scoped iOS GitHub Actions workflow compiles simulator previews with generated OFL glyphs, without shipping the Android city catalog or privately approved artwork. Signing credentials are permitted only in a protected manual `ios-distribution` environment after rights approval. There is no unattended store publication or cloud deployment. See [iOS build guide](IOS.md).
