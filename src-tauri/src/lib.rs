@@ -13,6 +13,9 @@ mod android_connected_session;
 #[cfg(feature = "android-login-experimental")]
 #[allow(dead_code)]
 mod android_token_exchange;
+#[cfg(feature = "android-login-https-experimental")]
+#[allow(dead_code)]
+mod android_https_transport;
 #[cfg(any(all(test, feature = "archive-experimental"), all(target_os = "android", feature = "archive-mobile")))]
 mod archive_keys;
 #[cfg(any(all(test, feature = "archive-experimental"), all(target_os = "android", feature = "archive-mobile")))]

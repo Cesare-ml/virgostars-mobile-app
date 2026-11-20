@@ -17,3 +17,5 @@ mod android_login_attempt;
 mod android_token_exchange;
 #[path = "../../../src-tauri/src/android_connected_session.rs"]
 mod android_connected_session;
+#[path = "../../../src-tauri/src/android_https_transport.rs"]
+mod android_https_transport;

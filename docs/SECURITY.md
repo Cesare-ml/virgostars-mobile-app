@@ -6,6 +6,8 @@ Android city search uses a bundled desktop catalog copied to private storage aft
 
 The user can choose DE441, USNO and Chiron data using the platform file picker. Bytes cross the local WebView/native bridge in bounded chunks and are written to app-private storage; file names and paths are not sent to native commands. A temporary file is removed after failure or cancellation, or on the next app start after interruption; the previous installed data is kept until successful replacement, and the USNO set is committed as one bundle. Validation checks structure and sample computations, not authenticity or a trusted checksum; no ephemeris file is bundled or downloaded by the application.
 
+A separate opt-in native HTTPS transport exists for future account work, but is not wired into the app or its IPC. It uses a bundled certificate-root snapshot, which needs an explicit trust-store, revocation and update policy before release. The transport is blocking and must run on a native worker if integrated. See [Android v1 checkpoint](ANDROID_V1_CHECKPOINT.md).
+
 Before implementing identity, synchronization or release:
 1. Use system-browser OAuth 2 authorization code with PKCE, not an embedded login form.
 2. Store secrets only in vetted OS-backed secure storage. Never commit passwords, tokens, refresh tokens, certificates, signing keys or private user records.

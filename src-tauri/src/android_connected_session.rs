@@ -1,9 +1,9 @@
-//! Isolated native account-binding contract. No real HTTP transport or IPC.
+//! Isolated native account-binding contract. No transport is invoked by the app and there is no IPC.
 use crate::android_token_exchange::{TokenScope, UnverifiedGrant};
 use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
 
-const SESSION_ENDPOINT: &str = "https://api.virgostars.it/chart-sync/v1/session";
+pub(crate) const SESSION_ENDPOINT: &str = "https://api.virgostars.it/chart-sync/v1/session";
 const TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_RESPONSE: usize = 4096;
 

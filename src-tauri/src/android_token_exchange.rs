@@ -1,12 +1,12 @@
-//! Isolated token exchange contract. There is deliberately no HTTP transport,
-//! Tauri command or session persistence here. Do not use a grant until the
+//! Isolated token exchange contract. The optional native HTTP transport is not
+//! invoked by the app; there is no Tauri command or session persistence. Do not use a grant until the
 //! native client verifies the server-side session and its account binding.
 use crate::android_login_attempt::LoginDecision;
 use std::time::{Duration, Instant};
 use url::form_urlencoded;
 use zeroize::{Zeroize, Zeroizing};
 
-const TOKEN_ENDPOINT: &str = "https://api.virgostars.it/chart-sync/v1/token";
+pub(crate) const TOKEN_ENDPOINT: &str = "https://api.virgostars.it/chart-sync/v1/token";
 const MAX_RESPONSE: usize = 8192;
 const MAX_FORM: usize = 2048;
 const TIMEOUT: Duration = Duration::from_secs(10);
@@ -101,7 +101,7 @@ fn valid_secret(value: &str) -> bool {
             .bytes()
             .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_')
 }
-fn plausible_bearer(value: &str) -> bool {
+pub(crate) fn plausible_bearer(value: &str) -> bool {
     (100..=4096).contains(&value.len())
         && value.split('.').count() == 3
         && value.split('.').all(|part| {

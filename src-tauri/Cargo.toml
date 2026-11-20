@@ -19,6 +19,8 @@ archive-experimental = ["dep:chacha20poly1305", "dep:rusqlite", "dep:zeroize", "
 archive-mobile = ["dep:chacha20poly1305", "dep:rusqlite", "dep:zeroize", "dep:getrandom", "dep:jni", "dep:ndk-context", "dep:serde_json", "dep:sha2"]
 # Native-only PKCE primitives; no account command or network capability is registered.
 android-login-experimental = ["dep:base64", "dep:getrandom", "dep:serde_json", "dep:sha2", "dep:subtle", "dep:url", "dep:zeroize"]
+# Explicit opt-in only: no HTTP client or account IPC is registered by default.
+android-login-https-experimental = ["android-login-experimental", "dep:reqwest", "dep:rustls", "dep:webpki-root-certs"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -37,6 +39,9 @@ sha2 = { version = "=0.10.9", optional = true }
 base64 = { version = "=0.22.1", optional = true }
 subtle = { version = "=2.6.1", optional = true }
 url = { version = "=2.5.8", optional = true }
+reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "rustls-no-provider"], optional = true }
+rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"], optional = true }
+webpki-root-certs = { version = "=1.0.12", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = { version = "=0.21.1", optional = true }

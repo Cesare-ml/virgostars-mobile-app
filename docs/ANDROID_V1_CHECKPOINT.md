@@ -14,15 +14,25 @@ after the application and release gates are ready.
   callback, token-exchange and session-verification primitives; it is off by default and registers no
   IPC or permissions. They generate random state/verifier and S256 challenge,
   check a one-use HTTPS callback and expiry, and validate a bounded token
-  response using a fake transport. The token endpoint in this isolated contract
-  is the existing production URL; there is no actual HTTP implementation and no
-  request is made. A returned grant is unverified until an authenticated session
+  response using a fake transport. A returned grant is unverified until an authenticated session
   response matches the permitted scope and supplies a valid profile reference;
   the session check also uses a fake transport.
   The callback helper does not itself verify the app's domain. Rust harness
   tests and Android ARM64/x86_64 `cargo check` with both the normal app features
   and the experimental feature enabled passed;
   this is not an APK, device test, login or working synchronization.
+- The separate, default-off `android-login-https-experimental` feature adds a
+  native blocking HTTPS transport for the fixed token and session endpoints.
+  It is not registered with Tauri, invoked by the app or exposed to the WebView;
+  no real service request has been made. It limits response sizes and timeouts,
+  checks certificates and hostnames, and disables redirects and automatic
+  retries. A local synthetic TLS test checks rejection of untrusted certificates
+  and mismatched hostnames as well as redirect handling.
+  It currently embeds a pinned Mozilla root certificate snapshot: Android's
+  platform verifier requires [additional initialization](https://docs.rs/rustls-platform-verifier/latest/rustls_platform_verifier/android/index.html).
+  Platform trust behavior, revocation and certificate updates require a release
+  decision and security review before activation. HTTP/TLS libraries may keep
+  transient copies of sensitive values despite wiping owned request buffers.
 
 ## Login and sync: remaining implementation
 
@@ -50,8 +60,8 @@ Before enabling the Android path:
    owner-scoped chart operations with explicit authorization and tests. The
    candidate must remain off until staging, migration and rollout gates pass.
 3. Implement native system-browser PKCE, cryptographically random one-use
-   state/verifier, verified callback, a real bounded HTTPS transport with a
-   staging endpoint, Keystore-protected
+   state/verifier, verified callback, integrate and review the HTTPS transport
+   with a staging endpoint, Keystore-protected
    refresh credential and explicit revocation. No token, verifier or code crosses
    the WebView IPC boundary or enters logs.
 4. Add encrypted per-account local isolation and transactional synchronization,
