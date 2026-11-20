@@ -25,6 +25,9 @@ mod android_login_coordinator;
 #[cfg(all(target_os = "android", feature = "android-login-coordinator-experimental"))]
 #[allow(dead_code)]
 mod android_system_browser;
+#[cfg(all(target_os = "android", feature = "android-login-coordinator-experimental"))]
+#[allow(dead_code)]
+mod android_app_link;
 #[cfg(feature = "android-login-https-experimental")]
 #[allow(dead_code)]
 mod android_https_transport;

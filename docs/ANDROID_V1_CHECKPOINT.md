@@ -73,6 +73,18 @@ after the application and release gates are ready.
   on a native worker. This remains unregistered in the application: Android
   App Link configuration, the callback receiver, backend authorization, key
   provisioning and UI are not implemented by this checkpoint.
+- The opt-in `npm run android:app-link:prepare` command patches only a compatible
+  local Tauri-generated Android project with the candidate callback
+  `https://virgostars.it/android/oauth/callback`. The Activity takes matching
+  callbacks out of cold-start and warm-start intents before handing them to
+  Tauri plugins, and exposes a one-use native queue for the Rust coordinator.
+  It refuses unfamiliar generated Activity customizations. A local x86_64
+  debug APK compiled with this Activity and its manifest contains the exact
+  auto-verified filter; no emulator or physical-device callback test was run.
+  The generated project is ignored, and running the preparation command neither
+  configures the website's Digital Asset Links nor enables a backend redirect.
+  Android/Java may retain transient String copies of the callback. The native
+  queue bridge is not yet called by app commands or a user interface.
 
 ## Login and sync: remaining implementation
 
