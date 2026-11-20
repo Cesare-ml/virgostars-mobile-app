@@ -1,6 +1,6 @@
 # iOS on GitHub Actions — build setup (experimental)
 
-**Status:** the workflow is configured, but there is no verified macOS build, installed iPhone app, signed IPA, TestFlight delivery or App Store release until the relevant runs succeed. This is a technical preview, not a production-ready iOS port.
+**Status (2026-11-20):** the first macOS/Xcode **unsigned simulator build succeeded**, including artifact upload ([GitHub Actions run 44795768102](https://github.com/Cesare-ml/virgostars-mobile-app/actions/runs/44795768102)). The resulting app has **not** been launched in Simulator or installed on an iPhone; the signed IPA, TestFlight delivery and App Store path remain untested and unconfigured. This is a technical preview, not a production-ready iOS port.
 
 ## Start without a Mac
 
@@ -34,7 +34,7 @@ Configure the following **GitHub Environment** at Settings → Environments → 
 | Environment secret | `IOS_MOBILE_PROVISION` | Base64 of App Store Connect `.mobileprovision` |
 | Environment secret | `APPLE_API_PRIVATE_KEY` | Raw contents of downloaded `AuthKey_<KeyID>.p8` |
 
-For a Mac-based collaborator, `base64 -i /path/to/certificate.p12 | pbcopy` and `base64 -i /path/to/profile.mobileprovision | pbcopy` produce values for the relevant Secrets. Never paste them into issues, PRs, build logs or chats.
+For a Mac-based collaborator, `base64 -i /path/to/certificate.p12 | pbcopy` and `base64 -i /path/to/profile.mobileprovision | pbcopy` produce values for the relevant Secrets. **On Windows PowerShell** (after obtaining the correct certificate/profile), use `[Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path '.\\certificate.p12')))` for `IOS_CERTIFICATE`, and the same expression with `.\\profile.mobileprovision` for `IOS_MOBILE_PROVISION`; store the output directly as GitHub Environment secrets, not in a tracked file. The `.p12` must contain the matching private key. Never paste secrets into issues, PRs, build logs or chats.
 
 After setup: Actions → **iOS / Build** → **Run workflow** on `main` → `target=testflight`. Leave **upload_testflight=false** to produce a signed IPA as a workflow artifact for review. **This repository is public: do not consider Actions artifacts private or use this job for confidential prerelease binaries.** The optional checkbox `upload_testflight=true` explicitly uploads the built IPA to App Store Connect/TestFlight; the matching app must already exist, and Apple must process/approve it before testers can install it. This is **not** a public GitHub release and does not automatically create an App Store listing.
 
