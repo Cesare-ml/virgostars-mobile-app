@@ -28,12 +28,24 @@
               {
                 "output": "assets",
                 "glob": "**/*",
-                "input": "src/assets"
+                "input": "src/assets",
+                "ignore": ["cities5000.json", "cities1000.json"]
               },
               {
                 "output": "assets",
                 "glob": "**/*",
                 "input": "src/chart-symbols"
+              },
+              {
+                "output": "assets/img/symbols/planets/dark/_circle",
+                "glob": "*.png",
+                "ignore": ["true Node.png"],
+                "input": "src/chart-symbols/img/simboli-bianchi/elementi-celesti"
+              },
+              {
+                "output": "assets",
+                "glob": "**/*",
+                "input": ".local/private-glyphs/assets"
               }
             ],
             "styles": [

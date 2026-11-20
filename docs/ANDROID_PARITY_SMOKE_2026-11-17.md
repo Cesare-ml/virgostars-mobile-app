@@ -1,0 +1,17 @@
+# Android parity smoke — 2026-11-17
+
+Status: **Locally tested prototype**, not a release. A local x86_64 debug build was built with the optional `swiss-ephemeris` feature and installed on the `VirgoStars_Test` Android 36.1 emulator. Swiss Ephemeris remains local-use only pending a distribution rights decision; no binary was published.
+
+Using the debug WebView's Chrome DevTools protocol and fictional coordinates (0°, 0°), the test exercised a successful `swiss_ephemeris` chart calculation and rendered it, prepared and discarded a PNG, added the chart to the in-memory session, rendered transit and synastry overlays using that same session chart, rendered latitudes, switched to light appearance and rendered latitudes again. The test drove DOM events rather than physical touch and did not complete a native share or download. The archive stayed unavailable; no archive IPC or persistent chart storage was enabled. This does not verify scientific accuracy, performance, memory use, accessibility, real-device behavior, iOS or release readiness.
+
+The sibling `astrological-charts` checkout at `72e7b01` lacked the optional interactive planet API used by the previous local build. The mobile host now detects those APIs: it preserves selection in the body list and shows a clear notice if canvas tapping and highlighting are unavailable. This is a compatibility fallback, not restoration of feature parity. When a future compatible renderer exposes both APIs, the existing interaction path is used. The renderer checkout was not modified by this mobile change.
+
+The app build and this local emulator run preceded a small defensive change that checks optional renderer methods are functions before calling them; that change was verified separately, not in this emulator run. A temporary WebView debugging forward and the headless emulator were closed after the run. Any future native archive work still requires its own key-store, security and device tests; this smoke does not cover them.
+
+## Planet and angle inspector follow-up
+
+A later local x86_64 debug build with the same optional Swiss feature was installed on the Android 36.1 emulator. A separate WebView DevTools smoke using fictional coordinates (0°, 0°) calculated a chart, confirmed four axes, expanded the Sun's provider data, selected the Sun from the list, and checked Italian and English labels. The check drove DOM events; it did not validate physical touch, accessibility, image sharing, astronomical accuracy or a real device. The WebView forward was removed and the headless emulator stopped after the run. The debug APK and AAB are local build artifacts, not published releases.
+
+## Two-chart aspect follow-up
+
+A subsequent local x86_64 debug build with the optional Swiss provider was installed on the Android 36.1 emulator. A WebView DevTools smoke calculated two fictional UTC charts at coordinates (0°, 0°), reopened the first from the in-memory session and used the second as the comparison. It checked that the natal aspect list remained unchanged, that transit and synastry lists carried their respective directions and differed for this fixture, and that the natal list could be collapsed and reopened. The test drove DOM events, not physical touch; it does not independently verify astrological or astronomical correctness, compare every drawn line, or establish physical-device behavior. The temporary WebView forward and emulator were closed after the run; no binary was published.

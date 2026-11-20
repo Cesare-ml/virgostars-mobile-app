@@ -194,7 +194,7 @@ impl EphemerisProvider for SwissEphemeris {
         if !bodies.iter().any(|body| body.id == "Sun") || !bodies.iter().any(|body| body.id == "Moon") {
             return Err(ProviderError);
         }
-        Ok(ChartSnapshotV1 { julian_day_ut, bodies, houses, unavailable_bodies, unavailable_house_systems })
+        Ok(ChartSnapshotV1 { julian_day_ut, bodies, houses, house_angle_facts: None, unavailable_bodies, unavailable_house_systems })
     }
 }
 

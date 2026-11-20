@@ -1,0 +1,15 @@
+# Android display preferences
+
+Status: **experimental, integrated on Android**. The app stores language, light/dark appearance, selected house system, aspect visibility and individual aspect/point settings and orbs in two separate app-private files in Android's no-backup directory. The startup choice remains in its existing separate file. Chart inputs and personal records are not part of these display files and stay in the encrypted archive.
+
+The native IPC accepts only two fixed sections and validated, bounded preference fields. Writes use a temporary file, flush it and replace the previous file; a corrupt or unsupported-version native file is reported and not silently overwritten. The interface displays a warning and offers a retry when settings cannot be saved. Consecutive changes are queued per section, and controls are disabled while their initial values load. The selected house system is retained even if a particular chart cannot supply it; that chart uses an available system without replacing the preference.
+
+When no system has been selected, the app uses Placidus if available. The selection is in Options. New installations default to the light theme and the device's Italian locale, or English for unsupported locales. Existing explicit preferences are preserved; language and appearance can also be changed in Options.
+
+On the first Android run with no native file for a section, the app reads the corresponding old WebView value if it is available and supported, sanitizes it, then writes the native file. It leaves old WebView keys untouched. A missing old value uses defaults; an unreadable or unsupported old value is reported rather than silently migrated. Values already lost by the WebView cannot be recovered. Once a native file exists, it is authoritative. Browser preview continues to use WebView/browser storage; iOS native storage is not implemented.
+
+These preferences survive ordinary app restarts and updates but are local to this installation and excluded from Android automatic backup. Uninstall or clearing app data removes them. This is not encrypted personal-data storage, profile sync, or a guarantee against power loss or device compromise.
+
+## Verification
+
+On 2026-11-18 an Android 36.1 x86_64 emulator showed that the old WebView-only theme, language and aspect setting reverted after a forced stop. With the native implementation, a debug build retained English, light theme, Koch houses, hidden aspect lines, enabled quincunx with a 2.5° orb, and changed Uranus visibility/aspect participation with a 4.5° orb across a forced stop and restart. The emulator's original settings were restored after testing. On upgrade, the old test values had already disappeared from WebView storage; migration of available settings, queued writes, failure/retry and preservation of unknown versions were separately checked in synthetic Chromium tests. Rust tests exercise bounded schema, a shared TypeScript/native fixture and corrupt/newer files. These are not physical-device, actual power-loss, backup or independent security tests.

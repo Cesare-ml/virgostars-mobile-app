@@ -22,6 +22,17 @@ test('minimum native permission surface', () => {
   assert.doesNotMatch(config.app.security.csp, /unsafe-eval/);
 });
 
+test('archive registration and the platform key store are restricted to Android', () => {
+  const rust = text('src-tauri/src/lib.rs');
+  for (const module of ['archive_keys', 'archive_vault', 'chart_archive']) {
+    assert.match(rust, new RegExp('#\\[cfg\\(any\\(all\\(test, feature = "archive-experimental"\\), all\\(target_os = "android", feature = "archive-mobile"\\)\\)\\)\\]\\s*mod ' + module));
+  }
+  assert.match(rust, /generate_handler!\[runtime_info, chart_calculation::calculate_chart/);
+  assert.match(rust, /all\(target_os = "android", feature = "archive-mobile"\)/);
+  assert.match(rust, /android_archive::chart_archive/);
+  assert.doesNotMatch(rust, /generate_handler!\[[^\]]*remove_legacy/s);
+});
+
 test('native command only reports public runtime information', () => {
   const rust = text('src-tauri/src/lib.rs');
   assert.match(rust, /fn runtime_info\(\)/);
@@ -31,8 +42,15 @@ test('native command only reports public runtime information', () => {
 
 test('no fake astrology results or private data bundled', () => {
   const ui = text('src/app/app.component.html');
-  assert.match(ui, /demoWarning/);
-  assert.match(ui, /Powered by VirgoStars/);
+  assert.doesNotMatch(ui, /Benvenuto in VirgoStars|Pensato per l’offline|Prototipo Android/);
+  assert.doesNotMatch(ui, /Powered by VirgoStars|virgostars\.it/);
   assert.ok(existsSync(new URL('../src/assets/virgostars-icon.png', import.meta.url)));
   assert.equal(pkg.private, true);
+});
+
+test('chart loading has its original transparent solar resonator placeholder', () => {
+  const bytes = readFileSync(new URL('../src/chart-symbols/img/risuonatore-solare-bn.png', import.meta.url));
+  assert.deepEqual(bytes.subarray(0, 8), Buffer.from('89504e470d0a1a0a', 'hex'));
+  assert.equal(bytes.readUInt32BE(16), 32);
+  assert.equal(bytes.readUInt32BE(20), 32);
 });

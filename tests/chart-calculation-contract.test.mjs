@@ -49,7 +49,7 @@ test('a complete native response is copied into detached frozen values', () => {
 });
 
 test('failure statuses carry no provider or chart', () => {
-  for (const status of ['provider_unavailable', 'invalid_request', 'calculation_failed']) {
+  for (const status of ['provider_unavailable', 'invalid_request', 'calculation_failed', 'out_of_range']) {
     assert.deepEqual(decodeChartResponse({protocolVersion: 1, status, provider: null, chart: null}), {status});
   }
 });
@@ -123,7 +123,7 @@ test('one native call carries only the versioned instant and position', async ()
 test('browser preview, missing provider and native failures stay distinct and opaque', async () => {
   const never = async () => { throw new Error('must not be called'); };
   assert.deepEqual(await requestChart({isNative: () => false, invoke: never}, REQUEST), {kind: 'not_native'});
-  for (const status of ['provider_unavailable', 'invalid_request', 'calculation_failed']) {
+  for (const status of ['provider_unavailable', 'invalid_request', 'calculation_failed', 'out_of_range']) {
     const transport = {isNative: () => true, invoke: async () => ({protocolVersion: 1, status, provider: null, chart: null})};
     assert.deepEqual(await requestChart(transport, REQUEST), {kind: status});
   }
@@ -133,4 +133,45 @@ test('browser preview, missing provider and native failures stay distinct and op
   assert.deepEqual(await requestChart(garbage, REQUEST), {kind: 'unavailable'});
   const throwingProbe = {isNative: () => { throw new Error('no bridge'); }, invoke: never};
   assert.deepEqual(await requestChart(throwingProbe, REQUEST), {kind: 'unavailable'});
+});
+
+function ephemerisResponse() {
+  const raw=okResponse();
+  raw.provider={id:'virgostars_ephemeris',engineVersion:'core-0.1.0-6835e00'};
+  raw.chart.julianDayUt=2451545;
+  raw.chart.houses=[];
+  raw.chart.unavailableHouseSystems=[...HOUSE_SYSTEM_IDS];
+  raw.chart.bodies=raw.chart.bodies.map((body,index)=>({...body,ephemerisSource:index < 10 ? 'jpl' : 'virgostars_model'}));
+  raw.chart.houseAngleFacts={model:'iau2006_2000b_utc_as_ut1',timeSource:'iers_leap_seconds',ttJulianDay:2451545.00074,
+    latitudeDeg:0,longitudeDegEast:0,armcDeg:270,trueObliquityDeg:23.439,ascendantDeg:0,mcDeg:270,vertexDeg:180};
+  return raw;
+}
+test('DE441 angle facts are detached, versioned and bound to the exact request', async()=>{
+  const raw=ephemerisResponse(), decoded=decodeChartResponse(raw);
+  assert.equal(decoded.status,'ok');
+  assert.ok(Object.isFrozen(decoded.chart.houseAngleFacts));
+  assert.equal(decoded.chart.houseAngleFacts.timeSource,'iers_leap_seconds');
+  const request={utcIso:'2000-01-01T12:00:00.000Z',latMicro:0,lngMicro:0};
+  const transport={isNative:()=>true,invoke:async()=>raw};
+  assert.equal((await requestChart(transport,request)).kind,'ready');
+  assert.deepEqual(await requestChart(transport,{...request,latMicro:1}),{kind:'unavailable'});
+  assert.deepEqual(await requestChart(transport,{...request,utcIso:'2000-01-01T12:00:01.000Z'}),{kind:'unavailable'});
+  raw.chart.houseAngleFacts.ascendantDeg=10;
+  assert.equal(decoded.chart.houseAngleFacts.ascendantDeg,0);
+});
+test('DE441 rejects unsupported versions, unsafe angle metadata and contradictory house lists',()=>{
+  const mutations=[
+    r=>r.provider.engineVersion='wrong',
+    r=>delete r.chart.houseAngleFacts,
+    r=>r.chart.houseAngleFacts.model='unknown',
+    r=>r.chart.houseAngleFacts.timeSource='unknown',
+    r=>r.chart.houseAngleFacts.trueObliquityDeg=90,
+    r=>r.chart.houseAngleFacts.ttJulianDay=2451550,
+    r=>r.chart.houseAngleFacts.latitudeDeg=91,
+    r=>r.chart.houses.push(houseSystem('egizia')),
+    r=>r.chart.unavailableHouseSystems.pop(),
+    r=>r.provider.id='swiss_ephemeris',
+  ];
+  for(const mutate of mutations){const raw=ephemerisResponse();mutate(raw);assert.throws(()=>decodeChartResponse(raw),{message:'Invalid chart calculation protocol'});}
+  assert.deepEqual(decodeChartResponse({protocolVersion:1,status:'out_of_range'}),{status:'out_of_range'});
 });

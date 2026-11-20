@@ -1,0 +1,10 @@
+[
+  {"case":"fictional-valid","valid":true,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"Soggetto fittizio","utcIso":"2000-01-01T12:00:00.000Z","timeZone":"Europe/Rome","latMicro":0,"lngMicro":0,"placeName":"Luogo fittizio"}},
+  {"case":"minimum-year","valid":true,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"","utcIso":"1600-01-01T00:00:00Z","timeZone":"UTC","latMicro":-90000000,"lngMicro":180000000,"placeName":""}},
+  {"case":"invalid-calendar","valid":false,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"","utcIso":"2001-02-30T00:00:00Z","timeZone":"UTC","latMicro":0,"lngMicro":0,"placeName":""}},
+  {"case":"outside-year","valid":false,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"","utcIso":"1599-12-31T23:59:59Z","timeZone":"UTC","latMicro":0,"lngMicro":0,"placeName":""}},
+  {"case":"bad-zone","valid":false,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"","utcIso":"2000-01-01T00:00:00Z","timeZone":"Europe//Rome","latMicro":0,"lngMicro":0,"placeName":""}},
+  {"case":"bad-uuid","valid":false,"record":{"id":"../../not-an-id","name":"","utcIso":"2000-01-01T00:00:00Z","timeZone":"UTC","latMicro":0,"lngMicro":0,"placeName":""}},
+  {"case":"bad-latitude","valid":false,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"","utcIso":"2000-01-01T00:00:00Z","timeZone":"UTC","latMicro":90000001,"lngMicro":0,"placeName":""}},
+  {"case":"control-character","valid":false,"record":{"id":"11111111-1111-4111-8111-111111111111","name":"test\nname","utcIso":"2000-01-01T00:00:00Z","timeZone":"UTC","latMicro":0,"lngMicro":0,"placeName":""}}
+]

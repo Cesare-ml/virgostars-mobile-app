@@ -1,0 +1,203 @@
+{
+  "ui": {
+    "version": 1,
+    "ui": {
+      "theme": "light",
+      "locale": "en",
+      "houseSystem": "koch"
+    }
+  },
+  "chart": {
+    "version": 1,
+    "chart": {
+      "showAspects": true,
+      "aspects": {
+        "congiunzione": {
+          "active": true,
+          "orb": null
+        },
+        "opposizione": {
+          "active": true,
+          "orb": null
+        },
+        "trigono": {
+          "active": true,
+          "orb": null
+        },
+        "quadrato": {
+          "active": true,
+          "orb": null
+        },
+        "sestile": {
+          "active": true,
+          "orb": null
+        },
+        "quinconce": {
+          "active": true,
+          "orb": 1.5
+        },
+        "semisestile": {
+          "active": false,
+          "orb": null
+        },
+        "semiquadrato": {
+          "active": false,
+          "orb": 3
+        },
+        "quintile": {
+          "active": false,
+          "orb": 3
+        },
+        "biquintile": {
+          "active": false,
+          "orb": null
+        },
+        "semiquintile": {
+          "active": false,
+          "orb": null
+        },
+        "novile": {
+          "active": false,
+          "orb": null
+        },
+        "settile": {
+          "active": false,
+          "orb": null
+        },
+        "phisolare": {
+          "active": false,
+          "orb": 2
+        },
+        "philunare": {
+          "active": false,
+          "orb": 2
+        },
+        "parallelodideclinazione": {
+          "active": false,
+          "orb": null
+        },
+        "antiparallelo": {
+          "active": false,
+          "orb": null
+        }
+      },
+      "points": {
+        "Sun": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Moon": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Mercury": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Venus": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Mars": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Jupiter": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Saturn": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "Uranus": {
+          "shown": false,
+          "orb": 4.5,
+          "aspects": true
+        },
+        "Neptune": {
+          "shown": true,
+          "orb": 6,
+          "aspects": false
+        },
+        "Pluto": {
+          "shown": true,
+          "orb": 6,
+          "aspects": false
+        },
+        "Chiron": {
+          "shown": true,
+          "orb": 6,
+          "aspects": false
+        },
+        "true Node": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "true Node Sud": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "mean Node": {
+          "shown": false,
+          "orb": 6,
+          "aspects": false
+        },
+        "mean Node Sud": {
+          "shown": false,
+          "orb": 6,
+          "aspects": false
+        },
+        "osc. Apogee": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "osc. Perigee": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "mean Apogee": {
+          "shown": false,
+          "orb": 6,
+          "aspects": false
+        },
+        "mean Perigee": {
+          "shown": false,
+          "orb": 6,
+          "aspects": false
+        },
+        "AS": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "MC": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "DS": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        },
+        "IC": {
+          "shown": true,
+          "orb": 6,
+          "aspects": true
+        }
+      }
+    }
+  }
+}

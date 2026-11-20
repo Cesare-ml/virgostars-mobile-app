@@ -29,6 +29,9 @@
   },
   "bundle": {
     "active": true,
+    "resources": {
+      "../.local/places/world-cities.sqlite": "places/world-cities.sqlite"
+    },
     "android": {
       "minSdkVersion": 24
     },
