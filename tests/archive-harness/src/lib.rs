@@ -23,3 +23,5 @@ mod android_https_transport;
 mod android_chart_snapshot;
 #[path = "../../../src-tauri/src/android_snapshot_cache.rs"]
 mod android_snapshot_cache;
+#[path = "../../../src-tauri/src/android_login_coordinator.rs"]
+mod android_login_coordinator;

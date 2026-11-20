@@ -53,12 +53,26 @@ after the application and release gates are ready.
   Keystore-backed archive key. Its per-profile hashed filenames are pseudonymous,
   and the same supplied device key can encrypt multiple profiles; this is not
   independent per-account key isolation. The module is not connected to app
-  startup, IPC, Android Keystore, login or sync. A future session registry must
-  serialize sign-out/account switching and recheck revocation before committing;
-  possession of an unexpired in-memory session alone cannot establish that.
+  startup, IPC or Android Keystore. Possession of an unexpired in-memory
+  session alone cannot establish that authorization remains active.
   An explicit offline access/revocation policy, safe key provisioning and
   device-level interrupted-write testing also remain open. The existing local
   chart archive is neither migrated nor changed by this prototype.
+- The default-off `android-login-coordinator-experimental` feature connects the
+  native PKCE attempt, token exchange, verified session, snapshot reader and
+  encrypted cache. The coordinator rechecks the server session after download,
+  verifies the same in-memory session is still current before committing and
+  allows local sign-out during network I/O. A native Android browser launcher
+  uses an ACTION_VIEW intent with a browser selector; this follows the
+  [Android Intent selector contract](https://developer.android.com/reference/android/content/Intent#setSelector(android.content.Intent)).
+  It has compiled for ARM64 and x86_64 but has not been run on a device. An
+  integrated Rust test uses a synthetic browser and server to cover PKCE,
+  profile binding, revocation, cache encryption and switching accounts during
+  download. Local sign-out does not revoke the server grant. A revocation may
+  still occur after the last server check, and the coordinator must be called
+  on a native worker. This remains unregistered in the application: Android
+  App Link configuration, the callback receiver, backend authorization, key
+  provisioning and UI are not implemented by this checkpoint.
 
 ## Login and sync: remaining implementation
 

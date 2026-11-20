@@ -19,6 +19,12 @@ mod android_chart_snapshot;
 #[cfg(all(target_os = "android", feature = "android-snapshot-cache-experimental"))]
 #[allow(dead_code)]
 mod android_snapshot_cache;
+#[cfg(all(target_os = "android", feature = "android-login-coordinator-experimental"))]
+#[allow(dead_code)]
+mod android_login_coordinator;
+#[cfg(all(target_os = "android", feature = "android-login-coordinator-experimental"))]
+#[allow(dead_code)]
+mod android_system_browser;
 #[cfg(feature = "android-login-https-experimental")]
 #[allow(dead_code)]
 mod android_https_transport;
