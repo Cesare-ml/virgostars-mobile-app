@@ -50,4 +50,4 @@ Critical tests before first beta: Android offline restart, device lock and evict
 
 ## Platform / release boundary
 
-Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. The only permitted GitHub Actions integration is the iOS compilation workflow: unsigned simulator previews on PR/push, and an explicitly gated manual signing/TestFlight path. A successful build is not device validation; see [iOS build guide](IOS.md).
+Builds do not publish. Android Play and Apple App Store distribution demand review, reproducible dependencies, signing, screenshots/permissions and verified platform builds. The permitted GitHub Actions integrations are narrow iOS compilation workflows: unsigned simulator previews on PR/push; unsigned real-device IPA packaging for local Sideloadly testing (no signing credentials or automatic release); and an explicitly gated manual signing/TestFlight path. A successful build is not device validation; see [iOS build guide](IOS.md).
