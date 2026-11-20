@@ -12,6 +12,7 @@
     "check": "npm run test:contract && npm run build && npm run verify:chart-symbols",
     "icons": "tauri icon src/assets/virgostars-icon.png",
     "android:init": "npm run icons && tauri android init",
+    "android:app-link:prepare": "node scripts/prepare-android-app-link.mjs",
     "android:dev": "npm run icons && tauri android dev",
     "android:build": "npm run icons && tauri android build",
     "android:debug:arm64": "npm run icons && tauri android build --debug --target aarch64 --apk",
