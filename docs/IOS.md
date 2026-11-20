@@ -36,7 +36,7 @@ Configure the following **GitHub Environment** at Settings → Environments → 
 
 For a Mac-based collaborator, `base64 -i /path/to/certificate.p12 | pbcopy` and `base64 -i /path/to/profile.mobileprovision | pbcopy` produce values for the relevant Secrets. Never paste them into issues, PRs, build logs or chats.
 
-After setup: Actions → **iOS / Build** → **Run workflow** on `main` → `target=testflight`. Leave **upload_testflight=false** to produce a signed IPA as a restricted workflow artifact for review. The optional checkbox `upload_testflight=true` explicitly uploads the built IPA to App Store Connect/TestFlight; the matching app must already exist, and Apple must process/approve it before testers can install it. This is **not** a public GitHub release and does not automatically create an App Store listing.
+After setup: Actions → **iOS / Build** → **Run workflow** on `main` → `target=testflight`. Leave **upload_testflight=false** to produce a signed IPA as a workflow artifact for review. **This repository is public: do not consider Actions artifacts private or use this job for confidential prerelease binaries.** The optional checkbox `upload_testflight=true` explicitly uploads the built IPA to App Store Connect/TestFlight; the matching app must already exist, and Apple must process/approve it before testers can install it. This is **not** a public GitHub release and does not automatically create an App Store listing.
 
 If you later want direct ad-hoc distribution, that requires a **separate** Ad Hoc provisioning profile containing each recipient device's UDID and a distinct export method. The current signed path produces an App Store Connect/TestFlight IPA, **not** a broadly sideloadable IPA.
 
