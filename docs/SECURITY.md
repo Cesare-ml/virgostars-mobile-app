@@ -8,6 +8,8 @@ The user can choose DE441, USNO and Chiron data using the platform file picker. 
 
 A separate opt-in native HTTPS transport exists for future account work, but is not wired into the app or its IPC. It uses a bundled certificate-root snapshot, which needs an explicit trust-store, revocation and update policy before release. The transport is blocking and must run on a native worker if integrated. See [Android v1 checkpoint](ANDROID_V1_CHECKPOINT.md).
 
+An isolated opt-in encrypted snapshot cache prototype requires a previously verified profile and a supplied existing key; it is not connected to Android Keystore or app flows. It must not be interpreted as complete account isolation, offline authorization or revocation handling. Profile-derived filenames are pseudonymous; chart data remain encrypted on disk. A future integration must prevent stale sessions from writing after account switching or revocation.
+
 Before implementing identity, synchronization or release:
 1. Use system-browser OAuth 2 authorization code with PKCE, not an embedded login form.
 2. Store secrets only in vetted OS-backed secure storage. Never commit passwords, tokens, refresh tokens, certificates, signing keys or private user records.
