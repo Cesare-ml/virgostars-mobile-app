@@ -1,0 +1,90 @@
+name: iPhone / IPA non firmato (Sideloadly)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/ios-sideloadly.yml'
+      - 'scripts/ci-ios-build.sh'
+      - 'scripts/package-ios-unsigned-ipa.py'
+      - 'package*.json'
+      - 'angular.json'
+      - 'src/**'
+      - 'src-tauri/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone-sideloadly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unsigned-iphone-ipa:
+    name: Unsigned iPhoneOS arm64 IPA for personal Sideloadly testing
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      VIRGOSTARS_IOS_CI: '1'
+    steps:
+      - name: Checkout mobile source
+        uses: actions/checkout@v4
+        with:
+          path: virgostars-mobile-app
+          persist-credentials: false
+      - name: Checkout pinned chart renderer
+        uses: actions/checkout@v4
+        with:
+          repository: Cesare-ml/astrological-charts
+          ref: 85fc091ec7afc87e7979f0f399b105d47bf89ef7
+          path: astrological-charts
+          persist-credentials: false
+      - name: Checkout pinned astrology functions
+        uses: actions/checkout@v4
+        with:
+          repository: Cesare-ml/astrological-functions
+          ref: 266aa7165e94196c37c5293d903630260aefe2b7
+          path: astrological-functions
+          persist-credentials: false
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            virgostars-mobile-app/package-lock.json
+            astrological-charts/package-lock.json
+      - name: Configure Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install open-font glyph generator dependency
+        run: python3 -m pip install 'Pillow==11.3.0'
+      - name: Configure Rust for real iPhone devices
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: virgostars-mobile-app/src-tauri -> target
+      - name: Check Xcode and iOS generators
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          command -v xcodegen >/dev/null || brew install xcodegen
+          command -v pod >/dev/null || brew install cocoapods
+      - name: Compile unsigned real-device app and package IPA
+        working-directory: virgostars-mobile-app
+        run: bash scripts/ci-ios-build.sh sideload
+      - name: Upload IPA and SHA-256 checksum (no Apple signing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VirgoStars-iPhone-Sideloadly-unsigned-${{ github.run_number }}
+          path: |
+            ${{ env.IOS_ARTIFACT }}
+            ${{ env.IOS_CHECKSUM }}
+          if-no-files-found: error
+          retention-days: 14
