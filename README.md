@@ -5,7 +5,7 @@
 Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. This repository is a **bootstrap prototype**, not a released or production-ready astrology app.
 
 - **Android:** first supported development target.
-- **iOS:** experimental macOS GitHub Actions simulator build configured; native testing and signed/TestFlight distribution still require validation and Apple credentials. See [iOS build guide](docs/IOS.md).
+- **iOS:** macOS GitHub Actions compiles simulator previews; a separate workflow generates an **unsigned real-iPhone IPA for Sideloadly**, without Apple Developer credentials. iPhone installation/device testing and signed/TestFlight distribution require separate validation. See [iOS build guide](docs/IOS.md).
 - **Offline-first goal:** Android has an experimental device-only encrypted chart archive; profiles and conflict-safe synchronization are planned.
 - **Present functionality:** responsive Italian/English shell, experimental native VirgoStars-Ephemeris calculation and an Android encrypted archive. The default build needs externally supplied DE441 data; without it the provider is unavailable. The calculated chart is displayed with the shared renderer and locally staged private VirgoStars glyphs; remaining graphics use locally generated synthetic placeholders; login and sync are not integrated.
 
@@ -60,7 +60,7 @@ For Android Studio Run on Windows ARM64, use the [Tauri-backed launch instructio
 
 ## iOS builds via GitHub Actions
 
-[Follow the iOS build guide](docs/IOS.md) to run the unsigned simulator build in **Actions → iOS / Build** without owning a Mac. A manually triggered iPhone IPA/TestFlight path is also configured, but requires an Apple Developer account, valid provisioning and an explicit distribution-rights approval; no signed build, device test or public distribution has been verified yet. On a Mac with Xcode, `npm run ios:init` and `npm run ios:dev` remain available after providing the normal local assets. The generated Xcode project stays ignored.
+[Follow the iOS build guide](docs/IOS.md) to run the unsigned simulator build in **Actions → iOS / Build** or generate a **real-device, unsigned Sideloadly IPA** from [Actions → iPhone / IPA non firmato (Sideloadly)](https://github.com/Cesare-ml/virgostars-mobile-app/actions/workflows/ios-sideloadly.yml), without owning a Mac. Sideloadly signs the IPA locally on Windows using a personal Apple Account; this is a personal test path, not a distributable release. The separate signed IPA/TestFlight path requires Apple Developer membership, valid provisioning and explicit distribution-rights approval; no signed build, iPhone device test or public distribution has been verified yet. On a Mac with Xcode, `npm run ios:init` and `npm run ios:dev` remain available after providing the normal local assets. The generated Xcode project stays ignored.
 
 ## Architecture
 
@@ -85,5 +85,5 @@ Do not copy production VirgoStars web/server code, private birth records, privat
 - [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Security and privacy](docs/SECURITY.md) · [Android setup](docs/ANDROID.md).
 - [Agent/contributor rules](AGENTS.md) · [License](LICENSE) · [Attribution](NOTICE).
 - The original source is offered under **CPAL-1.0** with the **Powered by VirgoStars** GUI attribution requirement. Third-party dependencies/assets retain their own licenses.
-- **Only** the scoped iOS build GitHub Action is configured: unsigned simulator checks on PR/push, and a manually gated signed IPA/TestFlight path. No unattended store publication, embedded signing material or privileged backend secrets.
+- **Only** scoped iOS build Actions are configured: unsigned simulator previews on PR/push, an unsigned real-iPhone IPA for personal Sideloadly installation, and a separately manually gated signed IPA/TestFlight path. No unattended store publication, embedded signing material or privileged backend secrets.
 - `npm run check` runs contract tests, Angular compilation and chart-symbol verification. Android builds require a configured Android toolchain; local debug builds have been exercised on an emulator and a Pixel 8 Pro. This is not release validation.

@@ -2,8 +2,8 @@
 # macOS-only build helper. The outputs are experimental; never upload them as a GitHub Release.
 set -euo pipefail
 MODE="${1:-}"
-if [[ "$MODE" != "simulator" && "$MODE" != "testflight" ]]; then
-  echo "Usage: bash scripts/ci-ios-build.sh simulator|testflight" >&2
+if [[ "$MODE" != "simulator" && "$MODE" != "sideload" && "$MODE" != "testflight" ]]; then
+  echo "Usage: bash scripts/ci-ios-build.sh simulator|sideload|testflight" >&2
   exit 2
 fi
 if [[ "${VIRGOSTARS_IOS_CI:-}" != "1" ]]; then
@@ -41,6 +41,18 @@ if [[ "$MODE" == "simulator" ]]; then
   test "$BUNDLE_ID" = 'it.virgostars.mobile' || { echo "::error::Unexpected iOS bundle ID: $BUNDLE_ID"; exit 1; }
   ditto -c -k --sequesterRsrc --keepParent "$APP" "$RUNNER_TEMP/VirgoStars-iOS-simulator.zip"
   echo "IOS_ARTIFACT=$RUNNER_TEMP/VirgoStars-iOS-simulator.zip" >> "$GITHUB_ENV"
+elif [[ "$MODE" == "sideload" ]]; then
+  # Native iPhoneOS target, never a simulator binary. No Apple team or secret needed.
+  npm run tauri -- ios build --target aarch64 --ci --no-sign \
+    --build-number "${GITHUB_RUN_NUMBER:-1}"
+  IPA="$RUNNER_TEMP/VirgoStars-iPhone-Sideloadly-unsigned.ipa"
+  python3 scripts/package-ios-unsigned-ipa.py \
+    --build-root src-tauri/gen/apple/build --output "$IPA"
+  test -s "$IPA" && test -s "$IPA.sha256" || {
+    echo "::error::Unsigned IPA or checksum file missing"; exit 1;
+  }
+  echo "IOS_ARTIFACT=$IPA" >> "$GITHUB_ENV"
+  echo "IOS_CHECKSUM=$IPA.sha256" >> "$GITHUB_ENV"
 else
   test -n "${APPLE_DEVELOPMENT_TEAM:-}"
   test -n "${IOS_CERTIFICATE:-}"

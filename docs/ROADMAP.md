@@ -44,6 +44,7 @@ Prototype: VirgoStars-Ephemeris provider, manual DE441/USNO/Chiron import and up
 ## M4 — iOS adaptation
 - [x] Configure an opt-in GitHub Actions macOS iOS build with synthetic/open-font preview assets (configuration only, not a passing native build)
 - [x] Generate an iOS native target and compile an unsigned simulator `.app` in GitHub Actions macOS/Xcode; first run [44795768102](https://github.com/Cesare-ml/virgostars-mobile-app/actions/runs/44795768102) passed on 2026-11-20
+- [ ] Validate unsigned native `aarch64-apple-ios` IPA packaging in GitHub Actions for personal Sideloadly installation (not signed or device-tested)
 - [ ] Install/launch the generated app in an Apple Simulator and perform a functional smoke test
 - [ ] Validate WKWebView rendering, gestures, secure keychain, background restrictions and offline persistence
 - [ ] Review iOS-specific privacy entitlements, Apple sign-in rules and distribution signing
