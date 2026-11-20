@@ -21,6 +21,8 @@ archive-mobile = ["dep:chacha20poly1305", "dep:rusqlite", "dep:zeroize", "dep:ge
 android-login-experimental = ["dep:base64", "dep:getrandom", "dep:serde_json", "dep:sha2", "dep:subtle", "dep:url", "dep:zeroize"]
 # Explicit opt-in only: no HTTP client or account IPC is registered by default.
 android-login-https-experimental = ["android-login-experimental", "dep:reqwest", "dep:rustls", "dep:webpki-root-certs"]
+# Native-only cache prototype; not registered or enabled in the app.
+android-snapshot-cache-experimental = ["android-login-experimental", "archive-mobile"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

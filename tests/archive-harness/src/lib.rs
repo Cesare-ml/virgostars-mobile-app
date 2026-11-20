@@ -21,3 +21,5 @@ mod android_connected_session;
 mod android_https_transport;
 #[path = "../../../src-tauri/src/android_chart_snapshot.rs"]
 mod android_chart_snapshot;
+#[path = "../../../src-tauri/src/android_snapshot_cache.rs"]
+mod android_snapshot_cache;

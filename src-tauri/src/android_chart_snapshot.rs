@@ -105,6 +105,24 @@ impl VerifiedSnapshot {
     pub(crate) fn json(&self) -> &[u8] {
         &self.bytes
     }
+    // Revalidate decrypted bytes before they can be used as a snapshot.
+    pub(crate) fn from_cached(
+        profile_ref: &str,
+        bytes: Zeroizing<Vec<u8>>,
+    ) -> Result<Self, SnapshotError> {
+        if !profile_id(profile_ref) || bytes.is_empty() || bytes.len() > MAX_SNAPSHOT_BYTES {
+            return Err(SnapshotError::Invalid);
+        }
+        let payload: Snapshot =
+            serde_json::from_slice(&bytes).map_err(|_| SnapshotError::Invalid)?;
+        if !valid_snapshot(&payload, profile_ref) {
+            return Err(SnapshotError::Invalid);
+        }
+        Ok(Self {
+            profile_ref: profile_ref.to_owned(),
+            bytes,
+        })
+    }
 }
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum SnapshotError {
@@ -215,14 +233,7 @@ pub(crate) fn fetch<T: SnapshotTransport>(
     if content_type != "application/json" && content_type != "application/json; charset=utf-8" {
         return Err(SnapshotError::Invalid);
     }
-    let payload: Snapshot = serde_json::from_slice(&bytes).map_err(|_| SnapshotError::Invalid)?;
-    if !valid_snapshot(&payload, session.profile_ref()) {
-        return Err(SnapshotError::Invalid);
-    }
-    Ok(VerifiedSnapshot {
-        profile_ref: session.profile_ref().to_owned(),
-        bytes,
-    })
+    VerifiedSnapshot::from_cached(session.profile_ref(), bytes)
 }
 
 #[cfg(test)]

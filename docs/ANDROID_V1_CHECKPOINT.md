@@ -44,6 +44,21 @@ after the application and release gates are ready.
   native memory. Semantic validation and lossless transactional conversion
   remain necessary before any future import. Tests use synthetic data only;
   no real account or service request has been exercised.
+- The `android-snapshot-cache-experimental` feature adds a separate encrypted
+  snapshot cache prototype. It checks the verified profile on read and write,
+  rejects stale responses using a baseline captured before network I/O and a
+  single-process lock, and
+  preserves the previous ciphertext on failed or interrupted replacement. It
+  does not create a key: the trusted native caller must supply an existing
+  Keystore-backed archive key. Its per-profile hashed filenames are pseudonymous,
+  and the same supplied device key can encrypt multiple profiles; this is not
+  independent per-account key isolation. The module is not connected to app
+  startup, IPC, Android Keystore, login or sync. A future session registry must
+  serialize sign-out/account switching and recheck revocation before committing;
+  possession of an unexpired in-memory session alone cannot establish that.
+  An explicit offline access/revocation policy, safe key provisioning and
+  device-level interrupted-write testing also remain open. The existing local
+  chart archive is neither migrated nor changed by this prototype.
 
 ## Login and sync: remaining implementation
 
