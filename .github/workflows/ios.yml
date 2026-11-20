@@ -1,0 +1,218 @@
+name: iOS / Build (simulator and signed IPA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Build type'
+        type: choice
+        options:
+          - simulator
+          - testflight
+        default: simulator
+        required: true
+      upload_testflight:
+        description: 'Upload the signed IPA to TestFlight (only for testflight target)'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - '.github/workflows/ios.yml'
+      - 'package*.json'
+      - 'angular.json'
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'scripts/**'
+      - 'tests/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios.yml'
+      - 'package*.json'
+      - 'angular.json'
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'scripts/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator:
+    name: Unsigned iOS simulator preview (not an iPhone IPA)
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'simulator'
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      VIRGOSTARS_IOS_CI: '1'
+    steps:
+      - name: Checkout mobile source
+        uses: actions/checkout@v4
+        with:
+          path: virgostars-mobile-app
+          persist-credentials: false
+      - name: Checkout pinned chart renderer
+        uses: actions/checkout@v4
+        with:
+          repository: Cesare-ml/astrological-charts
+          ref: 85fc091ec7afc87e7979f0f399b105d47bf89ef7
+          path: astrological-charts
+          persist-credentials: false
+      - name: Checkout pinned astrology functions
+        uses: actions/checkout@v4
+        with:
+          repository: Cesare-ml/astrological-functions
+          ref: 266aa7165e94196c37c5293d903630260aefe2b7
+          path: astrological-functions
+          persist-credentials: false
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            virgostars-mobile-app/package-lock.json
+            astrological-charts/package-lock.json
+      - name: Configure Python for licensed Noto symbols
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image dependency
+        run: python3 -m pip install 'Pillow==11.3.0'
+      - name: Configure Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios-sim,x86_64-apple-ios
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: virgostars-mobile-app/src-tauri -> target
+      - name: Check Xcode and iOS generators
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-path
+          command -v xcodegen >/dev/null || brew install xcodegen
+          command -v pod >/dev/null || brew install cocoapods
+      - name: Build unsigned simulator app
+        working-directory: virgostars-mobile-app
+        run: bash scripts/ci-ios-build.sh simulator
+      - name: Upload simulator-only application
+        uses: actions/upload-artifact@v4
+        with:
+          name: VirgoStars-iOS-simulator-${{ github.run_number }}
+          path: ${{ env.IOS_ARTIFACT }}
+          if-no-files-found: error
+          retention-days: 7
+
+  signed-iphone:
+    name: Signed iPhone IPA (manual, distribution approval required)
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testflight' && github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 90
+    environment: ios-distribution
+    env:
+      CI: 'true'
+      VIRGOSTARS_IOS_CI: '1'
+      APPLE_DEVELOPMENT_TEAM: ${{ vars.APPLE_DEVELOPMENT_TEAM }}
+      APPLE_API_KEY: ${{ vars.APPLE_API_KEY }}
+      APPLE_API_ISSUER: ${{ vars.APPLE_API_ISSUER }}
+    steps:
+      - name: Require explicit rights and signing setup
+        env:
+          IOS_DISTRIBUTION_APPROVED: ${{ vars.IOS_DISTRIBUTION_APPROVED }}
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ "$IOS_DISTRIBUTION_APPROVED" != 'true' ]]; then
+            echo '::error::Rights review not approved; set environment variable IOS_DISTRIBUTION_APPROVED=true only after approval.'
+            exit 1
+          fi
+          for name in APPLE_DEVELOPMENT_TEAM APPLE_API_KEY APPLE_API_ISSUER IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION APPLE_API_PRIVATE_KEY; do
+            if [[ -z "${!name:-}" ]]; then echo "::error::Missing Apple signing value: $name"; exit 1; fi
+          done
+      - name: Checkout mobile source
+        uses: actions/checkout@v4
+        with:
+          path: virgostars-mobile-app
+          persist-credentials: false
+      - name: Checkout pinned chart renderer
+        uses: actions/checkout@v4
+        with:
+          repository: Cesare-ml/astrological-charts
+          ref: 85fc091ec7afc87e7979f0f399b105d47bf89ef7
+          path: astrological-charts
+          persist-credentials: false
+      - name: Checkout pinned astrology functions
+        uses: actions/checkout@v4
+        with:
+          repository: Cesare-ml/astrological-functions
+          ref: 266aa7165e94196c37c5293d903630260aefe2b7
+          path: astrological-functions
+          persist-credentials: false
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            virgostars-mobile-app/package-lock.json
+            astrological-charts/package-lock.json
+      - name: Configure Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image dependency
+        run: python3 -m pip install 'Pillow==11.3.0'
+      - name: Configure Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: virgostars-mobile-app/src-tauri -> target
+      - name: Check Xcode and iOS generators
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          command -v xcodegen >/dev/null || brew install xcodegen
+          command -v pod >/dev/null || brew install cocoapods
+      - name: Prepare App Store Connect key in temporary directory
+        env:
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.private_keys"
+          printf '%s' "$APPLE_API_PRIVATE_KEY" > "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
+          echo "APPLE_API_KEY_PATH=$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8" >> "$GITHUB_ENV"
+      - name: Build signed iPhone IPA
+        working-directory: virgostars-mobile-app
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+        run: bash scripts/ci-ios-build.sh testflight
+      - name: Keep signed IPA as a private workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VirgoStars-iPhone-signed-${{ github.run_number }}
+          path: ${{ env.IOS_ARTIFACT }}
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload to TestFlight only if explicitly selected
+        if: inputs.upload_testflight == true
+        run: xcrun altool --upload-app --type ios --file "$IOS_ARTIFACT" --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
+      - name: Remove temporary API key
+        if: always()
+        run: rm -f "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"

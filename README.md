@@ -5,7 +5,7 @@
 Experimental open-source client built with **Angular 20 + TypeScript + Tauri 2 + Rust**. This repository is a **bootstrap prototype**, not a released or production-ready astrology app.
 
 - **Android:** first supported development target.
-- **iOS:** architecture prepared; native setup, testing and distribution deferred until macOS/Xcode and signing are available.
+- **iOS:** experimental macOS GitHub Actions simulator build configured; native testing and signed/TestFlight distribution still require validation and Apple credentials. See [iOS build guide](docs/IOS.md).
 - **Offline-first goal:** Android has an experimental device-only encrypted chart archive; profiles and conflict-safe synchronization are planned.
 - **Present functionality:** responsive Italian/English shell, experimental native VirgoStars-Ephemeris calculation and an Android encrypted archive. The default build needs externally supplied DE441 data; without it the provider is unavailable. The calculated chart is displayed with the shared renderer and locally staged private VirgoStars glyphs; remaining graphics use locally generated synthetic placeholders; login and sync are not integrated.
 
@@ -58,9 +58,9 @@ For Angular-only browser development, run `npm run dev`. The native probe displa
 
 For Android Studio Run on Windows ARM64, use the [Tauri-backed launch instructions](docs/ANDROID.md#android-studio-run--windows-arm64); opening the generated project alone does not start the required Tauri process.
 
-## iOS later
+## iOS builds via GitHub Actions
 
-The shared Angular and Rust source remains platform-neutral. **On a Mac with Xcode**, run `npm run ios:init` and `npm run ios:dev`, *after* the Android prototype is validated. No iOS project, signed IPA or App Store delivery exists yet.
+[Follow the iOS build guide](docs/IOS.md) to run the unsigned simulator build in **Actions → iOS / Build** without owning a Mac. A manually triggered iPhone IPA/TestFlight path is also configured, but requires an Apple Developer account, valid provisioning and an explicit distribution-rights approval; no signed build, device test or public distribution has been verified yet. On a Mac with Xcode, `npm run ios:init` and `npm run ios:dev` remain available after providing the normal local assets. The generated Xcode project stays ignored.
 
 ## Architecture
 
@@ -85,5 +85,5 @@ Do not copy production VirgoStars web/server code, private birth records, privat
 - [Architecture](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md) · [Security and privacy](docs/SECURITY.md) · [Android setup](docs/ANDROID.md).
 - [Agent/contributor rules](AGENTS.md) · [License](LICENSE) · [Attribution](NOTICE).
 - The original source is offered under **CPAL-1.0** with the **Powered by VirgoStars** GUI attribution requirement. Third-party dependencies/assets retain their own licenses.
-- **No GitHub Actions**, deployments, store publication, signing material or privileged backend secrets.
+- **Only** the scoped iOS build GitHub Action is configured: unsigned simulator checks on PR/push, and a manually gated signed IPA/TestFlight path. No unattended store publication, embedded signing material or privileged backend secrets.
 - `npm run check` runs contract tests, Angular compilation and chart-symbol verification. Android builds require a configured Android toolchain; local debug builds have been exercised on an emulator and a Pixel 8 Pro. This is not release validation.

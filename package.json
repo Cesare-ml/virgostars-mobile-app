@@ -22,7 +22,7 @@
     "ios:init": "npm run icons && tauri ios init",
     "ios:dev": "npm run icons && tauri ios dev",
     "prepare:charts": "node scripts/prepare-synthetic-frontend.mjs",
-    "prepare:glyphs": "node scripts/prepare-private-glyphs.mjs",
+    "prepare:glyphs": "node scripts/prepare-glyphs.mjs",
     "prepare:places": "node scripts/prepare-desktop-city-catalog.mjs",
     "verify:chart-symbols": "node scripts/verify-chart-symbols.mjs"
   },
