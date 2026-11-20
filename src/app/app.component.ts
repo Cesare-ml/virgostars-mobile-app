@@ -1,5 +1,7 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
+import {accountOperation} from './native/account';
+import type {AccountChart, AccountFailure, AccountOperation, AccountStatus} from './native/account-contract';
 import { countryLabel, placeLabel, type Place } from './astro/place-search';
 import {searchPlaceCatalog} from './astro/place-search-client';
 import { chartInspectorAxes, chartInspectorRows, formatDegreeInSign as formatPosition, ZODIAC_NAMES } from './astro/chart-inspector';
@@ -67,6 +69,42 @@ const messages = {
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit, OnDestroy {
+  readonly accountState=signal<AccountStatus|'checking'|'not_available'>('checking');
+  readonly accountBusy=signal(false);
+  readonly accountError=signal<AccountFailure|null>(null);
+  readonly accountCharts=signal<readonly AccountChart[]>([]);
+  readonly accountSynced=signal(false);
+  private accountEpoch=0;
+  async accountAction(operation:AccountOperation):Promise<void> {
+    if(this.accountBusy() && operation!=='close') return;
+    const epoch=++this.accountEpoch;this.accountBusy.set(true);this.accountError.set(null);
+    if(operation==='close' || operation==='sync') {this.accountCharts.set([]);this.accountSynced.set(false);}
+    try {
+      const result=await accountOperation(operation);
+      if(this.destroyed || epoch!==this.accountEpoch) return;
+      if(result.kind==='not_available') {this.accountState.set('not_available');this.accountCharts.set([]);this.accountSynced.set(false);return;}
+      if(result.kind==='failure') {
+        this.accountError.set(result.reason);
+        if(result.reason==='authorization' || result.reason==='denied') {this.accountState.set('idle');this.accountCharts.set([]);this.accountSynced.set(false);}
+        return;
+      }
+      this.accountState.set(result.status==='synced'?'connected':result.status);
+      if(result.status==='synced' && !document.hidden) {this.accountCharts.set(result.charts);this.accountSynced.set(true);}
+      else if(result.status==='idle' || result.status==='pending') {this.accountCharts.set([]);this.accountSynced.set(false);}
+    } finally {if(!this.destroyed && epoch===this.accountEpoch) this.accountBusy.set(false);}
+  }
+  accountErrorMessage(reason:AccountFailure):string {
+    const it=this.locale()==='it';
+    switch(reason) {
+      case 'denied':return it?'Collegamento annullato.':'Connection cancelled.';
+      case 'authorization':return it?'Sessione scaduta o autorizzazione non disponibile.':'Session expired or authorization unavailable.';
+      case 'network':return it?'Connessione non disponibile. Riprova.':'Network unavailable. Try again.';
+      case 'cache':return it?'Impossibile aprire la copia cifrata dei temi.':'Unable to open the encrypted chart copy.';
+      case 'invalid_callback':return it?'Risposta di accesso non riconosciuta.':'Sign-in response was not recognized.';
+      case 'busy':return it?'Operazione già in corso.':'An operation is already running.';
+      default:return it?'Account temporaneamente non disponibile.':'Account temporarily unavailable.';
+    }
+  }
   readonly archiveState=signal<ArchiveResult | null>(null);
   readonly archiveBusy=signal(false);
   readonly pendingArchiveDelete=signal<string | null>(null);
@@ -301,7 +339,10 @@ export class AppComponent implements OnInit, OnDestroy {
   private liveSkyTimer: ReturnType<typeof setInterval> | undefined;
   private liveSkyGeneration = 0;
   private destroyed = false;
-  private readonly onVisibilityChange = (): void => { if (document.hidden) {this.pauseLiveSky();this.stopSkyHold();} };
+  private readonly onVisibilityChange = (): void => {
+    if (document.hidden) {this.pauseLiveSky();this.stopSkyHold();this.accountCharts.set([]);this.accountSynced.set(false);}
+    else if(this.accountState()==='pending' || this.accountState()==='connected') void this.accountAction('status');
+  };
   readonly pendingSkyStep = signal<PendingSkyStep | null>(null);
   private readonly navigationBase = signal<NavigationBase | null>(null);
   readonly canRestoreNavigation = computed(() => {
@@ -952,6 +993,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    void this.accountAction('status');
     void this.refreshEphemeris();
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     void this.initializeDisplayPreferences();
@@ -965,6 +1007,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy(): void {
     this.destroyed = true;
+    ++this.accountEpoch;
     ++this.startupGeneration;this.stopSkyHold();
     this.ephemerisAbort?.abort();
     this.pauseLiveSky();

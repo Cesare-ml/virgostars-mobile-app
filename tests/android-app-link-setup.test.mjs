@@ -37,6 +37,9 @@ test('cold and warm intents are stripped before Tauri and consumed only once', (
   assert.match(output, /onNewIntent\(intent: Intent\) \{\n    captureVirgoCallback\(intent\)\n    super\.onNewIntent\(intent\)/);
   assert.match(output, /input\.data = null/);
   assert.match(output, /fun takeVirgoCallback\(\): String\? \{\n    val result = pendingVirgoCallback\n    pendingVirgoCallback = null/);
+  assert.match(output, /super\.onCreate\(savedInstanceState\)\n    currentVirgoActivity = java\.lang\.ref\.WeakReference\(this\)/);
+  assert.match(output, /fun getVirgoActivity\(\): MainActivity\? = currentVirgoActivity\?\.get\(\)/);
+  assert.match(output, /if \(currentVirgoActivity\?\.get\(\) === this\) currentVirgoActivity = null/);
   assert.equal(patchActivity(output), output);
   assert.throws(() => patchActivity(activity.replace('  override fun onCreate', '  override fun onNewIntent(intent: Intent) {}\n  override fun onCreate')));
 });

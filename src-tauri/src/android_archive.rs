@@ -25,7 +25,7 @@ pub(crate) fn with_jni<T>(action: impl FnOnce(&mut JNIEnv<'_>) -> jni::errors::R
     result.map_err(|_| KeyError::Unavailable)
 }
 
-fn no_backup_folder() -> Result<PathBuf, KeyError> {
+pub(crate) fn no_backup_folder() -> Result<PathBuf, KeyError> {
     with_jni(|env| {
         // ndk-context's Activity is a runtime-owned global reference; do not release it.
         let activity = unsafe { JObject::from_raw(ndk_context::android_context().context().cast()) };
@@ -110,8 +110,8 @@ fn unwrap_key(data:&[u8]) -> Result<Key,KeyError> {
     })
 }
 
-struct AndroidKeyStore { folder:PathBuf }
-impl AndroidKeyStore { fn new(folder:&Path)->Self { Self{folder:folder.to_path_buf()} } }
+pub(crate) struct AndroidKeyStore { folder:PathBuf }
+impl AndroidKeyStore { pub(crate) fn new(folder:&Path)->Self { Self{folder:folder.to_path_buf()} } }
 impl KeyStore for AndroidKeyStore {
     fn load(&self)->Result<Option<Key>,KeyError> {
         let path=self.folder.join("archive-key.v1");

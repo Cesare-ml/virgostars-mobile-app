@@ -14,7 +14,7 @@ const filter = `            <!-- ${marker} -->
                 <data android:scheme="https" android:host="virgostars.it" android:path="/android/oauth/callback" />
             </intent-filter>
 `;
-const functions = `
+const functionsV1 = `
   // ${marker}: intercept callback data before Tauri plugins see the intent.
   private var pendingVirgoCallback: String? = null
 
@@ -40,6 +40,22 @@ const functions = `
     super.onNewIntent(intent)
   }
 `;
+const functions = functionsV1.replace('  @Synchronized\n  fun takeVirgoCallback()',
+  '  @androidx.annotation.Keep\n  @Synchronized\n  fun takeVirgoCallback()') + `
+  companion object {
+    @Volatile private var currentVirgoActivity: java.lang.ref.WeakReference<MainActivity>? = null
+
+    @JvmStatic
+    @androidx.annotation.Keep
+    fun getVirgoActivity(): MainActivity? = currentVirgoActivity?.get()
+  }
+
+  override fun onDestroy() {
+    if (currentVirgoActivity?.get() === this) currentVirgoActivity = null
+    super.onDestroy()
+  }
+`;
+const registerActivity = '    super.onCreate(savedInstanceState)\n    currentVirgoActivity = java.lang.ref.WeakReference(this)';
 
 export function patchManifest(input) {
   if (input.includes(marker)) {
@@ -58,9 +74,13 @@ export function patchManifest(input) {
 export function patchActivity(input) {
   input = input.replace(/\r\n/g, '\n');
   if (input.includes(marker)) {
-    if (!input.includes(functions) || !input.includes('    captureVirgoCallback(intent)\n    enableEdgeToEdge()'))
+    if (!input.includes('    captureVirgoCallback(intent)\n    enableEdgeToEdge()'))
       throw new Error('App Link activity marker was modified');
-    return input;
+    if (input.includes(functions) && input.includes(registerActivity)) return input;
+    if (!input.includes(functionsV1) || input.includes('override fun onDestroy('))
+      throw new Error('App Link activity marker was modified');
+    return input.replace(functionsV1, functions)
+      .replace('    super.onCreate(savedInstanceState)', registerActivity);
   }
   const normalized = input;
   if (!normalized.includes('package it.virgostars.mobile\n') ||
@@ -71,7 +91,7 @@ export function patchActivity(input) {
     throw new Error('MainActivity has unsupported customizations');
   return normalized.replace('import android.os.Bundle\n', 'import android.os.Bundle\nimport android.content.Intent\n')
     .replace('    enableEdgeToEdge()\n    super.onCreate(savedInstanceState)',
-      '    captureVirgoCallback(intent)\n    enableEdgeToEdge()\n    super.onCreate(savedInstanceState)')
+      '    captureVirgoCallback(intent)\n    enableEdgeToEdge()\n' + registerActivity)
     .replace(/\n}\s*$/, `${functions}\n}\n`);
 }
 

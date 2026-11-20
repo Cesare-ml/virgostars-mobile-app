@@ -24,6 +24,7 @@ android-login-https-experimental = ["android-login-experimental", "dep:reqwest",
 # Native-only cache prototype; not registered or enabled in the app.
 android-snapshot-cache-experimental = ["android-login-experimental", "archive-mobile"]
 android-login-coordinator-experimental = ["android-login-https-experimental", "android-snapshot-cache-experimental"]
+android-account-ui-experimental = ["android-login-coordinator-experimental"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

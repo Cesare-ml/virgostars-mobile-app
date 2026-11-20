@@ -28,6 +28,10 @@ mod android_system_browser;
 #[cfg(all(target_os = "android", feature = "android-login-coordinator-experimental"))]
 #[allow(dead_code)]
 mod android_app_link;
+#[cfg(all(target_os = "android", feature = "android-login-coordinator-experimental"))]
+mod android_activity;
+#[cfg(all(target_os = "android", feature = "android-account-ui-experimental"))]
+mod android_account_ipc;
 #[cfg(feature = "android-login-https-experimental")]
 #[allow(dead_code)]
 mod android_https_transport;
@@ -89,18 +93,27 @@ pub fn run() {
             let _ = app;
             Ok(())
         });
-    #[cfg(all(feature = "virgostars-ephemeris", not(feature = "swiss-ephemeris"), target_os = "android", feature = "archive-mobile"))]
+    #[cfg(all(feature = "virgostars-ephemeris", not(feature = "swiss-ephemeris"), target_os = "android", feature = "archive-mobile", not(feature = "android-account-ui-experimental")))]
     let builder = builder.invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart,
         ephemeris_import::ephemeris_status, ephemeris_import::ephemeris_import_begin,
         ephemeris_import::ephemeris_import_chunk, ephemeris_import::ephemeris_import_finish,
         ephemeris_import::ephemeris_import_cancel, android_archive::chart_archive, android_archive::startup_preference, android_archive::device_preferences, offline_places::android::search_offline_places]);
+    #[cfg(all(feature = "virgostars-ephemeris", not(feature = "swiss-ephemeris"), target_os = "android", feature = "android-account-ui-experimental"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart,
+        ephemeris_import::ephemeris_status, ephemeris_import::ephemeris_import_begin,
+        ephemeris_import::ephemeris_import_chunk, ephemeris_import::ephemeris_import_finish,
+        ephemeris_import::ephemeris_import_cancel, android_archive::chart_archive, android_archive::startup_preference,
+        android_archive::device_preferences, offline_places::android::search_offline_places, android_account_ipc::account_control]);
     #[cfg(all(feature = "virgostars-ephemeris", not(feature = "swiss-ephemeris"), not(all(target_os = "android", feature = "archive-mobile"))))]
     let builder = builder.invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart,
         ephemeris_import::ephemeris_status, ephemeris_import::ephemeris_import_begin,
         ephemeris_import::ephemeris_import_chunk, ephemeris_import::ephemeris_import_finish,
         ephemeris_import::ephemeris_import_cancel]);
-    #[cfg(all(any(not(feature = "virgostars-ephemeris"), feature = "swiss-ephemeris"), target_os = "android", feature = "archive-mobile"))]
+    #[cfg(all(any(not(feature = "virgostars-ephemeris"), feature = "swiss-ephemeris"), target_os = "android", feature = "archive-mobile", not(feature = "android-account-ui-experimental")))]
     let builder = builder.invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart, android_archive::chart_archive, android_archive::startup_preference, android_archive::device_preferences, offline_places::android::search_offline_places]);
+    #[cfg(all(any(not(feature = "virgostars-ephemeris"), feature = "swiss-ephemeris"), target_os = "android", feature = "android-account-ui-experimental"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart, android_archive::chart_archive,
+        android_archive::startup_preference, android_archive::device_preferences, offline_places::android::search_offline_places, android_account_ipc::account_control]);
     #[cfg(all(any(not(feature = "virgostars-ephemeris"), feature = "swiss-ephemeris"), not(all(target_os = "android", feature = "archive-mobile"))))]
     let builder = builder.invoke_handler(tauri::generate_handler![runtime_info, chart_calculation::calculate_chart]);
     builder

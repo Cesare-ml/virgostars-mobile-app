@@ -4,7 +4,7 @@
 use crate::android_connected_session::SessionTransport;
 use crate::android_login_coordinator::{CoordinatorError, LoginCoordinator};
 use crate::android_token_exchange::TokenTransport;
-use jni::objects::{JObject, JString};
+use jni::objects::JString;
 use std::time::Instant;
 use zeroize::Zeroizing;
 
@@ -16,10 +16,23 @@ pub(crate) fn process<T: TokenTransport + SessionTransport>(
     transport: &T,
     now: impl Fn() -> Instant,
 ) -> Result<bool, CoordinatorError> {
-    let callback = crate::android_archive::with_jni(|env| {
-        // Android owns this Activity global reference for its lifetime.
-        let activity =
-            unsafe { JObject::from_raw(ndk_context::android_context().context().cast()) };
+    let callback = take()?;
+    let Some(callback) = callback else {
+        return Ok(false);
+    };
+    coordinator.accept(&callback, transport, now)?;
+    Ok(true)
+}
+
+/// Ensure the prepared Activity is installed and discard any old callback
+/// before creating a fresh PKCE attempt.
+pub(crate) fn discard_stale() -> Result<(), CoordinatorError> {
+    drop(take()?);
+    Ok(())
+}
+
+fn take() -> Result<Option<Zeroizing<String>>, CoordinatorError> {
+    crate::android_activity::with_activity(|env, activity| {
         let value = env
             .call_method(&activity, "takeVirgoCallback", "()Ljava/lang/String;", &[])?
             .l()?;
@@ -30,10 +43,5 @@ pub(crate) fn process<T: TokenTransport + SessionTransport>(
         let rust: String = env.get_string(&java)?.into();
         Ok(Some(Zeroizing::new(rust)))
     })
-    .map_err(|_| CoordinatorError::Unavailable)?;
-    let Some(callback) = callback else {
-        return Ok(false);
-    };
-    coordinator.accept(&callback, transport, now)?;
-    Ok(true)
+    .map_err(|_| CoordinatorError::Unavailable)
 }

@@ -1,7 +1,7 @@
 //! Android ACTION_VIEW browser dispatch, used only by the experimental native
 //! coordinator. No URL is sent to JavaScript. No Tauri command registers it.
 use crate::android_login_coordinator::SystemBrowser;
-use jni::objects::{JObject, JValue};
+use jni::objects::JValue;
 use url::Url;
 
 pub(crate) struct AndroidSystemBrowser;
@@ -16,10 +16,7 @@ impl SystemBrowser for AndroidSystemBrowser {
         {
             return Err(());
         }
-        crate::android_archive::with_jni(|env| {
-            // Runtime-owned Activity global reference, not a new local reference.
-            let activity =
-                unsafe { JObject::from_raw(ndk_context::android_context().context().cast()) };
+        crate::android_activity::with_activity(|env, activity| {
             let action = env.new_string("android.intent.action.VIEW")?;
             let target = env.new_string(url)?;
             let uri = env

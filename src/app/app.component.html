@@ -176,6 +176,28 @@
       </form>
     } @else if (tab() === 'archive') {
       <section class="section-head archive-heading"><h1>{{ t('archiveTitle') }}</h1><button class="primary" type="button" [disabled]="archiveBusy() || calculating()" (click)="openNewChart()">{{ locale() === 'it' ? 'Nuovo tema' : 'New chart' }}</button></section>
+      @if (accountState() !== 'checking' && accountState() !== 'not_available') {
+        <section class="settings-card session-list" aria-labelledby="account-title">
+          <h2 id="account-title">{{ locale() === 'it' ? 'Account VirgoStars' : 'VirgoStars account' }}</h2>
+          @if (accountError(); as error) { <p role="alert">{{ accountErrorMessage(error) }}</p> }
+          @if (accountState() === 'idle') {
+            <p>{{ locale() === 'it' ? 'Collega il tuo account per vedere i temi salvati online.' : 'Connect your account to see your online charts.' }}</p>
+            <button class="secondary" type="button" [disabled]="accountBusy()" (click)="accountAction('begin')">{{ locale() === 'it' ? 'Collega account' : 'Connect account' }}</button>
+          } @else if (accountState() === 'pending') {
+            <p role="status">{{ locale() === 'it' ? 'Completa l’accesso nel browser e torna qui.' : 'Complete sign-in in your browser, then return here.' }}</p>
+            <button class="secondary" type="button" [disabled]="accountBusy()" (click)="accountAction('status')">{{ locale() === 'it' ? 'Controlla accesso' : 'Check sign-in' }}</button>
+            <button class="secondary" type="button" (click)="accountAction('close')">{{ locale() === 'it' ? 'Annulla' : 'Cancel' }}</button>
+          } @else {
+            <p>{{ locale() === 'it' ? 'I temi dell’account sono mostrati in sola lettura.' : 'Account charts are shown read-only.' }}</p>
+            <button class="secondary" type="button" [disabled]="accountBusy()" (click)="accountAction('sync')">{{ accountBusy() ? '…' : (locale() === 'it' ? 'Aggiorna temi' : 'Refresh charts') }}</button>
+            <button class="secondary" type="button" (click)="accountAction('close')">{{ locale() === 'it' ? 'Chiudi sessione su questo dispositivo' : 'Close session on this device' }}</button>
+            @if (accountSynced() && !accountCharts().length) { <p>{{ locale() === 'it' ? 'Nessun tema nell’account.' : 'No charts in this account.' }}</p> }
+            @for (chart of accountCharts(); track chart.id) {
+              <div class="session-row"><div><strong>{{ chart.name }}</strong><small>{{ chart.localDate }} · {{ chart.localTime ?? (locale() === 'it' ? 'Ora sconosciuta' : 'Unknown time') }} @if (chart.timeZone) { · {{ chart.timeZone }} } @if (chart.placeName) { · {{ chart.placeName }} }</small></div></div>
+            }
+          }
+        </section>
+      }
       <section class="settings-card session-list" aria-labelledby="saved-charts-title">
         <h2 id="saved-charts-title">{{ locale() === 'it' ? 'Archivio' : 'Archive' }}</h2>
         @if (archiveBusy()) { <p role="status">{{ locale() === 'it' ? 'Archivio in uso…' : 'Working with archive…' }}</p> }

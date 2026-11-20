@@ -84,8 +84,7 @@ impl AndroidLoginAttempt {
             .append_pair("redirect_uri", redirect)
             .append_pair("code_challenge", &challenge(&verifier))
             .append_pair("code_challenge_method", "S256")
-            .append_pair("state", &state)
-            .append_pair("request_charts_write", "true");
+            .append_pair("state", &state);
         let fields = Zeroizing::new(fields.finish());
         let browser_url = Zeroizing::new(format!("{consent}#{}", fields.as_str()));
         let callback = PendingAndroidCallback::new(redirect, std::mem::take(&mut *state), now)?;
@@ -194,7 +193,7 @@ mod tests {
             &challenge(&value('v'))
         );
         assert_eq!(fields.get("code_challenge_method").unwrap(), "S256");
-        assert_eq!(fields.get("request_charts_write").unwrap(), "true");
+        assert!(!fields.contains_key("request_charts_write"));
         assert!(!url.contains(&value('v')));
         assert!(attempt.take_browser_url(now).is_err());
         assert!(attempt

@@ -1,11 +1,11 @@
 //! Experimental native coordinator. The browser and callback are injected by
 //! trusted platform code; no Tauri commands, intent receiver or UI are wired.
 //! All methods that perform I/O must run on a dedicated native worker.
-use crate::android_chart_snapshot::{self, SnapshotError, SnapshotTransport};
+use crate::android_chart_snapshot::{self, ChartSummary, SnapshotError, SnapshotTransport};
 use crate::android_connected_session::{self, SessionError, SessionTransport, VerifiedSession};
 use crate::android_login_attempt::{AndroidLoginAttempt, LoginDecision};
 use crate::android_snapshot_cache::{CacheError, SnapshotCache};
-use crate::android_token_exchange::{self, TokenTransport};
+use crate::android_token_exchange::{self, TokenScope, TokenTransport};
 use crate::archive_keys::KeyStore;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -122,6 +122,10 @@ impl LoginCoordinator {
         }
         let grant = android_token_exchange::exchange(transport, decision, now())
             .map_err(|_| CoordinatorError::Authorization)?;
+        // The account screen is read-only and must not accept wider grants.
+        if grant.scope() != TokenScope::Read {
+            return Err(CoordinatorError::Authorization);
+        }
         let verified = android_connected_session::verify(transport, grant, &now)
             .map_err(|_| CoordinatorError::Authorization)?;
         *state = State::Connected(Arc::new(verified));
@@ -145,7 +149,7 @@ impl LoginCoordinator {
         cache: &SnapshotCache,
         keys: &dyn KeyStore,
         now: impl Fn() -> Instant,
-    ) -> Result<(), CoordinatorError> {
+    ) -> Result<Vec<ChartSummary>, CoordinatorError> {
         let session = {
             let state = self
                 .state
@@ -190,11 +194,16 @@ impl LoginCoordinator {
             if !matches!(&*state, State::Connected(active) if Arc::ptr_eq(active, &session)) {
                 return Err(CoordinatorError::Authorization);
             }
+            let summaries = snapshot
+                .summaries()
+                .map_err(|_| CoordinatorError::Unavailable)?;
+            cache.provision_key(keys).map_err(map_cache)?;
             cache
                 .commit(&session, keys, baseline, snapshot, &now)
-                .map_err(map_cache)
+                .map_err(map_cache)?;
+            Ok(summaries)
         })();
-        if result == Err(CoordinatorError::Authorization) {
+        if result.as_ref().err() == Some(&CoordinatorError::Authorization) {
             let mut state = self
                 .state
                 .lock()
@@ -264,6 +273,7 @@ mod tests {
     struct Transport {
         challenge: String,
         profile: &'static str,
+        write_scope: bool,
         session_calls: Cell<usize>,
         reject_recheck: bool,
         profile_changed: bool,
@@ -287,8 +297,13 @@ mod tests {
                 self.challenge
             );
             let bearer = format!("{}.{}.{}", "a".repeat(45), "b".repeat(45), "c".repeat(45));
+            let scope = if self.write_scope {
+                "chart_sync:read chart_sync:charts:write"
+            } else {
+                "chart_sync:read"
+            };
             Ok(TokenResponse{status:200,content_type:"application/json".into(),body:format!(
-                r#"{{"access_token":"{bearer}","token_type":"Bearer","expires_in":300,"scope":"chart_sync:read"}}"#).into_bytes()})
+                r#"{{"access_token":"{bearer}","token_type":"Bearer","expires_in":300,"scope":"{scope}"}}"#).into_bytes()})
         }
     }
     impl SessionTransport for Transport {
@@ -368,6 +383,7 @@ mod tests {
         coordinator.begin(&browser, now).unwrap();
         let fields = browser.fields();
         assert_eq!(fields["client_id"], "virgostars-android");
+        assert!(!fields.contains_key("request_charts_write"));
         let callback = format!(
             "{REDIRECT}?code={}&state={}",
             "c".repeat(43),
@@ -376,11 +392,26 @@ mod tests {
         let transport = Transport {
             challenge: fields["code_challenge"].clone(),
             profile: PROFILE,
+            write_scope: false,
             session_calls: Cell::new(0),
             reject_recheck: false,
             profile_changed: false,
         };
         (browser, transport, callback)
+    }
+
+    #[test]
+    fn read_only_login_rejects_a_broader_grant() {
+        let now = Instant::now();
+        let coordinator = LoginCoordinator::new(CONSENT, REDIRECT);
+        let (_, mut transport, callback) = start_login(&coordinator, now);
+        transport.write_scope = true;
+        assert_eq!(
+            coordinator.accept(&callback, &transport, || now),
+            Err(CoordinatorError::Authorization)
+        );
+        assert_eq!(transport.session_calls.get(), 0);
+        assert_eq!(coordinator.status(now), Ok(LoginStatus::Idle));
     }
 
     #[test]
@@ -503,7 +534,10 @@ mod tests {
         second.profile = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
         coordinator.accept(&callback, &second, || now).unwrap();
         release_tx.send(()).unwrap();
-        assert_eq!(task.join().unwrap(), Err(CoordinatorError::Authorization));
+        assert!(matches!(
+            task.join().unwrap(),
+            Err(CoordinatorError::Authorization)
+        ));
         assert_eq!(coordinator.status(now), Ok(LoginStatus::Connected));
         assert_eq!(fs::read_dir(&fixture.0).unwrap().count(), 0);
     }
@@ -550,10 +584,10 @@ mod tests {
             .any(|v| v == PROFILE.as_bytes()));
         coordinator.clear_local_session().unwrap();
         assert_eq!(coordinator.status(now), Ok(LoginStatus::Idle));
-        assert_eq!(
+        assert!(matches!(
             coordinator.synchronize(&transport, &cache, &keys, || now),
             Err(CoordinatorError::Authorization)
-        );
+        ));
     }
     #[test]
     fn revoked_or_changed_account_after_download_cannot_write_the_cache() {
@@ -567,10 +601,10 @@ mod tests {
             let fixture = Fixture::new();
             let cache = SnapshotCache::in_native_directory(&fixture.0);
             let keys = keys();
-            assert_eq!(
+            assert!(matches!(
                 coordinator.synchronize(&transport, &cache, &keys, || now),
                 Err(CoordinatorError::Authorization)
-            );
+            ));
             assert_eq!(coordinator.status(now), Ok(LoginStatus::Idle));
             assert_eq!(fs::read_dir(&fixture.0).unwrap().count(), 0);
         }

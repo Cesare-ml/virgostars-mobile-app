@@ -1,7 +1,7 @@
 //! Experimental native read of a full server snapshot. It neither modifies nor
 //! persists the local archive. Only a previously verified session can read it.
 use crate::android_connected_session::{profile_id, VerifiedSession};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
@@ -98,12 +98,43 @@ pub(crate) struct VerifiedSnapshot {
     profile_ref: String,
     bytes: Zeroizing<Vec<u8>>,
 }
+/// Bounded read-only fields for the signed-in user's account list. Missing
+/// civil time and location remain missing; no UTC instant is invented.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ChartSummary {
+    id: String,
+    name: String,
+    local_date: String,
+    local_time: Option<String>,
+    time_zone: Option<String>,
+    place_name: String,
+}
 impl VerifiedSnapshot {
     pub(crate) fn profile_ref(&self) -> &str {
         &self.profile_ref
     }
     pub(crate) fn json(&self) -> &[u8] {
         &self.bytes
+    }
+    pub(crate) fn summaries(&self) -> Result<Vec<ChartSummary>, SnapshotError> {
+        let payload: Snapshot =
+            serde_json::from_slice(&self.bytes).map_err(|_| SnapshotError::Invalid)?;
+        if !valid_snapshot(&payload, &self.profile_ref) {
+            return Err(SnapshotError::Invalid);
+        }
+        Ok(payload
+            .charts
+            .into_iter()
+            .map(|chart| ChartSummary {
+                id: chart.sync_id,
+                name: chart.name,
+                local_date: chart.birth.local_date,
+                local_time: chart.birth.local_time,
+                time_zone: chart.birth.time_zone_iana,
+                place_name: chart.place.label,
+            })
+            .collect())
     }
     // Revalidate decrypted bytes before they can be used as a snapshot.
     pub(crate) fn from_cached(
@@ -324,6 +355,11 @@ mod tests {
             fetch(&client, &session(now), || now).unwrap_or_else(|_| panic!("snapshot rejected"));
         assert_eq!(result.profile_ref(), PROFILE);
         assert_eq!(result.json(), client.body); // byte-for-byte, no lossy conversion
+        let summaries = serde_json::to_value(result.summaries().unwrap()).unwrap();
+        assert_eq!(summaries[0]["localDate"], "2000-01-01");
+        assert!(summaries[0]["localTime"].is_null());
+        assert!(summaries[0]["timeZone"].is_null());
+        assert!(summaries[0].get("notes").is_none());
         let mut wrong = value.clone();
         wrong["cursor"]["epoch"] = "cccccccc-cccc-4ccc-8ccc-cccccccccccc".into();
         assert!(matches!(
