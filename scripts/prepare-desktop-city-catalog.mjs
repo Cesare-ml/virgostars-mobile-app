@@ -1,3 +1,10 @@
+// The desktop catalog is Android-only and is not needed or shipped by iOS.
+// The Tauri iOS config separately clears the Android-only bundled resource.
+if (process.env.VIRGOSTARS_IOS_CI === '1') {
+  console.log('iOS build: desktop city catalog omitted (manual coordinates only).');
+  process.exit(0);
+}
+
 import {createHash} from 'node:crypto';
 import {createReadStream, constants} from 'node:fs';
 import {copyFile, mkdir, rename, stat, lstat, unlink} from 'node:fs/promises';
