@@ -9,5 +9,5 @@ Read `README.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, and `docs/SECURITY.
 - Keep any native IPC minimal, typed, explicitly permissioned and platform neutral; no broad plugins or WebView permission grants.
 - A first login and server synchronization cannot be presumed. Offline profile access needs encrypted local storage and explicit revocation semantics before shipping.
 - Use *Proposed*, *Prototype*, *Locally tested*, *Integrated*, *Released* accurately. Never claim a build/device test you did not actually run.
-- No GitHub Actions or unattended deployments; store signing, releases and repository license changes need explicit maintainer approval.
+- The maintainer explicitly authorized a narrowly scoped iOS GitHub Actions build. The workflow may compile unsigned simulator previews on PR/push. Signing and optional TestFlight delivery must remain manual, main-only, protected by explicit rights review and Apple credentials. No other unattended deployments, store release, signing-material commit or license change is authorized.
 - Prefer small independently tested changes. Avoid auto-generated checked-in Android/iOS IDE output.
