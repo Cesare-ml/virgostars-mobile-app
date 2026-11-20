@@ -2,7 +2,7 @@
 //! This is not the editable archive and implements no offline access policy.
 use crate::android_chart_snapshot::{VerifiedSnapshot, MAX_SNAPSHOT_BYTES};
 use crate::android_connected_session::VerifiedSession;
-use crate::archive_keys::{Key, KeyStore};
+use crate::archive_keys::{new_key, Key, KeyStore};
 use crate::archive_vault;
 use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
@@ -69,6 +69,31 @@ impl SnapshotCache {
     }
     fn path(&self, profile: &str) -> PathBuf {
         self.directory.join(file_name(profile))
+    }
+
+    /// A dedicated account-cache key may be created only when no ciphertext or
+    /// interrupted staging file exists. Never replace a missing key for data.
+    pub(crate) fn provision_key(&self, keys: &dyn KeyStore) -> Result<(), CacheError> {
+        let _guard = CACHE_LOCK.lock().map_err(|_| CacheError::Unavailable)?;
+        if keys.load().map_err(|_| CacheError::Locked)?.is_some() {
+            return Ok(());
+        }
+        match fs::read_dir(&self.directory) {
+            Ok(mut entries) => {
+                if entries.next().is_some() {
+                    return Err(CacheError::Locked);
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(_) => return Err(CacheError::Unavailable),
+        }
+        let fresh = new_key().map_err(|_| CacheError::Locked)?;
+        keys.store(&fresh).map_err(|_| CacheError::Locked)?;
+        let loaded = load_key(keys)?;
+        if *fresh != *loaded {
+            return Err(CacheError::Locked);
+        }
+        Ok(())
     }
 
     fn read(
@@ -415,6 +440,26 @@ mod tests {
         );
         assert!(keys.load().unwrap().is_none());
         assert_eq!(fs::read_dir(&fixture.dir).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn provisioning_creates_a_key_only_for_an_empty_cache_and_never_replaces_a_lost_key() {
+        let fixture = Fixture::new();
+        let cache = fixture.cache();
+        let keys = FakeKeyStore::empty();
+        let now = Instant::now();
+        let a = session(A, now);
+        cache.provision_key(&keys).unwrap();
+        let original = keys.load().unwrap().unwrap();
+        let (baseline, _) = cache.prepare(&a, &keys, now).unwrap();
+        cache
+            .commit(&a, &keys, baseline, snapshot(A, 1), || now)
+            .unwrap();
+        keys.key.borrow_mut().take();
+        assert_eq!(cache.provision_key(&keys), Err(CacheError::Locked));
+        assert!(keys.load().unwrap().is_none());
+        *keys.key.borrow_mut() = Some(*original);
+        assert!(cache.prepare(&a, &keys, now).unwrap().1.is_some());
     }
 
     #[test]

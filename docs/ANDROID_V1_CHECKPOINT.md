@@ -49,12 +49,12 @@ after the application and release gates are ready.
   rejects stale responses using a baseline captured before network I/O and a
   single-process lock, and
   preserves the previous ciphertext on failed or interrupted replacement. It
-  does not create a key: the trusted native caller must supply an existing
-  Keystore-backed archive key. Its per-profile hashed filenames are pseudonymous,
-  and the same supplied device key can encrypt multiple profiles; this is not
-  independent per-account key isolation. The module is not connected to app
-  startup, IPC or Android Keystore. Possession of an unexpired in-memory
-  session alone cannot establish that authorization remains active.
+  can provision a separate Keystore-wrapped cache key only when the cache is
+  empty; missing keys never replace keys for existing data. Its per-profile
+  hashed filenames are pseudonymous, and one cache key can encrypt multiple
+  profiles; this is not independent per-account key isolation. Possession of
+  an unexpired in-memory session alone cannot establish that authorization
+  remains active.
   An explicit offline access/revocation policy, safe key provisioning and
   device-level interrupted-write testing also remain open. The existing local
   chart archive is neither migrated nor changed by this prototype.
@@ -69,10 +69,9 @@ after the application and release gates are ready.
   integrated Rust test uses a synthetic browser and server to cover PKCE,
   profile binding, revocation, cache encryption and switching accounts during
   download. Local sign-out does not revoke the server grant. A revocation may
-  still occur after the last server check, and the coordinator must be called
-  on a native worker. This remains unregistered in the application: Android
-  App Link configuration, the callback receiver, backend authorization, key
-  provisioning and UI are not implemented by this checkpoint.
+  still occur after the last server check, and the coordinator runs on a native
+  worker. Android backend authorization and verified domain association remain
+  outstanding.
 - The opt-in `npm run android:app-link:prepare` command patches only a compatible
   local Tauri-generated Android project with the candidate callback
   `https://virgostars.it/android/oauth/callback`. The Activity takes matching
@@ -83,8 +82,24 @@ after the application and release gates are ready.
   auto-verified filter; no emulator or physical-device callback test was run.
   The generated project is ignored, and running the preparation command neither
   configures the website's Digital Asset Links nor enables a backend redirect.
-  Android/Java may retain transient String copies of the callback. The native
-  queue bridge is not yet called by app commands or a user interface.
+  Android/Java may retain transient String copies of the callback.
+- `android-account-ui-experimental` and the separate
+  `src-tauri/tauri.android-account-experimental.conf.json` enable a bounded,
+  explicitly permissioned native account command and a read-only account list
+  in the archive. The default build registers no account command and hides the
+  section. This test build requests only read scope, keeps the access credential
+  in native memory and uses a separate encrypted cache; it does not persist a
+  refresh token, import into the local editable archive, open remote charts or
+  synchronize edits and deletions. The account list is cleared on backgrounding
+  or before a fresh sync. A test x86_64 emulator confirmed the archive, opening
+  the external browser, rejecting a synthetic wrong-state callback without
+  displaying it, and cancellation. No real authorization, domain verification,
+  server synchronization or Android physical-device test was performed.
+
+  For an **unreleased local test build**, first run `npm run android:init` and
+  `npm run android:app-link:prepare`, then run
+  `npx tauri android build --debug --target x86_64 --apk --features android-account-ui-experimental --config src-tauri/tauri.android-account-experimental.conf.json`.
+  The APK uses local private glyphs and is not cleared for distribution.
 
 ## Login and sync: remaining implementation
 

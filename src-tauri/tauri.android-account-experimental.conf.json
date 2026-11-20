@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "security": {
+      "capabilities": [{
+        "identifier": "android-account-experimental",
+        "description": "Local Android prototype; app account operation and existing app commands only",
+        "windows": ["main"],
+        "platforms": ["android"],
+        "permissions": [
+          "core:default", "allow-runtime-info", "allow-calculate-chart",
+          "allow-ephemeris-status", "allow-ephemeris-import-begin", "allow-ephemeris-import-chunk",
+          "allow-ephemeris-import-finish", "allow-ephemeris-import-cancel", "allow-chart-archive",
+          "allow-startup-preference", "allow-device-preferences", "allow-search-offline-places",
+          "allow-account-control"
+        ]
+      }]
+    }
+  }
+}
