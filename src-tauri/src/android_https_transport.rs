@@ -1,6 +1,9 @@
 //! Opt-in, native-only HTTPS transport for the experimental account flow.
 //! It is not registered with Tauri or called by the application. Blocking
 //! methods must run on a dedicated native worker, never the UI/async runtime.
+use crate::android_chart_snapshot::{
+    SnapshotResponse, SnapshotTransport, MAX_SNAPSHOT_BYTES, SNAPSHOT_ENDPOINT,
+};
 use crate::android_connected_session::{SessionResponse, SessionTransport, SESSION_ENDPOINT};
 use crate::android_token_exchange::{
     plausible_bearer, TokenResponse, TokenTransport, TOKEN_ENDPOINT,
@@ -185,6 +188,39 @@ impl SessionTransport for AndroidHttpsTransport {
     }
 }
 
+impl SnapshotTransport for AndroidHttpsTransport {
+    fn get_snapshot(
+        &self,
+        endpoint: &str,
+        bearer: &str,
+        timeout: Duration,
+        max_bytes: usize,
+    ) -> Result<SnapshotResponse, ()> {
+        if endpoint != SNAPSHOT_ENDPOINT
+            || !plausible_bearer(bearer)
+            || max_bytes == 0
+            || max_bytes > MAX_SNAPSHOT_BYTES
+        {
+            return Err(());
+        }
+        let text = Zeroizing::new(format!("Bearer {bearer}"));
+        let mut auth = HeaderValue::from_str(&text).map_err(|_| ())?;
+        auth.set_sensitive(true);
+        let response = client(timeout)?
+            .get(SNAPSHOT_ENDPOINT)
+            .header(ACCEPT, "application/json")
+            .header(AUTHORIZATION, auth)
+            .send()
+            .map_err(|_| ())?;
+        let (status, content_type, body) = response_parts(response, max_bytes)?;
+        Ok(SnapshotResponse {
+            status,
+            content_type,
+            body,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -230,6 +266,30 @@ mod tests {
                 "x\r\nInjected: x",
                 MAX_TIMEOUT,
                 MAX_SESSION_RESPONSE
+            )
+            .is_err());
+        assert!(transport
+            .get_snapshot(
+                "https://evil.test/snapshot",
+                "synthetic.bearer.token",
+                MAX_TIMEOUT,
+                MAX_SNAPSHOT_BYTES
+            )
+            .is_err());
+        assert!(transport
+            .get_snapshot(
+                SNAPSHOT_ENDPOINT,
+                "invalid\r\nheader",
+                MAX_TIMEOUT,
+                MAX_SNAPSHOT_BYTES
+            )
+            .is_err());
+        assert!(transport
+            .get_snapshot(
+                SNAPSHOT_ENDPOINT,
+                "synthetic.bearer.token",
+                MAX_TIMEOUT,
+                MAX_SNAPSHOT_BYTES + 1
             )
             .is_err());
     }

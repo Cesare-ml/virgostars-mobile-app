@@ -13,6 +13,9 @@ mod android_connected_session;
 #[cfg(feature = "android-login-experimental")]
 #[allow(dead_code)]
 mod android_token_exchange;
+#[cfg(feature = "android-login-experimental")]
+#[allow(dead_code)]
+mod android_chart_snapshot;
 #[cfg(feature = "android-login-https-experimental")]
 #[allow(dead_code)]
 mod android_https_transport;

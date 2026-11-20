@@ -62,7 +62,7 @@ pub(crate) enum SessionError {
     Invalid,
 }
 
-fn profile_id(value: &str) -> bool {
+pub(crate) fn profile_id(value: &str) -> bool {
     let bytes = value.as_bytes();
     bytes.len() == 36
         && bytes.iter().enumerate().all(|(i, c)| match i {

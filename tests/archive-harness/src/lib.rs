@@ -19,3 +19,5 @@ mod android_token_exchange;
 mod android_connected_session;
 #[path = "../../../src-tauri/src/android_https_transport.rs"]
 mod android_https_transport;
+#[path = "../../../src-tauri/src/android_chart_snapshot.rs"]
+mod android_chart_snapshot;
