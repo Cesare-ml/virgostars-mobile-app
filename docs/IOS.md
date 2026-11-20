@@ -2,6 +2,23 @@
 
 **Status (2026-11-20):** the first macOS/Xcode **unsigned simulator build succeeded**, including artifact upload ([GitHub Actions run 44795768102](https://github.com/Cesare-ml/virgostars-mobile-app/actions/runs/44795768102)). The resulting app has **not** been launched in Simulator or installed on an iPhone; the signed IPA, TestFlight delivery and App Store path remain untested and unconfigured. This is a technical preview, not a production-ready iOS port.
 
+## Installare sul proprio iPhone da Windows con Sideloadly
+
+Questa strada **non richiede un abbonamento Apple Developer**: il runner GitHub macOS compila un eseguibile `aarch64-apple-ios` per **iPhone fisico**, quindi confeziona un `.ipa` **non firmato**. Sideloadly sul PC Windows lo firma con l'Apple Account personale durante l'installazione. Non confondere questo IPA con il pacchetto per il simulatore, che non funziona su iPhone.
+
+1. Apri [GitHub Actions — iPhone / IPA non firmato (Sideloadly)](https://github.com/Cesare-ml/virgostars-mobile-app/actions/workflows/ios-sideloadly.yml), scegli il branch `main` e premi **Run workflow**. Il workflow esegue anche il controllo delle PR, ma non pubblica Release.
+2. Quando la run è **verde**, apri **Artifacts** e scarica `VirgoStars-iPhone-Sideloadly-unsigned-<numero>`. GitHub consegna un **file ZIP esterno**: estrailo sul PC, senza rinominare lo ZIP in `.ipa`. Dentro troverai `VirgoStars-iPhone-Sideloadly-unsigned.ipa` e il checksum `.ipa.sha256`.
+3. Facoltativo ma consigliato: da PowerShell nella cartella estratta esegui `Get-FileHash -Algorithm SHA256 .\\VirgoStars-iPhone-Sideloadly-unsigned.ipa` e confronta il risultato con il valore del file `.ipa.sha256`. Se non coincidono, non installare.
+4. Collega l'iPhone via USB, sbloccalo e autorizza **Considera attendibile questo computer**. Per Sideloadly su Windows potrebbero servire le versioni desktop Apple di iTunes e iCloud (non le versioni Microsoft Store); vedi [Sideloadly ufficiale](https://sideloadly.io/).
+5. Apri **Sideloadly**, trascina **il file `.ipa` estratto** (non lo ZIP), seleziona l'iPhone, inserisci l'Apple Account nell'interfaccia di Sideloadly e premi **Start**. Se iOS lo richiede, abilita **Modalità sviluppatore** in Impostazioni → Privacy e sicurezza; segui le istruzioni visualizzate sul telefono per autorizzare il profilo.
+6. Apri VirgoStars Mobile sul telefono e verifica avvio e grafica. Invia i log privi di dati personali o screenshot degli errori alla manutenzione: una build verde non significa che il runtime iOS sia funzionante.
+
+**Limiti:** un Apple Account gratuito permette tipicamente tre app firmate con questo metodo e le firme hanno validità di circa **7 giorni**; usa il rinnovo automatico di Sideloadly quando opportuno. Quando aggiorni l'IPA, usa lo **stesso Apple Account e bundle ID** per conservare i dati dell'installazione. Non disinstallare preventivamente l'app. Il sistema di archivio cifrato è oggi Android-only, quindi nessuna conservazione/recupero dati iOS è garantita. Niente credenziali Apple nei secret di GitHub, nel codice o nei log per questa modalità.
+
+La build usa **glifi Noto OFL generati**, test fixture di Astrological Charts e **non include** il catalogo desktop delle città, né file di effemeridi. Senza DE441/USNO importati il provider del cielo può restare non disponibile; ricerca città offline, archivio cifrato e persistenza preferenze iOS richiedono ancora implementazione/test. Questo file è un artefatto di **test personale**, non è autorizzato come release pubblica o distribuzione diretta da virgostars.it: il codice condiviso e le risorse devono ancora superare le verifiche dei diritti e la QA iOS.
+
+Il packaging controlla prima del caricamento: bundle ID `it.virgostars.mobile`, piattaforma `iPhoneOS` (non Simulator), eseguibile Mach-O `arm64`, assenza di file di kernel astronomici/città Android, integrità ZIP e hash SHA-256.
+
 ## Start without a Mac
 
 1. Open [Actions](https://github.com/Cesare-ml/virgostars-mobile-app/actions/workflows/ios.yml) in this repository (after this change lands on `main`).
@@ -15,7 +32,7 @@ The GitHub job sets `VIRGOSTARS_IOS_CI=1` to stage **locally generated open-font
 
 **Limitations:** the iOS chart archive and device settings are not implemented with Apple Keychain, native offline city search is not available, DE441/USNO/Chiron ephemerides are not included, and WKWebView gestures/performance, file import and device lifecycles still need testing. With no imported ephemeris data, the default calculation provider reports unavailable. A successful CI compilation does **not** prove the live-sky MVP works on a physical iPhone.
 
-## Prepare a real iPhone/TestFlight IPA
+## Prepare a signed TestFlight IPA (separate Apple Developer path)
 
 The signed path is **manual only from `main`**, uses the protected `ios-distribution` GitHub Environment, and is refused unless the maintainer explicitly sets `IOS_DISTRIBUTION_APPROVED=true` after a source/artwork distribution-rights audit and iOS release QA. Never set the approval merely to make CI green.
 
@@ -47,6 +64,8 @@ With Xcode, CocoaPods, xcodegen, Node 22 and Rust iOS toolchains installed, clon
 ```bash
 export VIRGOSTARS_IOS_CI=1
 bash scripts/ci-ios-build.sh simulator
+# Oppure, per un IPA di test da firmare con Sideloadly:
+bash scripts/ci-ios-build.sh sideload
 ```
 
 Without the CI flag, local `npm run ios:init` and `npm run ios:dev` use the normal private-source build assets and require the normal desktop city catalog. No generated Xcode project under `src-tauri/gen/` should be committed.
