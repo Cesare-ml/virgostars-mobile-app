@@ -11,8 +11,14 @@ name = "virgostars_mobile_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = []
+default = ["virgostars-ephemeris", "archive-mobile"]
 swiss-ephemeris = ["dep:sweph-sys"]
+virgostars-ephemeris = ["dep:virgostars-ephemeris-core", "dep:serde_json"]
+# Test-only source slice; intentionally not registered with the app.
+archive-experimental = ["dep:chacha20poly1305", "dep:rusqlite", "dep:zeroize", "dep:getrandom"]
+archive-mobile = ["dep:chacha20poly1305", "dep:rusqlite", "dep:zeroize", "dep:getrandom", "dep:jni", "dep:ndk-context", "dep:serde_json", "dep:sha2"]
+# Native-only PKCE primitives; no account command or network capability is registered.
+android-login-experimental = ["dep:base64", "dep:getrandom", "dep:serde_json", "dep:sha2", "dep:subtle", "dep:url", "dep:zeroize"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -21,6 +27,20 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 sweph-sys = { version = "=0.3.0", optional = true }
+virgostars-ephemeris-core = { git = "https://github.com/Cesare-ml/VirgoStars-Ephemeris", rev = "6835e00e4b4ba5fc52d882a793e2dfa2b2a436aa", optional = true }
+serde_json = { version = "1", optional = true }
+chacha20poly1305 = { version = "=0.10.1", optional = true }
+rusqlite = { version = "=0.32.1", features = ["bundled", "serialize"], optional = true }
+zeroize = { version = "=1.9.2", optional = true }
+getrandom = { version = "=0.3.4", optional = true }
+sha2 = { version = "=0.10.9", optional = true }
+base64 = { version = "=0.22.1", optional = true }
+subtle = { version = "=2.6.1", optional = true }
+url = { version = "=2.5.8", optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { version = "=0.21.1", optional = true }
+ndk-context = { version = "=0.1.1", optional = true }
 
 [dev-dependencies]
 serde_json = "1"

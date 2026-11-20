@@ -172,6 +172,21 @@ export function planetRows(data: TemaRenderData, system: HouseSystemId): PlanetR
   });
 }
 
+/** Display only dodecatemoria actually derived for the traditional planets. */
+export function dodecatemoriaRows(data: TemaRenderData, system: HouseSystemId | null): Omit<PlanetRow, 'retrograde'>[] {
+  const cusps = system ? data.houses[system]?.house : undefined;
+  return Object.values(data.planets).flatMap(body => {
+    const point = body.dodecatemoria;
+    if (!point) return [];
+    let house: number | null = null;
+    if (cusps) {
+      try { house = locateLongitudeInHouses(point.longitude, cusps).house; } catch { /* No inferred house. */ }
+    }
+    return [{name: body.name, longitude: point.longitude, signIndex: point.longitudeSign,
+      degreeInSign: point.longitude30, house}];
+  });
+}
+
 export function availableHouseSystems(data: TemaRenderData): HouseSystemId[] {
   return Object.keys(data.houses) as HouseSystemId[];
 }

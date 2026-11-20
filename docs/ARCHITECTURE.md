@@ -1,6 +1,8 @@
 # Architecture — VirgoStars Mobile
 
-Status: **prototype shell only** (2026-11-15). Android first, iOS later.
+Android searches the bundled desktop city database through a bounded native SQLite command; see [desktop city catalog](DESKTOP_CITIES.md).
+
+Status: **experimental prototype**. Android first, iOS later. The [desktop parity checkpoint](DESKTOP_PARITY.md) tracks which features have source-level implementations and what remains unverified.
 
 ## Decision
 
@@ -16,15 +18,17 @@ Angular mobile UI (TypeScript; accessibility, touch, safe areas)
 Tauri 2 IPC (versioned, explicit permissions)
       |
 Rust mobile host
-      +-- future VirgoStars-Ephemeris canonical Rust adapter
-      +-- future encrypted SQLite local repository
-      +-- future OS secure-key storage and device identity
+      +-- VirgoStars-Ephemeris Rust adapter (external DE441 data required)
+      +-- Android encrypted in-memory SQLite chart repository
+      +-- Android Keystore wrapped data key; future device identity
       +-- future transactional outbox + owner-scoped HTTPS sync
       |
 VirgoStars server: independent authenticated/versioned API, not a direct DB link
 ```
 
-The host exposes `runtime_info` and `calculate_chart`. The default build returns provider unavailable; an optional local-use Swiss provider calculates apparent geocentric positions and houses. The UI passes calculated positions through the Desktop-derived adapter using astrological-functions into astrological-charts. Manifest-verified synthetic assets are staged beneath open-font glyph textures for zodiac signs, houses and calculated bodies; proprietary artwork is not bundled. OAuth, storage and sync remain unintegrated.
+The host exposes `runtime_info`, `calculate_chart`, Android-only chart archive, display and startup-preference commands, and bounded, app-owned DE441/USNO/Chiron import commands. The default provider uses VirgoStars-Ephemeris and requires external DE441 data; without data it reports unavailable. An explicit file picker streams selected data into private staging and validates it before replacement; the USNO files are committed together. The optional local-use Swiss feature explicitly selects Swiss instead, never as an automatic fallback. For VirgoStars-Ephemeris, the native host returns astronomical angle facts and the UI assembles houses via the shared astrological-functions methods before invoking astrological-charts. See [integration and data limitations](EPHEMERIS_INTEGRATION.md). Transit and synastry overlay interfaces are temporarily hidden; no snapshots are persisted. On Android, display settings and the selected startup mode and optional archive UUID are stored in separate app-private no-backup files; chart data remain in the encrypted native archive. Existing WebView display preferences are migrated when available. [Storage and verification](PREFERENCES_PERSISTENCE.md). Shared geometry is used for the aspect table. Local builds stage manifest-verified glyphs from the privately approved `astrological-assets` checkout, with synthetic non-glyph artwork. Those APKs are not cleared for public distribution; see [chart symbols and rights](CHART_SYMBOLS.md). OAuth and sync remain unintegrated.
+
+The [Android archive](ARCHIVE_CORE_EXPERIMENT.md) adapts the desktop core, encrypts the entire in-memory database and keeps its data key wrapped by Android Keystore. Its bounded IPC stores chart inputs, not calculated snapshots. There is one device-local archive and no profile or recovery mechanism; iOS remains unimplemented.
 
 ## Reuse policy
 

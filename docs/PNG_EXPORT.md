@@ -1,0 +1,11 @@
+# PNG export — historical experiment
+
+The app no longer exposes PNG controls. This document records earlier prototype behavior and tests, not a current app capability.
+
+The shared renderer generates an 800×800 PNG of the current natal, transit, synastry or latitude view with the current house system, light/dark chart skin and display settings. This occurs locally and does not introduce native IPC or permissions. The generated image is bounded and checked as PNG before it is kept in memory. The filename is selected from a fixed set and never contains a name, date, location or other chart input.
+
+The user explicitly prepares the image, then separately requests a share or download. Where `navigator.canShare` accepts a PNG file, the app invokes the system share flow. Otherwise, it asks the WebView/browser to download via an anchor; this is only a request and does not prove a file was saved. A cancelled share does not trigger a download. A redraw, context loss, chart change, explicit discard or component destruction invalidates the in-memory copy. Export does not include interactive selection overlays. Recipients or external download destinations can retain the image.
+
+Validation: contract tests cover PNG shape and header bounds, fixed filenames, download targets, share support and cancellation. `scripts/smoke-png-chromium.mjs` exercises a synthetic native response, all four views of the real shared renderer, PNG generation, mocked share handoff and stale-image invalidation in local Chromium with SwiftShader. With the Charts sibling checkout and `playwright-core` installed there, run `node scripts/smoke-png-chromium.mjs` after a normal build; set `VIRGOSTARS_SMOKE_ROOT` to the browser output directory when using an alternate build path, and `CHROME_PATH` if needed. A [local Android emulator smoke](ANDROID_PARITY_SMOKE_2026-11-17.md) also prepared and discarded a PNG, but did not invoke a native share or download. Real share/download, visual parity, physical-device and iOS compatibility remain QA gates. A transparent original placeholder stands in for the desktop aspect artwork.
+
+The PNG header validation and fixed-name download boundary derive from VirgoStars Desktop commit `023d76d` under CPAL-1.0. No external artwork or ephemeris data are added.
