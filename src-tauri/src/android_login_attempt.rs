@@ -49,6 +49,9 @@ fn challenge(verifier: &str) -> String {
 }
 
 impl AndroidLoginAttempt {
+    pub(crate) fn is_expired(&self, now: Instant) -> bool {
+        now >= self.deadline
+    }
     /// The caller must supply fixed trusted HTTPS URLs, not values from the
     /// WebView. A validated and verified App Link is still required separately.
     pub(crate) fn new(consent: &str, redirect: &str, now: Instant) -> Result<Self, ()> {

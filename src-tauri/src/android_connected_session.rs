@@ -79,11 +79,46 @@ pub(crate) fn verify<T: SessionTransport>(
     now: impl Fn() -> Instant,
 ) -> Result<VerifiedSession, SessionError> {
     let (bearer, scope, expires) = grant.into_parts();
+    let profile_ref = check(transport, &bearer, scope, expires, &now)?;
+    Ok(VerifiedSession {
+        bearer,
+        scope,
+        profile_ref,
+        expires,
+    })
+}
+
+/// Recheck the live grant and exact original account before committing data.
+pub(crate) fn revalidate<T: SessionTransport>(
+    transport: &T,
+    session: &VerifiedSession,
+    now: impl Fn() -> Instant,
+) -> Result<(), SessionError> {
+    let profile = check(
+        transport,
+        &session.bearer,
+        session.scope,
+        session.expires,
+        &now,
+    )?;
+    if profile != session.profile_ref {
+        return Err(SessionError::Invalid);
+    }
+    Ok(())
+}
+
+fn check<T: SessionTransport>(
+    transport: &T,
+    bearer: &str,
+    scope: TokenScope,
+    expires: Instant,
+    now: &impl Fn() -> Instant,
+) -> Result<String, SessionError> {
     if now() >= expires {
         return Err(SessionError::Expired);
     }
     let response = transport
-        .get_session(SESSION_ENDPOINT, &bearer, TIMEOUT, MAX_RESPONSE)
+        .get_session(SESSION_ENDPOINT, bearer, TIMEOUT, MAX_RESPONSE)
         .map_err(|_| SessionError::Network)?;
     let bytes = Zeroizing::new(response.body);
     if now() >= expires {
@@ -107,12 +142,7 @@ pub(crate) fn verify<T: SessionTransport>(
     {
         return Err(SessionError::Invalid);
     }
-    Ok(VerifiedSession {
-        bearer,
-        scope,
-        profile_ref: payload.profile_ref,
-        expires,
-    })
+    Ok(payload.profile_ref)
 }
 
 #[cfg(test)]
